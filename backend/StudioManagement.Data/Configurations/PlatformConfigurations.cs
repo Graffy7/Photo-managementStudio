@@ -111,6 +111,21 @@ public class FeatureConfiguration : IEntityTypeConfiguration<Feature>
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
         b.HasIndex(x => x.FeatureCode).IsUnique();
+
+        var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        b.HasData(
+            new Feature { FeatureId = 1, FeatureCode = "LEADS", FeatureName = "Leads", Description = "Capture and follow up on enquiries.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 2, FeatureCode = "CUSTOMERS", FeatureName = "Customers", Description = "Customer records and history.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 3, FeatureCode = "EVENTS", FeatureName = "Events", Description = "Bookings, schedules, and event status.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 4, FeatureCode = "WORKERS", FeatureName = "Workers", Description = "Photographers, videographers, and crew.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 5, FeatureCode = "SERVICES", FeatureName = "Services", Description = "The service catalog studios quote from.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 6, FeatureCode = "QUOTATIONS", FeatureName = "Quotations", Description = "Quote building and PDF generation.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 7, FeatureCode = "PAYMENTS", FeatureName = "Payments", Description = "Customer payment collection.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 8, FeatureCode = "EXPENSES", FeatureName = "Expenses", Description = "Studio expense tracking.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 9, FeatureCode = "REPORTS", FeatureName = "Reports", Description = "Profit and financial reporting.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 10, FeatureCode = "DAY_BOARD", FeatureName = "Day Board", Description = "Day/week/month schedule view.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 11, FeatureCode = "NOTIFICATIONS", FeatureName = "Notifications", Description = "In-app reminders and alerts.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
+        );
     }
 }
 

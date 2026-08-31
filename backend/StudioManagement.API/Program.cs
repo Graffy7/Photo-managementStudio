@@ -11,6 +11,7 @@ using StudioManagement.API.Middleware;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
 using StudioManagement.Business.Email;
+using StudioManagement.Business.Features;
 using StudioManagement.Business.Studios;
 using StudioManagement.Business.Subscriptions;
 using StudioManagement.Business.Tenant;
@@ -60,6 +61,7 @@ builder.Services.AddScoped<IStudioRepository, StudioRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+builder.Services.AddScoped<IStudioFeatureRepository, StudioFeatureRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
@@ -68,6 +70,7 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudioService, StudioService>();
+builder.Services.AddScoped<IFeatureService, FeatureService>();
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
