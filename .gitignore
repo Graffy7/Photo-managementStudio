@@ -1,0 +1,17 @@
+## .NET
+bin/
+obj/
+*.user
+Logs/
+
+## Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+
+## OS / editor
+.vs/
+.vscode/
+*.suo
+.DS_Store

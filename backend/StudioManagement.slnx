@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="StudioManagement.API/StudioManagement.API.csproj" />
+  <Project Path="StudioManagement.Business/StudioManagement.Business.csproj" />
+  <Project Path="StudioManagement.Data/StudioManagement.Data.csproj" />
+</Solution>
