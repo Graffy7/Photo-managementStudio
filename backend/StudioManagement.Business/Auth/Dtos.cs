@@ -4,6 +4,7 @@ public class LoginRequestDto
 {
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
+    public bool RememberMe { get; set; }
 }
 
 public class UserProfileDto
@@ -18,6 +19,37 @@ public class UserProfileDto
 public class LoginResponseDto
 {
     public string AccessToken { get; set; } = null!;
-    public DateTime ExpiresAtUtc { get; set; }
+    public DateTime AccessTokenExpiresAtUtc { get; set; }
+    public string RefreshToken { get; set; } = null!;
+    public DateTime RefreshTokenExpiresAtUtc { get; set; }
     public UserProfileDto User { get; set; } = null!;
+}
+
+public class RefreshRequestDto
+{
+    public string RefreshToken { get; set; } = null!;
+}
+
+public class LogoutRequestDto
+{
+    public string RefreshToken { get; set; } = null!;
+}
+
+public class ForgotPasswordRequestDto
+{
+    public string Email { get; set; } = null!;
+}
+
+public class ResetPasswordRequestDto
+{
+    public string Token { get; set; } = null!;
+    public string NewPassword { get; set; } = null!;
+    public string ConfirmPassword { get; set; } = null!;
+}
+
+public class ChangePasswordRequestDto
+{
+    public string CurrentPassword { get; set; } = null!;
+    public string NewPassword { get; set; } = null!;
+    public string ConfirmPassword { get; set; } = null!;
 }

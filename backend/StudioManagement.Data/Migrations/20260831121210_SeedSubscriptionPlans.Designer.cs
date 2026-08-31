@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudioManagement.Data.Context;
 
@@ -11,9 +12,11 @@ using StudioManagement.Data.Context;
 namespace StudioManagement.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260831121210_SeedSubscriptionPlans")]
+    partial class SeedSubscriptionPlans
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -780,40 +783,6 @@ namespace StudioManagement.Data.Migrations
                     b.ToTable("Notifications");
                 });
 
-            modelBuilder.Entity("StudioManagement.Data.Entities.PasswordResetToken", b =>
-                {
-                    b.Property<int>("PasswordResetTokenId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PasswordResetTokenId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("PasswordResetTokenId");
-
-                    b.HasIndex("TokenHash");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PasswordResetTokens");
-                });
-
             modelBuilder.Entity("StudioManagement.Data.Entities.Payment", b =>
                 {
                     b.Property<int>("PaymentId")
@@ -998,47 +967,6 @@ namespace StudioManagement.Data.Migrations
                     b.HasIndex("ServiceId");
 
                     b.ToTable("QuotationItems");
-                });
-
-            modelBuilder.Entity("StudioManagement.Data.Entities.RefreshToken", b =>
-                {
-                    b.Property<int>("RefreshTokenId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RefreshTokenId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByIp")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ReplacedByTokenId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("RefreshTokenId");
-
-                    b.HasIndex("TokenHash");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("StudioManagement.Data.Entities.Service", b =>
@@ -1748,17 +1676,6 @@ namespace StudioManagement.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("StudioManagement.Data.Entities.PasswordResetToken", b =>
-                {
-                    b.HasOne("StudioManagement.Data.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("StudioManagement.Data.Entities.Payment", b =>
                 {
                     b.HasOne("StudioManagement.Data.Entities.Customer", "Customer")
@@ -1828,17 +1745,6 @@ namespace StudioManagement.Data.Migrations
                     b.Navigation("Quotation");
 
                     b.Navigation("Service");
-                });
-
-            modelBuilder.Entity("StudioManagement.Data.Entities.RefreshToken", b =>
-                {
-                    b.HasOne("StudioManagement.Data.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StudioManagement.Data.Entities.Service", b =>

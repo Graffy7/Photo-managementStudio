@@ -16,12 +16,13 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
             ?? throw new InvalidOperationException("Jwt:Key is not configured. Set it via `dotnet user-secrets` (dev) or an environment variable (production).");
         var issuer = configuration["Jwt:Issuer"];
         var audience = configuration["Jwt:Audience"];
-        var expiryMinutes = configuration.GetValue<int?>("Jwt:AccessTokenExpiryMinutes") ?? 480;
+        var expiryMinutes = configuration.GetValue<int?>("Jwt:AccessTokenExpiryMinutes") ?? 15;
 
         var claims = new List<Claim>
         {
             new(TenantClaimTypes.UserId, user.UserId.ToString()),
             new(TenantClaimTypes.UserType, user.UserType),
+            new(ClaimTypes.Role, user.UserType),
             new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

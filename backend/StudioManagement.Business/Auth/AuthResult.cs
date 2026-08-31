@@ -4,7 +4,10 @@ public enum AuthFailureReason
 {
     InvalidCredentials,
     StudioInactive,
-    StudioBlocked
+    StudioBlocked,
+    RefreshTokenInvalid,
+    RefreshTokenExpired,
+    RefreshTokenRevoked
 }
 
 public class AuthResult

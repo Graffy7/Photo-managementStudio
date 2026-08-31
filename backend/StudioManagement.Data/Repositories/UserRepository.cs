@@ -8,4 +8,7 @@ public class UserRepository(AppDbContext context) : Repository<User>(context), I
 {
     public Task<User?> FindByEmailAsync(string email, CancellationToken ct = default) =>
         Set.Include(u => u.Studio).FirstOrDefaultAsync(u => u.Email == email, ct);
+
+    public Task<List<User>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
+        Set.AsNoTracking().Where(u => ids.Contains(u.UserId)).ToListAsync(ct);
 }

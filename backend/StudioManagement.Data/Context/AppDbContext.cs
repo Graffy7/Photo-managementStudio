@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<StudioFeature> StudioFeatures => Set<StudioFeature>();
     public DbSet<StudioSetting> StudioSettings => Set<StudioSetting>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     public DbSet<FormDefinition> FormDefinitions => Set<FormDefinition>();
     public DbSet<FormField> FormFields => Set<FormField>();

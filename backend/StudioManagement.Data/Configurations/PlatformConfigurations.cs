@@ -57,6 +57,12 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
         b.ToTable(t => t.HasCheckConstraint("CK_SubscriptionPlans_PlanType", CheckConstraintSql.In("PlanType", SubscriptionPlanTypes.All)));
+
+        var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        b.HasData(
+            new SubscriptionPlan { SubscriptionPlanId = 1, PlanName = "Monthly", PlanType = SubscriptionPlanTypes.Monthly, Price = 999m, DurationInDays = 30, Description = "Billed every month.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new SubscriptionPlan { SubscriptionPlanId = 2, PlanName = "Yearly", PlanType = SubscriptionPlanTypes.Yearly, Price = 9999m, DurationInDays = 365, Description = "Billed once a year — two months free versus Monthly.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
+        );
     }
 }
 
@@ -148,5 +154,44 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         b.HasIndex(x => new { x.StudioId, x.CreatedAt });
         b.HasOne<Studio>().WithMany().HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+{
+    public void Configure(EntityTypeBuilder<RefreshToken> b)
+    {
+        b.HasKey(x => x.RefreshTokenId);
+        b.Property(x => x.TokenHash).IsRequired().HasMaxLength(128);
+        b.Property(x => x.CreatedByIp).HasMaxLength(64);
+        b.Property(x => x.ExpiresAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.RevokedAt).HasColumnType("datetime2");
+        b.Ignore(x => x.IsActive);
+
+        b.HasIndex(x => x.TokenHash);
+        b.HasIndex(x => x.UserId);
+
+        b.HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<PasswordResetToken>
+{
+    public void Configure(EntityTypeBuilder<PasswordResetToken> b)
+    {
+        b.HasKey(x => x.PasswordResetTokenId);
+        b.Property(x => x.TokenHash).IsRequired().HasMaxLength(128);
+        b.Property(x => x.ExpiresAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.UsedAt).HasColumnType("datetime2");
+        b.Ignore(x => x.IsActive);
+
+        b.HasIndex(x => x.TokenHash);
+        b.HasIndex(x => x.UserId);
+
+        b.HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }
