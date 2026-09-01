@@ -10,4 +10,7 @@ public interface ITenantRepository<T> where T : class, ITenantEntity
     void Update(T entity);
     void Remove(T entity);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
+
+    /// Reads the entity's primary key value regardless of its property name (EventTypeId, LeadSourceId, ...).
+    int GetKey(T entity);
 }

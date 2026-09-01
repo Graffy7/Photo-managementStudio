@@ -1,6 +1,6 @@
 namespace StudioManagement.Data.Entities;
 
-public class LeadStatus : ITenantEntity
+public class LeadStatus : ITenantEntity, INamedLookup
 {
     public int LeadStatusId { get; set; }
     public int StudioId { get; set; }

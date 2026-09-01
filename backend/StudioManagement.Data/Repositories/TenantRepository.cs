@@ -33,4 +33,10 @@ public class TenantRepository<T>(AppDbContext context) : ITenantRepository<T> wh
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default) =>
         _context.SaveChangesAsync(ct);
+
+    public int GetKey(T entity)
+    {
+        var keyProperty = _context.Model.FindEntityType(typeof(T))!.FindPrimaryKey()!.Properties[0].PropertyInfo!;
+        return (int)keyProperty.GetValue(entity)!;
+    }
 }

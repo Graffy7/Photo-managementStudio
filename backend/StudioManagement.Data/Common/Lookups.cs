@@ -68,3 +68,31 @@ public static class PaymentStatuses
 
     public static readonly string[] All = [Completed, Cancelled, Refunded];
 }
+
+public static class NotificationTypes
+{
+    public const string LeadCreated = "LeadCreated";
+    public const string LeadConverted = "LeadConverted";
+    public const string QuotationAccepted = "QuotationAccepted";
+    public const string PaymentReceived = "PaymentReceived";
+    public const string EventReminder = "EventReminder";
+}
+
+public static class FieldTypes
+{
+    public const string Text = "TEXT";
+    public const string TextArea = "TEXTAREA";
+    public const string Number = "NUMBER";
+    public const string Date = "DATE";
+    public const string DateTime = "DATETIME";
+    public const string Dropdown = "DROPDOWN";
+    public const string MultiSelect = "MULTISELECT";
+    public const string Checkbox = "CHECKBOX";
+    public const string Radio = "RADIO";
+    public const string Switch = "SWITCH";
+    public const string Email = "EMAIL";
+    public const string Phone = "PHONE";
+
+    public static readonly string[] All =
+        [Text, TextArea, Number, Date, DateTime, Dropdown, MultiSelect, Checkbox, Radio, Switch, Email, Phone];
+}

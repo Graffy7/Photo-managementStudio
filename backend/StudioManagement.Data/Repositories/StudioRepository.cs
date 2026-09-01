@@ -42,4 +42,7 @@ public class StudioRepository(AppDbContext context) : Repository<Studio>(context
 
     public Task<List<Studio>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
         Set.AsNoTracking().Where(s => ids.Contains(s.StudioId)).ToListAsync(ct);
+
+    public Task<List<int>> GetActiveStudioIdsAsync(CancellationToken ct = default) =>
+        Set.AsNoTracking().Where(s => s.IsActive).Select(s => s.StudioId).ToListAsync(ct);
 }

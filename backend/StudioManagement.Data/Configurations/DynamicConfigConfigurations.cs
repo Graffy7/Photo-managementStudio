@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 
 namespace StudioManagement.Data.Configurations;
@@ -34,6 +35,8 @@ public class FormFieldConfiguration : IEntityTypeConfiguration<FormField>
         b.HasIndex(x => new { x.FormDefinitionId, x.FieldKey }).IsUnique();
         b.HasOne(x => x.FormDefinition).WithMany(x => x.FormFields)
             .HasForeignKey(x => x.FormDefinitionId).OnDelete(DeleteBehavior.Cascade);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_FormFields_FieldType", CheckConstraintSql.In("FieldType", FieldTypes.All)));
     }
 }
 

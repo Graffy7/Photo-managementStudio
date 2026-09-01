@@ -252,6 +252,9 @@ namespace StudioManagement.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -659,7 +662,10 @@ namespace StudioManagement.Data.Migrations
                     b.HasIndex("FormDefinitionId", "FieldKey")
                         .IsUnique();
 
-                    b.ToTable("FormFields");
+                    b.ToTable("FormFields", t =>
+                        {
+                            t.HasCheckConstraint("CK_FormFields_FieldType", "[FieldType] IN ('TEXT','TEXTAREA','NUMBER','DATE','DATETIME','DROPDOWN','MULTISELECT','CHECKBOX','RADIO','SWITCH','EMAIL','PHONE')");
+                        });
                 });
 
             modelBuilder.Entity("StudioManagement.Data.Entities.FormFieldOption", b =>
@@ -789,6 +795,9 @@ namespace StudioManagement.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -1574,6 +1583,9 @@ namespace StudioManagement.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
