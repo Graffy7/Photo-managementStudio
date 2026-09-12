@@ -14,6 +14,8 @@ public class EventDto
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public decimal? Budget { get; set; }
+    public decimal AmountPaid { get; set; }
+    public decimal Balance { get; set; }
     public string EventStatus { get; set; } = null!;
     public string? FileLocation { get; set; }
     public string? Notes { get; set; }
@@ -48,5 +50,10 @@ public class UpdateEventRequestDto
     public decimal? Budget { get; set; }
     public string EventStatus { get; set; } = null!;
     public string? FileLocation { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class UpdateEventNotesRequestDto
+{
     public string? Notes { get; set; }
 }

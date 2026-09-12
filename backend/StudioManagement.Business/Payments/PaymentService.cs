@@ -24,9 +24,10 @@ public class PaymentService(
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await paymentRepository.SearchAsync(studioId, search, paymentStatus, customerId, page, pageSize, ct);
+        var eventTotals = await GetEventTotalsAsync(studioId, items, ct);
         return new PagedResult<PaymentDto>
         {
-            Items = items.Select(MapToDto).ToList(),
+            Items = items.Select(p => MapToDto(p, eventTotals)).ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -36,7 +37,23 @@ public class PaymentService(
     public async Task<PaymentDto?> GetByIdAsync(int studioId, int paymentId, CancellationToken ct = default)
     {
         var payment = await paymentRepository.GetByIdAsync(studioId, paymentId, ct);
-        return payment is null ? null : MapToDto(payment);
+        if (payment is null)
+        {
+            return null;
+        }
+
+        var eventTotals = await GetEventTotalsAsync(studioId, [payment], ct);
+        return MapToDto(payment, eventTotals);
+    }
+
+    // "Advance paid" needs every Completed payment recorded against an event, not just the one
+    // row being mapped — Event.Payments can't be Include()'d for this (it cycles back through
+    // this same entity in a no-tracking query), so it's fetched as a separate grouped lookup.
+    private async Task<Dictionary<int, decimal>> GetEventTotalsAsync(int studioId, List<Payment> payments, CancellationToken ct)
+    {
+        var eventIds = payments.Where(p => p.EventId is not null).Select(p => p.EventId!.Value).Distinct().ToList();
+        var totals = await paymentRepository.GetCompletedTotalsByEventIdsAsync(studioId, eventIds, ct);
+        return totals.ToDictionary(t => t.EventId, t => t.TotalPaid);
     }
 
     public async Task<PaymentWriteResult> CreateAsync(int studioId, CreatePaymentRequestDto request, CancellationToken ct = default)
@@ -68,7 +85,8 @@ public class PaymentService(
         await auditService.LogAsync("Payment recorded", Module, studioId, ct);
 
         var created = await paymentRepository.GetByIdAsync(studioId, payment.PaymentId, ct);
-        var dto = MapToDto(created!);
+        var eventTotals = await GetEventTotalsAsync(studioId, [created!], ct);
+        var dto = MapToDto(created!, eventTotals);
 
         if (payment.PaymentStatus == PaymentStatuses.Completed)
         {
@@ -108,7 +126,8 @@ public class PaymentService(
         await auditService.LogAsync("Payment updated", Module, studioId, ct);
 
         var updated = await paymentRepository.GetByIdAsync(studioId, paymentId, ct);
-        return PaymentWriteResult.Success(MapToDto(updated!));
+        var eventTotals = await GetEventTotalsAsync(studioId, [updated!], ct);
+        return PaymentWriteResult.Success(MapToDto(updated!, eventTotals));
     }
 
     private async Task<PaymentWriteFailureReason?> ValidateReferencesAsync(int studioId, int customerId, int? eventId, CancellationToken ct)
@@ -131,21 +150,29 @@ public class PaymentService(
         return null;
     }
 
-    private static PaymentDto MapToDto(Payment payment) => new()
+    private static PaymentDto MapToDto(Payment payment, Dictionary<int, decimal> eventTotals)
     {
-        PaymentId = payment.PaymentId,
-        CustomerId = payment.CustomerId,
-        CustomerName = payment.Customer.FullName,
-        CustomerMobileNumber = payment.Customer.MobileNumber,
-        EventId = payment.EventId,
-        EventVenue = payment.Event?.Venue,
-        Amount = payment.Amount,
-        PaymentDate = payment.PaymentDate,
-        PaymentMethod = payment.PaymentMethod,
-        ReferenceNumber = payment.ReferenceNumber,
-        Notes = payment.Notes,
-        PaymentStatus = payment.PaymentStatus,
-        CreatedAt = payment.CreatedAt,
-        UpdatedAt = payment.UpdatedAt
-    };
+        var eventAmountPaid = payment.EventId is not null && eventTotals.TryGetValue(payment.EventId.Value, out var total) ? total : (decimal?)null;
+
+        return new PaymentDto
+        {
+            PaymentId = payment.PaymentId,
+            CustomerId = payment.CustomerId,
+            CustomerName = payment.Customer.FullName,
+            CustomerMobileNumber = payment.Customer.MobileNumber,
+            EventId = payment.EventId,
+            EventVenue = payment.Event?.Venue,
+            EventBudget = payment.Event?.Budget,
+            EventAmountPaid = eventAmountPaid,
+            EventBalance = payment.Event is null ? null : (payment.Event.Budget ?? 0) - (eventAmountPaid ?? 0),
+            Amount = payment.Amount,
+            PaymentDate = payment.PaymentDate,
+            PaymentMethod = payment.PaymentMethod,
+            ReferenceNumber = payment.ReferenceNumber,
+            Notes = payment.Notes,
+            PaymentStatus = payment.PaymentStatus,
+            CreatedAt = payment.CreatedAt,
+            UpdatedAt = payment.UpdatedAt
+        };
+    }
 }

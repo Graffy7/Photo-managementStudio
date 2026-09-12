@@ -14,6 +14,12 @@ public class UserProfileDto
     public string Email { get; set; } = null!;
     public string UserType { get; set; } = null!;
     public int? StudioId { get; set; }
+    public string? StudioName { get; set; }
+    public bool IsActive { get; set; }
+
+    // The login *before* this one — set right before LoginAsync overwrites it with "now", so it
+    // reads as "when you last logged in" rather than the current moment.
+    public DateTime? LastLoginAt { get; set; }
 }
 
 public class LoginResponseDto

@@ -21,6 +21,12 @@ public class StudioConfiguration : IEntityTypeConfiguration<Studio>
         b.Property(x => x.Email).IsRequired().HasMaxLength(256);
         b.Property(x => x.PhoneNumber).HasMaxLength(30);
         b.Property(x => x.Address).HasMaxLength(500);
+        b.Property(x => x.City).HasMaxLength(100);
+        b.Property(x => x.State).HasMaxLength(100);
+        b.Property(x => x.Pincode).HasMaxLength(20);
+        b.Property(x => x.GstNumber).HasMaxLength(30);
+        b.Property(x => x.Website).HasMaxLength(300);
+        b.Property(x => x.LogoUrl).HasMaxLength(300);
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
         b.HasIndex(x => x.Email).IsUnique();
@@ -36,6 +42,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(x => x.Email).IsRequired().HasMaxLength(256);
         b.Property(x => x.PasswordHash).IsRequired();
         b.Property(x => x.UserType).IsRequired().HasMaxLength(30);
+        b.Property(x => x.LastLoginAt).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
         b.HasIndex(x => x.Email).IsUnique();

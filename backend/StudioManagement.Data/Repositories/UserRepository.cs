@@ -11,4 +11,7 @@ public class UserRepository(AppDbContext context) : Repository<User>(context), I
 
     public Task<List<User>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
         Set.AsNoTracking().Where(u => ids.Contains(u.UserId)).ToListAsync(ct);
+
+    public Task<User?> GetByIdWithStudioAsync(int userId, CancellationToken ct = default) =>
+        Set.Include(u => u.Studio).FirstOrDefaultAsync(u => u.UserId == userId, ct);
 }

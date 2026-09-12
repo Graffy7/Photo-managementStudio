@@ -76,6 +76,13 @@ public class EventsController(
         return Ok(result.Event);
     }
 
+    [HttpPatch("{id:int}/notes")]
+    public async Task<IActionResult> UpdateNotes(int id, UpdateEventNotesRequestDto request, CancellationToken ct)
+    {
+        var updated = await eventService.UpdateNotesAsync(StudioId, id, request.Notes, ct);
+        return updated is null ? NotFound() : Ok(updated);
+    }
+
     [HttpGet("{id:int}/workers")]
     public async Task<IActionResult> GetAssignedWorkers(int id, CancellationToken ct)
     {

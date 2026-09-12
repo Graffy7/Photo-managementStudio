@@ -9,6 +9,7 @@ public class User
     public string UserType { get; set; } = null!;
     public int? StudioId { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

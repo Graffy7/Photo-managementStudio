@@ -12,6 +12,7 @@ namespace StudioManagement.API.Controllers;
 public class AuthController(
     IAuthService authService,
     IPasswordResetService passwordResetService,
+    IRefreshTokenService refreshTokenService,
     IValidator<LoginRequestDto> loginValidator,
     IValidator<RefreshRequestDto> refreshValidator,
     IValidator<LogoutRequestDto> logoutValidator,
@@ -152,5 +153,13 @@ public class AuthController(
     {
         var profile = await authService.GetProfileAsync(tenantContext.CurrentUserId!.Value, ct);
         return profile is null ? NotFound() : Ok(profile);
+    }
+
+    [HttpPost("logout-everywhere")]
+    [Authorize]
+    public async Task<IActionResult> LogoutEverywhere(CancellationToken ct)
+    {
+        await refreshTokenService.RevokeAllForUserAsync(tenantContext.CurrentUserId!.Value, ct);
+        return Ok(new { message = "You've been signed out on every device." });
     }
 }

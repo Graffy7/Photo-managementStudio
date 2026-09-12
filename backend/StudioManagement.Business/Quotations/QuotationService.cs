@@ -1,6 +1,7 @@
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
 using StudioManagement.Business.Notifications;
+using StudioManagement.Business.Settings;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -15,6 +16,7 @@ public class QuotationService(
     IServiceCatalogRepository serviceCatalogRepository,
     IAuditService auditService,
     INotificationService notificationService,
+    IStudioSettingsService studioSettingsService,
     IUnitOfWork unitOfWork) : IQuotationService
 {
     private const string Module = "Quotations";
@@ -57,18 +59,23 @@ public class QuotationService(
             Notes = i.Notes
         }).ToList();
 
+        var settings = await studioSettingsService.GetQuotationSettingsAsync(studioId, ct);
         var subtotal = items.Sum(i => i.Total);
-        var sequence = await quotationRepository.CountAllAsync(studioId, ct) + 1;
+        var existingCount = await quotationRepository.CountAllAsync(studioId, ct);
+        var sequence = settings.StartingNumber + existingCount;
         var now = DateTime.UtcNow;
+
+        var businessSettings = await studioSettingsService.GetBusinessSettingsAsync(studioId, ct);
+        var validUntil = request.ValidUntil ?? request.QuotationDate.AddDays(businessSettings.QuotationValidityDays);
 
         var quotation = new Quotation
         {
             StudioId = studioId,
-            QuotationNumber = $"Q-{sequence:000000}",
+            QuotationNumber = $"{settings.Prefix}{sequence:000000}",
             CustomerId = request.CustomerId,
             EventId = request.EventId,
             QuotationDate = request.QuotationDate,
-            ValidUntil = request.ValidUntil,
+            ValidUntil = validUntil,
             Subtotal = subtotal,
             Discount = request.Discount,
             TaxAmount = request.TaxAmount,
@@ -154,6 +161,33 @@ public class QuotationService(
         }
 
         return QuotationWriteResult.Success(dto);
+    }
+
+    public async Task<QuotationDto?> SetStatusAsync(int studioId, int quotationId, string status, CancellationToken ct = default)
+    {
+        var quotation = await quotationRepository.GetByIdAsync(studioId, quotationId, ct);
+        if (quotation is null)
+        {
+            return null;
+        }
+
+        var previousStatus = quotation.Status;
+        quotation.Status = status;
+        quotation.UpdatedAt = DateTime.UtcNow;
+
+        quotationRepository.Update(quotation);
+        await unitOfWork.SaveChangesAsync(ct);
+        await auditService.LogAsync($"Quotation status changed: {previousStatus} → {status}", Module, studioId, ct);
+
+        var dto = MapToDto(quotation);
+
+        if (status == QuotationStatuses.Accepted && previousStatus != QuotationStatuses.Accepted)
+        {
+            await notificationService.NotifyAsync(
+                studioId, "Quotation accepted", $"Quotation {dto.QuotationNumber} accepted — ₹{dto.GrandTotal:N0}", NotificationTypes.QuotationAccepted, ct);
+        }
+
+        return dto;
     }
 
     private async Task<QuotationWriteFailureReason?> ValidateReferencesAsync(int studioId, int customerId, int? eventId, List<QuotationItemRequestDto> items, CancellationToken ct)

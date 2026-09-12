@@ -8,4 +8,5 @@ public interface IQuotationService
     Task<QuotationDto?> GetByIdAsync(int studioId, int quotationId, CancellationToken ct = default);
     Task<QuotationWriteResult> CreateAsync(int studioId, CreateQuotationRequestDto request, CancellationToken ct = default);
     Task<QuotationWriteResult?> UpdateAsync(int studioId, int quotationId, UpdateQuotationRequestDto request, CancellationToken ct = default);
+    Task<QuotationDto?> SetStatusAsync(int studioId, int quotationId, string status, CancellationToken ct = default);
 }

@@ -1,6 +1,7 @@
 using System.Globalization;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
 using StudioManagement.Data.UnitOfWork;
@@ -110,27 +111,53 @@ public class EventService(
         return EventWriteResult.Success(MapToDto(updated!));
     }
 
+    public async Task<EventDto?> UpdateNotesAsync(int studioId, int eventId, string? notes, CancellationToken ct = default)
+    {
+        var @event = await eventRepository.GetByIdAsync(studioId, eventId, ct);
+        if (@event is null)
+        {
+            return null;
+        }
+
+        @event.Notes = notes;
+        @event.UpdatedAt = DateTime.UtcNow;
+
+        eventRepository.Update(@event);
+        await unitOfWork.SaveChangesAsync(ct);
+        await auditService.LogAsync("Event notes updated", Module, studioId, ct);
+
+        var updated = await eventRepository.GetByIdAsync(studioId, eventId, ct);
+        return MapToDto(updated!);
+    }
+
     private static TimeSpan? ParseTime(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : TimeSpan.ParseExact(value, TimeFormat, CultureInfo.InvariantCulture);
 
-    private static EventDto MapToDto(Event @event) => new()
+    private static EventDto MapToDto(Event @event)
     {
-        EventId = @event.EventId,
-        CustomerId = @event.CustomerId,
-        CustomerName = @event.Customer.FullName,
-        CustomerMobileNumber = @event.Customer.MobileNumber,
-        EventTypeId = @event.EventTypeId,
-        EventTypeName = @event.EventType?.Name,
-        EventDate = @event.EventDate,
-        StartTime = @event.StartTime?.ToString(TimeFormat, CultureInfo.InvariantCulture),
-        EndTime = @event.EndTime?.ToString(TimeFormat, CultureInfo.InvariantCulture),
-        Venue = @event.Venue,
-        VenueAddress = @event.VenueAddress,
-        Budget = @event.Budget,
-        EventStatus = @event.EventStatus,
-        FileLocation = @event.FileLocation,
-        Notes = @event.Notes,
-        CreatedAt = @event.CreatedAt,
-        UpdatedAt = @event.UpdatedAt
-    };
+        var amountPaid = @event.Payments.Where(p => p.PaymentStatus == PaymentStatuses.Completed).Sum(p => p.Amount);
+
+        return new EventDto
+        {
+            EventId = @event.EventId,
+            CustomerId = @event.CustomerId,
+            CustomerName = @event.Customer.FullName,
+            CustomerMobileNumber = @event.Customer.MobileNumber,
+            EventTypeId = @event.EventTypeId,
+            EventTypeName = @event.EventType?.Name,
+            EventDate = @event.EventDate,
+            StartTime = @event.StartTime?.ToString(TimeFormat, CultureInfo.InvariantCulture),
+            EndTime = @event.EndTime?.ToString(TimeFormat, CultureInfo.InvariantCulture),
+            Venue = @event.Venue,
+            VenueAddress = @event.VenueAddress,
+            Budget = @event.Budget,
+            AmountPaid = amountPaid,
+            Balance = (@event.Budget ?? 0) - amountPaid,
+            EventStatus = @event.EventStatus,
+            FileLocation = @event.FileLocation,
+            Notes = @event.Notes,
+            CreatedAt = @event.CreatedAt,
+            UpdatedAt = @event.UpdatedAt
+        };
+    }
 }

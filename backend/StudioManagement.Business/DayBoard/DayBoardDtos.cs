@@ -14,11 +14,19 @@ public class DayBoardEventDto
     public string? EventTypeName { get; set; }
     public string EventStatus { get; set; } = null!;
     public decimal? Budget { get; set; }
+    public decimal AmountPaid { get; set; }
+    public decimal Balance { get; set; }
     public string? Notes { get; set; }
     public List<AssignedWorkerDto> Workers { get; set; } = [];
 }
 
 public class DayBoardDto
+{
+    public DateTime Date { get; set; }
+    public List<DayBoardEventDto> Events { get; set; } = [];
+}
+
+public class MonthEventsDto
 {
     public DateTime Date { get; set; }
     public List<DayBoardEventDto> Events { get; set; } = [];

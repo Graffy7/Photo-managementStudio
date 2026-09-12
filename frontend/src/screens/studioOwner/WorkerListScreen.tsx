@@ -6,8 +6,9 @@ import { workersApi } from "../../api/workersApi";
 import { lookupApis } from "../../api/lookupsApi";
 import type { Worker } from "../../types/worker";
 import { StatusPill } from "../../components/StatusPill";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
-export function WorkerListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (worker: Worker) => void }) {
+export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (worker: Worker) => void; onView: (worker: Worker) => void }) {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -15,10 +16,11 @@ export function WorkerListScreen({ onCreate, onEdit }: { onCreate: () => void; o
 
   const { data: workerTypes } = useQuery({ queryKey: ["lookups", "workerTypes"], queryFn: lookupApis.workerTypes.getAll });
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["workers", search, workerTypeId],
     queryFn: () => workersApi.search({ search: search || undefined, workerTypeId: workerTypeId ?? undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["workers"] });
 
@@ -37,6 +39,9 @@ export function WorkerListScreen({ onCreate, onEdit }: { onCreate: () => void; o
         </View>
       </View>
       <View style={styles.actions}>
+        <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
+          <Text style={styles.actionText}>View</Text>
+        </Pressable>
         <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
           <Text style={styles.actionText}>Edit</Text>
         </Pressable>

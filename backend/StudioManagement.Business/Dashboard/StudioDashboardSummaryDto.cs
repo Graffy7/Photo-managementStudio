@@ -23,4 +23,27 @@ public class StudioDashboardSummaryDto
     public decimal TotalExpenses { get; set; }
     public decimal ExpectedProfit { get; set; }
     public decimal CashProfit { get; set; }
+
+    // Null means there's no previous-period baseline to compare against (e.g. the studio had
+    // zero of something last period), not that the change is zero.
+    public decimal? LeadsChangePercent { get; set; }
+    public decimal? CustomersChangePercent { get; set; }
+    public decimal? EventsChangePercent { get; set; }
+    public decimal? RevenueChangePercent { get; set; }
+
+    public List<TopServiceDto> TopServices { get; set; } = [];
+    public List<RevenueTrendPointDto> RevenueTrend { get; set; } = [];
+}
+
+public class TopServiceDto
+{
+    public string ServiceName { get; set; } = null!;
+    public int UsageCount { get; set; }
+    public decimal Percentage { get; set; }
+}
+
+public class RevenueTrendPointDto
+{
+    public DateTime Date { get; set; }
+    public decimal Amount { get; set; }
 }

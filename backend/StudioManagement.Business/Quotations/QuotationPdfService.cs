@@ -1,15 +1,32 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using StudioManagement.Business.Settings;
+using StudioManagement.Business.Storage;
 using StudioManagement.Data.Repositories;
 
 namespace StudioManagement.Business.Quotations;
 
-public class QuotationPdfService(IStudioRepository studioRepository) : IQuotationPdfService
+public class QuotationPdfService(
+    IStudioRepository studioRepository,
+    IStudioSettingsService studioSettingsService,
+    IFileStorage fileStorage) : IQuotationPdfService
 {
     public async Task<byte[]> GenerateAsync(int studioId, QuotationDto quotation, CancellationToken ct = default)
     {
         var studio = await studioRepository.GetByIdAsync(studioId, ct);
+        var settings = await studioSettingsService.GetQuotationSettingsAsync(studioId, ct);
+        var rawLogoBytes = settings.ShowLogo && !string.IsNullOrWhiteSpace(studio?.LogoUrl)
+            ? await fileStorage.ReadAsync(studio.LogoUrl, ct)
+            : null;
+        // QuestPDF has no native opacity/transparency API for images — the watermark effect is
+        // baked into the pixels themselves (re-encoded as PNG, which supports alpha) before handing
+        // the bytes to QuestPDF.
+        var logoBytes = rawLogoBytes is not null ? ApplyWatermarkOpacity(rawLogoBytes, 0.35f) : null;
 
         var document = Document.Create(container =>
         {
@@ -19,19 +36,34 @@ public class QuotationPdfService(IStudioRepository studioRepository) : IQuotatio
                 page.Margin(40);
                 page.DefaultTextStyle(x => x.FontSize(10).FontColor(Colors.Grey.Darken3));
 
+                // A large, faint centered watermark rather than a small header logo — sits behind
+                // both the header and content since QuestPDF layers Background beneath everything.
+                if (logoBytes is not null)
+                {
+                    page.Background().AlignCenter().AlignMiddle().Width(320).Image(logoBytes).FitWidth();
+                }
+
                 page.Header().Row(row =>
                 {
                     row.RelativeItem().Column(col =>
                     {
                         col.Item().Text(studio?.StudioName ?? "Studio").FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
-                        if (!string.IsNullOrWhiteSpace(studio?.Address))
+                        if (settings.ShowAddress && !string.IsNullOrWhiteSpace(studio?.Address))
                         {
-                            col.Item().Text(studio.Address).FontSize(9).FontColor(Colors.Grey.Darken1);
+                            var addressLine = string.Join(", ", new[] { studio.Address, studio.City, studio.State, studio.Pincode }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                            col.Item().Text(addressLine).FontSize(9).FontColor(Colors.Grey.Darken1);
                         }
-                        var contact = string.Join(" · ", new[] { studio?.PhoneNumber, studio?.Email }.Where(s => !string.IsNullOrWhiteSpace(s)));
-                        if (!string.IsNullOrWhiteSpace(contact))
+                        if (settings.ShowContact)
                         {
-                            col.Item().Text(contact).FontSize(9).FontColor(Colors.Grey.Darken1);
+                            var contact = string.Join(" · ", new[] { studio?.PhoneNumber, studio?.Email }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                            if (!string.IsNullOrWhiteSpace(contact))
+                            {
+                                col.Item().Text(contact).FontSize(9).FontColor(Colors.Grey.Darken1);
+                            }
+                        }
+                        if (settings.ShowGst && !string.IsNullOrWhiteSpace(studio?.GstNumber))
+                        {
+                            col.Item().Text($"GSTIN: {studio.GstNumber}").FontSize(9).FontColor(Colors.Grey.Darken1);
                         }
                     });
 
@@ -154,6 +186,15 @@ public class QuotationPdfService(IStudioRepository studioRepository) : IQuotatio
         });
 
         return document.GeneratePdf();
+    }
+
+    private static byte[] ApplyWatermarkOpacity(byte[] sourceBytes, float opacity)
+    {
+        using var image = SixLabors.ImageSharp.Image.Load<Rgba32>(sourceBytes);
+        image.Mutate(ctx => ctx.Opacity(opacity));
+        using var output = new MemoryStream();
+        image.Save(output, new PngEncoder());
+        return output.ToArray();
     }
 
     private static string FormatCurrency(decimal value) => $"Rs. {value:N0}";

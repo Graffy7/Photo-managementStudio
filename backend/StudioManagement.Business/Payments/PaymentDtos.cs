@@ -8,6 +8,14 @@ public class PaymentDto
     public string CustomerMobileNumber { get; set; } = null!;
     public int? EventId { get; set; }
     public string? EventVenue { get; set; }
+
+    // Only populated when this payment is linked to an event — the event's overall budget vs.
+    // every Completed payment recorded against it (not just this one), so the studio owner can
+    // see the full picture (total due / paid so far / balance) from any single payment row.
+    public decimal? EventBudget { get; set; }
+    public decimal? EventAmountPaid { get; set; }
+    public decimal? EventBalance { get; set; }
+
     public decimal Amount { get; set; }
     public DateTime PaymentDate { get; set; }
     public string PaymentMethod { get; set; } = null!;

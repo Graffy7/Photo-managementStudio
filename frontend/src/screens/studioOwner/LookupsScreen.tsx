@@ -8,8 +8,8 @@ import { StatusPill } from "../../components/StatusPill";
 
 const TABS: { key: LookupKind; label: string }[] = [
   { key: "eventTypes", label: "Event Types" },
-  { key: "leadSources", label: "Lead Sources" },
-  { key: "leadStatuses", label: "Lead Statuses" },
+  { key: "leadSources", label: "Enquiry Sources" },
+  { key: "leadStatuses", label: "Enquiry Statuses" },
   { key: "workerTypes", label: "Worker Types" },
 ];
 
@@ -47,7 +47,7 @@ export function LookupsScreen() {
         <Text style={styles.backText}>‹ Settings</Text>
       </Pressable>
       <Text style={styles.title}>Dropdown lists</Text>
-      <Text style={styles.subtitle}>The values your team picks from when creating a lead or event.</Text>
+      <Text style={styles.subtitle}>The values your team picks from when creating an enquiry or event.</Text>
 
       <View style={styles.tabRow}>
         {TABS.map((t) => (

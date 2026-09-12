@@ -22,10 +22,12 @@ public class LeadsController(
     public async Task<IActionResult> Search(
         [FromQuery] string? search,
         [FromQuery] int? leadStatusId,
+        [FromQuery] DateTime? createdFrom,
+        [FromQuery] DateTime? createdTo,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default) =>
-        Ok(await leadService.SearchAsync(StudioId, search, leadStatusId, page, pageSize, ct));
+        Ok(await leadService.SearchAsync(StudioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

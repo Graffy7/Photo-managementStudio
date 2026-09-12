@@ -1,8 +1,9 @@
 import { Platform } from "react-native";
 
-// No base64 encoder ships with React Native, and this is the one spot in the app that
-// needs to turn raw bytes into a data/base64 string (for the native share sheet).
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
+// No base64 encoder ships with React Native, so this is shared by anything that needs to turn
+// raw bytes into a data/base64 string (the native share sheet here; authenticated image previews
+// elsewhere, since <Image> can't attach the Authorization header a raw URL would need).
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   let result = "";

@@ -40,6 +40,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    public DbSet<PhotoSelectionProject> PhotoSelectionProjects => Set<PhotoSelectionProject>();
+    public DbSet<Photo> Photos => Set<Photo>();
+    public DbSet<PhotoSelectionActivity> PhotoSelectionActivities => Set<PhotoSelectionActivity>();
+    public DbSet<PhotoProcessingJob> PhotoProcessingJobs => Set<PhotoProcessingJob>();
+    public DbSet<PhotoProcessingJobItem> PhotoProcessingJobItems => Set<PhotoProcessingJobItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

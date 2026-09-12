@@ -6,6 +6,7 @@ import { expensesApi } from "../../api/expensesApi";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
 import type { Expense } from "../../types/expense";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -33,10 +34,11 @@ export function ExpenseListScreen({
 
   const { data: categories } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["expenses", search, categoryId],
     queryFn: () => expensesApi.search({ search: search || undefined, expenseCategoryId: categoryId ?? undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const remove = useMutation({
     mutationFn: expensesApi.remove,

@@ -2,12 +2,13 @@ import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { reportsApi } from "../../api/reportsApi";
-import { DATE_RANGE_PRESETS, DATE_RANGE_PRESET_LABELS, type DateRangePreset } from "../../types/studioDashboard";
+import { DATE_RANGE_PRESET_LABELS, type DateRangePreset } from "../../types/studioDashboard";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
-}
+const REPORT_PRESETS: DateRangePreset[] = ["Today", "ThisWeek", "ThisMonth", "PreviousYear", "Custom"];
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -26,11 +27,16 @@ function StatTile({ label, value, tone }: { label: string; value: string | numbe
 export function ReportsScreen() {
   const navigation = useNavigation<any>();
   const [preset, setPreset] = useState<DateRangePreset>("ThisMonth");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const customRangeReady = customStart.length > 0 && customEnd.length > 0;
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["profit-report", preset],
-    queryFn: () => reportsApi.getProfitReport(preset),
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["profit-report", preset, customStart, customEnd],
+    queryFn: () => reportsApi.getProfitReport(preset, customStart, customEnd),
+    enabled: preset !== "Custom" || customRangeReady,
   });
+  useRefetchOnFocus(refetch);
 
   const maxCategoryAmount = Math.max(1, ...(data?.expensesByCategory.map((c) => c.totalAmount) ?? [1]));
 
@@ -47,14 +53,24 @@ export function ReportsScreen() {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetRow} contentContainerStyle={styles.presetRowContent}>
-        {DATE_RANGE_PRESETS.map((p) => (
+        {REPORT_PRESETS.map((p) => (
           <Pressable key={p} style={[styles.presetChip, preset === p && styles.presetChipSelected]} onPress={() => setPreset(p)}>
             <Text style={[styles.presetChipText, preset === p && styles.presetChipTextSelected]}>{DATE_RANGE_PRESET_LABELS[p]}</Text>
           </Pressable>
         ))}
       </ScrollView>
 
-      {isLoading ? (
+      {preset === "Custom" && (
+        <View style={styles.customRangeRow}>
+          <MiniDatePicker label="From" value={customStart} onChange={setCustomStart} />
+          <Ionicons name="arrow-forward" size={14} color="#6f83a0" style={{ marginTop: 20 }} />
+          <MiniDatePicker label="To" value={customEnd} onChange={setCustomEnd} />
+        </View>
+      )}
+
+      {preset === "Custom" && !customRangeReady ? (
+        <Text style={styles.empty}>Enter both dates above to load this range.</Text>
+      ) : isLoading ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the report.</Text>
@@ -86,30 +102,6 @@ export function ReportsScreen() {
               ))}
             </View>
           )}
-
-          <Text style={styles.sectionLabel}>Profit by event</Text>
-          {data.events.length === 0 ? (
-            <Text style={styles.empty}>No events in this range.</Text>
-          ) : (
-            <View style={styles.eventList}>
-              {data.events.map((e) => (
-                <View key={e.eventId} style={styles.eventRow}>
-                  <View style={styles.eventHeader}>
-                    <Text style={styles.eventDate}>{formatDate(e.eventDate)}</Text>
-                    <Text style={[styles.eventProfit, { color: e.cashProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>
-                      {formatCurrency(e.cashProfit)}
-                    </Text>
-                  </View>
-                  <Text style={styles.eventCustomer}>{e.customerName}{e.venue ? ` · ${e.venue}` : ""}</Text>
-                  <View style={styles.eventFigures}>
-                    <Text style={styles.eventFigure}>Quoted {formatCurrency(e.quotationValue)}</Text>
-                    <Text style={styles.eventFigure}>Collected {formatCurrency(e.collectedRevenue)}</Text>
-                    <Text style={styles.eventFigure}>Spent {formatCurrency(e.expenses)}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
         </>
       )}
     </ScrollView>
@@ -130,6 +122,7 @@ const styles = StyleSheet.create({
   presetChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   presetChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   presetChipTextSelected: { color: "#ff9a4d" },
+  customRangeRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18, flexWrap: "wrap" },
   error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
   empty: { color: "#6f83a0", fontSize: 13, textAlign: "center", padding: 16 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
@@ -150,12 +143,4 @@ const styles = StyleSheet.create({
   categoryAmount: { color: "#a7b7cb", fontSize: 13, fontVariant: ["tabular-nums"] },
   categoryBarTrack: { height: 6, borderRadius: 3, backgroundColor: "#132540", overflow: "hidden" },
   categoryBarFill: { height: 6, borderRadius: 3, backgroundColor: "#ff9a4d" },
-  eventList: { borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", overflow: "hidden" },
-  eventRow: { padding: 16, borderBottomWidth: 1, borderBottomColor: "#1b2c42", gap: 4 },
-  eventHeader: { flexDirection: "row", justifyContent: "space-between" },
-  eventDate: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
-  eventProfit: { fontSize: 15, fontWeight: "700" },
-  eventCustomer: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  eventFigures: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 4 },
-  eventFigure: { color: "#a7b7cb", fontSize: 12 },
 });

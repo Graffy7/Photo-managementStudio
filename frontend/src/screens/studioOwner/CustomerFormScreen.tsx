@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { customersApi } from "../../api/customersApi";
 import type { Customer } from "../../types/customer";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { CustomerEventsList } from "../../components/CustomerEventsList";
 
 interface Props {
   customer?: Customer;
@@ -45,6 +46,13 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{isEdit ? "Edit customer" : "New customer"}</Text>
+
+      {isEdit && (
+        <View style={styles.eventsCard}>
+          <Text style={styles.eventsCardLabel}>Booked Events</Text>
+          <CustomerEventsList customerId={customer!.customerId} />
+        </View>
+      )}
 
       <Text style={styles.label}>Full name</Text>
       <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Deepa Nair" placeholderTextColor="#6f83a0" />
@@ -102,6 +110,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
+  eventsCard: {
+    backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18, marginBottom: 20,
+  },
+  eventsCardLabel: {
+    fontSize: 12, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12,
+  },
   label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
   input: {
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,

@@ -7,6 +7,8 @@ import { lookupApis } from "../../api/lookupsApi";
 import type { Lead } from "../../types/lead";
 import { StatusPill } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string | null): string {
   if (!value) return null as unknown as string;
@@ -21,20 +23,31 @@ function formatCurrency(value: number): string {
 // in the row itself rather than via Alert (which never shows on the web target).
 type PendingAction = { leadId: number; kind: "delete" | "convert" } | null;
 
-export function LeadListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (lead: Lead) => void }) {
+export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (lead: Lead) => void; onView: (lead: Lead) => void }) {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [leadStatusId, setLeadStatusId] = useState<number | null>(null);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
   const [pending, setPending] = useState<PendingAction>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: leadStatuses } = useQuery({ queryKey: ["lookups", "leadStatuses"], queryFn: lookupApis.leadStatuses.getAll });
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["leads", search, leadStatusId],
-    queryFn: () => leadsApi.search({ search: search || undefined, leadStatusId: leadStatusId ?? undefined, page: 1, pageSize: 50 }),
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["leads", search, leadStatusId, createdFrom, createdTo],
+    queryFn: () =>
+      leadsApi.search({
+        search: search || undefined,
+        leadStatusId: leadStatusId ?? undefined,
+        createdFrom: createdFrom || undefined,
+        createdTo: createdTo || undefined,
+        page: 1,
+        pageSize: 50,
+      }),
   });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["leads"] });
 
@@ -112,6 +125,9 @@ export function LeadListScreen({ onCreate, onEdit }: { onCreate: () => void; onE
           </View>
         ) : (
           <View style={styles.actions}>
+            <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
+              <Text style={styles.actionText}>View</Text>
+            </Pressable>
             <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
               <Text style={styles.actionText}>Edit</Text>
             </Pressable>
@@ -136,7 +152,7 @@ export function LeadListScreen({ onCreate, onEdit }: { onCreate: () => void; onE
     <View style={styles.screen}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Leads</Text>
+          <Text style={styles.title}>Enquiry</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>
         </View>
         <View style={styles.headerActions}>
@@ -144,7 +160,7 @@ export function LeadListScreen({ onCreate, onEdit }: { onCreate: () => void; onE
             <Text style={styles.backText}>‹ Home</Text>
           </Pressable>
           <Pressable style={styles.newButton} onPress={onCreate}>
-            <Text style={styles.newButtonText}>+ New Lead</Text>
+            <Text style={styles.newButtonText}>+ New Enquiry</Text>
           </Pressable>
         </View>
       </View>
@@ -170,17 +186,30 @@ export function LeadListScreen({ onCreate, onEdit }: { onCreate: () => void; onE
         </View>
       )}
 
+      <View style={styles.dateFilterRow}>
+        <MiniDatePicker label="Added from" value={createdFrom} onChange={setCreatedFrom} />
+        <MiniDatePicker label="Added to" value={createdTo} onChange={setCreatedTo} />
+        {(createdFrom.length > 0 || createdTo.length > 0) && (
+          <Pressable
+            style={styles.clearDatesButton}
+            onPress={() => { setCreatedFrom(""); setCreatedTo(""); }}
+          >
+            <Text style={styles.clearDatesText}>Clear dates</Text>
+          </Pressable>
+        )}
+      </View>
+
       {isLoading ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
-        <Text style={styles.error}>Couldn't load leads.</Text>
+        <Text style={styles.error}>Couldn't load enquiries.</Text>
       ) : (
         <FlatList
           data={data?.items ?? []}
           keyExtractor={(item) => String(item.leadId)}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<Text style={styles.empty}>No leads yet — add the first one.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>No enquiries yet — add the first one.</Text>}
           contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
@@ -203,6 +232,9 @@ const styles = StyleSheet.create({
     color: "#e8edf3", backgroundColor: "#132540", marginBottom: 12, fontSize: 14,
   },
   filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
+  dateFilterRow: { flexDirection: "row", alignItems: "flex-end", gap: 12, marginBottom: 16, flexWrap: "wrap" },
+  clearDatesButton: { paddingVertical: 8 },
+  clearDatesText: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
   filterChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
   filterChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   filterChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },

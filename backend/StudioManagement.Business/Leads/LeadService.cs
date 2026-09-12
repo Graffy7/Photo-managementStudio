@@ -15,14 +15,15 @@ public class LeadService(
     INotificationService notificationService,
     IUnitOfWork unitOfWork) : ILeadService
 {
-    private const string Module = "Leads";
+    private const string Module = "Enquiry";
 
-    public async Task<PagedResult<LeadDto>> SearchAsync(int studioId, string? search, int? leadStatusId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<LeadDto>> SearchAsync(
+        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await leadRepository.SearchAsync(studioId, search, leadStatusId, page, pageSize, ct);
+        var (items, totalCount) = await leadRepository.SearchAsync(studioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct);
         return new PagedResult<LeadDto>
         {
             Items = items.Select(MapToDto).ToList(),
@@ -61,8 +62,8 @@ public class LeadService(
 
         await leadRepository.AddAsync(lead, ct);
         await unitOfWork.SaveChangesAsync(ct);
-        await auditService.LogAsync("Lead created", Module, studioId, ct);
-        await notificationService.NotifyAsync(studioId, "New lead", $"New lead: {lead.FullName} ({lead.MobileNumber})", NotificationTypes.LeadCreated, ct);
+        await auditService.LogAsync("Enquiry created", Module, studioId, ct);
+        await notificationService.NotifyAsync(studioId, "New enquiry", $"New enquiry: {lead.FullName} ({lead.MobileNumber})", NotificationTypes.LeadCreated, ct);
 
         var created = await leadRepository.GetByIdAsync(studioId, lead.LeadId, ct);
         return MapToDto(created!);
@@ -91,7 +92,7 @@ public class LeadService(
 
         leadRepository.Update(lead);
         await unitOfWork.SaveChangesAsync(ct);
-        await auditService.LogAsync("Lead updated", Module, studioId, ct);
+        await auditService.LogAsync("Enquiry updated", Module, studioId, ct);
 
         return MapToDto(lead);
     }
@@ -106,7 +107,7 @@ public class LeadService(
 
         leadRepository.Remove(lead);
         await unitOfWork.SaveChangesAsync(ct);
-        await auditService.LogAsync("Lead deleted", Module, studioId, ct);
+        await auditService.LogAsync("Enquiry deleted", Module, studioId, ct);
         return true;
     }
 
@@ -145,8 +146,8 @@ public class LeadService(
         leadRepository.Update(lead);
         await unitOfWork.SaveChangesAsync(ct);
 
-        await auditService.LogAsync("Lead converted to customer", Module, studioId, ct);
-        await notificationService.NotifyAsync(studioId, "Lead converted", $"{lead.FullName} is now a customer.", NotificationTypes.LeadConverted, ct);
+        await auditService.LogAsync("Enquiry converted to customer", Module, studioId, ct);
+        await notificationService.NotifyAsync(studioId, "Enquiry converted", $"{lead.FullName} is now a customer.", NotificationTypes.LeadConverted, ct);
         return LeadConversionResult.Success(MapToDto(lead), customer.CustomerId);
     }
 

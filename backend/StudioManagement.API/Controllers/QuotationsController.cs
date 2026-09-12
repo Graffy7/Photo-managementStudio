@@ -15,6 +15,7 @@ public class QuotationsController(
     IQuotationPdfService quotationPdfService,
     IValidator<CreateQuotationRequestDto> createValidator,
     IValidator<UpdateQuotationRequestDto> updateValidator,
+    IValidator<SetQuotationStatusRequestDto> setStatusValidator,
     ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
@@ -66,6 +67,20 @@ public class QuotationsController(
             return NotFound();
         }
         return result.Succeeded ? Ok(result.Quotation) : BadRequest(new { message = ReferenceErrorMessage(result.FailureReason!.Value) });
+    }
+
+    [HttpPost("{id:int}/status")]
+    public async Task<IActionResult> SetStatus(int id, SetQuotationStatusRequestDto request, CancellationToken ct)
+    {
+        var validation = await setStatusValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        var quotation = await quotationService.SetStatusAsync(StudioId, id, request.Status, ct);
+        return quotation is null ? NotFound() : Ok(quotation);
     }
 
     [HttpGet("{id:int}/pdf")]

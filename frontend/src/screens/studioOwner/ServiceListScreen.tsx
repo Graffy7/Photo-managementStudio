@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { servicesApi } from "../../api/servicesApi";
 import type { StudioService } from "../../types/service";
 import { StatusPill } from "../../components/StatusPill";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -15,10 +16,11 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["services", search],
     queryFn: () => servicesApi.search({ search: search || undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["services"] });
 

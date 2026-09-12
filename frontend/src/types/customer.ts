@@ -19,3 +19,19 @@ export interface CreateCustomerRequest {
 }
 
 export type UpdateCustomerRequest = CreateCustomerRequest;
+
+export interface CustomerEventSummary {
+  eventId: number;
+  eventTypeName: string | null;
+  eventDate: string;
+  startTime: string | null;
+  endTime: string | null;
+  venue: string | null;
+  venueAddress: string | null;
+  eventStatus: string;
+  budget: number | null;
+  amountPaid: number;
+  balance: number;
+  workerCount: number;
+  notes: string | null;
+}

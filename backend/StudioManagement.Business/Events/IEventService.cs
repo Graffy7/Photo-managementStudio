@@ -23,4 +23,5 @@ public interface IEventService
     Task<EventDto?> GetByIdAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<EventWriteResult> CreateAsync(int studioId, CreateEventRequestDto request, CancellationToken ct = default);
     Task<EventWriteResult?> UpdateAsync(int studioId, int eventId, UpdateEventRequestDto request, CancellationToken ct = default);
+    Task<EventDto?> UpdateNotesAsync(int studioId, int eventId, string? notes, CancellationToken ct = default);
 }

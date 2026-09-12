@@ -45,3 +45,12 @@ public class UpdateQuotationRequestValidator : AbstractValidator<UpdateQuotation
         RuleForEach(x => x.Items).SetValidator(new QuotationItemRequestValidator());
     }
 }
+
+public class SetQuotationStatusRequestValidator : AbstractValidator<SetQuotationStatusRequestDto>
+{
+    public SetQuotationStatusRequestValidator()
+    {
+        RuleFor(x => x.Status).NotEmpty().Must(s => QuotationStatuses.All.Contains(s))
+            .WithMessage($"Status must be one of: {string.Join(", ", QuotationStatuses.All)}");
+    }
+}

@@ -8,6 +8,12 @@ public class StudioDto
     public string Email { get; set; } = null!;
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Pincode { get; set; }
+    public string? GstNumber { get; set; }
+    public string? Website { get; set; }
+    public string? LogoUrl { get; set; }
     public bool IsActive { get; set; }
     public bool IsBlocked { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -33,6 +39,15 @@ public class CreateStudioRequestDto
 public class UpdateStudioRequestDto
 {
     public string StudioName { get; set; } = null!;
+    public string? OwnerName { get; set; }
+    // Optional so the super-admin's existing studio-edit form (which never sends this field)
+    // keeps working unchanged — StudioService only overwrites Email when a value is provided.
+    public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Pincode { get; set; }
+    public string? GstNumber { get; set; }
+    public string? Website { get; set; }
 }

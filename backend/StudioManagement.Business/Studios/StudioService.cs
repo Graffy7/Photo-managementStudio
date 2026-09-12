@@ -1,6 +1,7 @@
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Storage;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -15,6 +16,7 @@ public class StudioService(
     IRepository<StudioSubscription> studioSubscriptionRepository,
     IPasswordHasher passwordHasher,
     IAuditService auditService,
+    IFileStorage fileStorage,
     IUnitOfWork unitOfWork) : IStudioService
 {
     private const string Module = "Studios";
@@ -113,13 +115,67 @@ public class StudioService(
         }
 
         studio.StudioName = request.StudioName;
+        studio.OwnerName = request.OwnerName;
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            studio.Email = request.Email;
+        }
         studio.PhoneNumber = request.PhoneNumber;
         studio.Address = request.Address;
+        studio.City = request.City;
+        studio.State = request.State;
+        studio.Pincode = request.Pincode;
+        studio.GstNumber = request.GstNumber;
+        studio.Website = request.Website;
         studio.UpdatedAt = DateTime.UtcNow;
 
         studioRepository.Update(studio);
         await unitOfWork.SaveChangesAsync(ct);
         await auditService.LogAsync("Studio details updated", Module, studio.StudioId, ct);
+        return MapToDto(studio);
+    }
+
+    public async Task<StudioDto?> UploadLogoAsync(int studioId, Stream content, string fileName, CancellationToken ct = default)
+    {
+        var studio = await studioRepository.GetByIdAsync(studioId, ct);
+        if (studio is null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(studio.LogoUrl))
+        {
+            fileStorage.Delete(studio.LogoUrl);
+        }
+
+        studio.LogoUrl = await fileStorage.SaveAsync(content, fileName, $"logos/{studioId}", ct);
+        studio.UpdatedAt = DateTime.UtcNow;
+
+        studioRepository.Update(studio);
+        await unitOfWork.SaveChangesAsync(ct);
+        await auditService.LogAsync("Studio logo updated", Module, studio.StudioId, ct);
+        return MapToDto(studio);
+    }
+
+    public async Task<StudioDto?> RemoveLogoAsync(int studioId, CancellationToken ct = default)
+    {
+        var studio = await studioRepository.GetByIdAsync(studioId, ct);
+        if (studio is null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(studio.LogoUrl))
+        {
+            fileStorage.Delete(studio.LogoUrl);
+        }
+
+        studio.LogoUrl = null;
+        studio.UpdatedAt = DateTime.UtcNow;
+
+        studioRepository.Update(studio);
+        await unitOfWork.SaveChangesAsync(ct);
+        await auditService.LogAsync("Studio logo removed", Module, studio.StudioId, ct);
         return MapToDto(studio);
     }
 
@@ -169,6 +225,12 @@ public class StudioService(
             Email = studio.Email,
             PhoneNumber = studio.PhoneNumber,
             Address = studio.Address,
+            City = studio.City,
+            State = studio.State,
+            Pincode = studio.Pincode,
+            GstNumber = studio.GstNumber,
+            Website = studio.Website,
+            LogoUrl = studio.LogoUrl,
             IsActive = studio.IsActive,
             IsBlocked = studio.IsBlocked,
             CreatedAt = studio.CreatedAt,

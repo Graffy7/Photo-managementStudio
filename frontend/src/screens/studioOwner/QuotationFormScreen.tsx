@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, Scroll
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
 import { servicesApi } from "../../api/servicesApi";
-import { QUOTATION_STATUSES, type Quotation, type QuotationStatus } from "../../types/quotation";
+import type { Quotation } from "../../types/quotation";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 
@@ -43,7 +43,9 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
   const [validUntil, setValidUntil] = useState(quotation?.validUntil?.slice(0, 10) ?? "");
   const [discount, setDiscount] = useState(quotation ? String(quotation.discount) : "0");
   const [taxAmount, setTaxAmount] = useState(quotation ? String(quotation.taxAmount) : "0");
-  const [status, setStatus] = useState<QuotationStatus>(quotation?.status ?? "Draft");
+  // New quotations always start life as Draft; an existing quotation's status is changed
+  // from the list screen instead (not this form), so editing here never alters it.
+  const status = quotation?.status ?? "Draft";
   const [termsAndConditions, setTermsAndConditions] = useState(quotation?.termsAndConditions ?? "");
   const [items, setItems] = useState<ItemDraft[]>(
     quotation
@@ -131,15 +133,6 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
 
       <Text style={styles.label}>Valid until</Text>
       <TextInput style={styles.input} value={validUntil} onChangeText={setValidUntil} placeholder="YYYY-MM-DD (optional)" placeholderTextColor="#6f83a0" />
-
-      <Text style={styles.label}>Status</Text>
-      <View style={styles.chipRow}>
-        {QUOTATION_STATUSES.map((s) => (
-          <Pressable key={s} style={[styles.chip, status === s && styles.chipSelected]} onPress={() => setStatus(s)}>
-            <Text style={[styles.chipText, status === s && styles.chipTextSelected]}>{s}</Text>
-          </Pressable>
-        ))}
-      </View>
 
       <Text style={styles.sectionLabel}>Line items</Text>
 
@@ -263,9 +256,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 72, textAlignVertical: "top" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#ff9a4d" },
   itemCard: { borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", padding: 14, marginBottom: 10, gap: 8 },
   itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   itemServiceName: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },

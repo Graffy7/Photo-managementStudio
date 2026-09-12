@@ -10,6 +10,9 @@ export interface UserProfile {
   email: string;
   userType: "SUPER_ADMIN" | "STUDIO_OWNER";
   studioId: number | null;
+  studioName: string | null;
+  isActive: boolean;
+  lastLoginAt: string | null;
 }
 
 export interface LoginResponse {

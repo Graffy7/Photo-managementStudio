@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
 import type { ExpenseCategory } from "../../types/expenseCategory";
 import { StatusPill } from "../../components/StatusPill";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCreate: () => void; onEdit: (category: ExpenseCategory) => void; onBack: () => void }) {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
 

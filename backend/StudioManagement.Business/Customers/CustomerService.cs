@@ -1,5 +1,6 @@
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
 using StudioManagement.Data.UnitOfWork;
@@ -8,6 +9,7 @@ namespace StudioManagement.Business.Customers;
 
 public class CustomerService(
     ICustomerRepository customerRepository,
+    IEventRepository eventRepository,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : ICustomerService
 {
@@ -95,6 +97,33 @@ public class CustomerService(
         await auditService.LogAsync(isActive ? "Customer activated" : "Customer deactivated", Module, studioId, ct);
 
         return MapToDto(customer);
+    }
+
+    public async Task<List<CustomerEventSummaryDto>> GetEventsAsync(int studioId, int customerId, CancellationToken ct = default)
+    {
+        const string TimeFormat = @"hh\:mm";
+        var events = await eventRepository.GetForCustomerAsync(studioId, customerId, ct);
+
+        return events.Select(e =>
+        {
+            var amountPaid = e.Payments.Where(p => p.PaymentStatus == PaymentStatuses.Completed).Sum(p => p.Amount);
+            return new CustomerEventSummaryDto
+            {
+                EventId = e.EventId,
+                EventTypeName = e.EventType?.Name,
+                EventDate = e.EventDate,
+                StartTime = e.StartTime?.ToString(TimeFormat),
+                EndTime = e.EndTime?.ToString(TimeFormat),
+                Venue = e.Venue,
+                VenueAddress = e.VenueAddress,
+                EventStatus = e.EventStatus,
+                Budget = e.Budget,
+                AmountPaid = amountPaid,
+                Balance = (e.Budget ?? 0) - amountPaid,
+                WorkerCount = e.EventWorkers.Count,
+                Notes = e.Notes
+            };
+        }).ToList();
     }
 
     private static CustomerDto MapToDto(Customer customer) => new()

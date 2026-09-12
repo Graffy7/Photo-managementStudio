@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
 import { QUOTATION_STATUSES, type Quotation, type QuotationStatus } from "../../types/quotation";
+
+// The search filter only needs the two "active" pipeline states — Accepted/Rejected/Expired/
+// Cancelled are terminal outcomes you'd rarely filter a search by. The status-change chips
+// below each row still offer the full QUOTATION_STATUSES list.
+const SEARCH_FILTER_STATUSES: QuotationStatus[] = ["Draft", "Sent"];
 import { StatusPill } from "../../components/StatusPill";
 import { downloadAndSharePdf } from "../../utils/downloadPdf";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -25,16 +31,27 @@ function statusTone(status: QuotationStatus): "good" | "bad" | "warn" | "neutral
 
 export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (quotation: Quotation) => void }) {
   const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<QuotationStatus | null>(null);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["quotations", search, status],
     queryFn: () => quotationsApi.search({ search: search || undefined, status: status ?? undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [changingStatusId, setChangingStatusId] = useState<number | null>(null);
+
+  const setStatusMutation = useMutation({
+    mutationFn: ({ id, newStatus }: { id: number; newStatus: QuotationStatus }) => quotationsApi.setStatus(id, newStatus),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      setChangingStatusId(null);
+    },
+  });
 
   const handleDownload = async (item: Quotation) => {
     setDownloadingId(item.quotationId);
@@ -51,15 +68,34 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
 
   const renderItem = ({ item }: { item: Quotation }) => (
     <View style={styles.row}>
-      <Pressable style={styles.rowMain} onPress={() => onEdit(item)}>
-        <Text style={styles.quotationNumber}>{item.quotationNumber} · {formatDate(item.quotationDate)}</Text>
-        <Text style={styles.customerName}>{item.customerName}</Text>
-        <Text style={styles.contact}>{item.customerMobileNumber}{item.items.length ? ` · ${item.items.length} item${item.items.length > 1 ? "s" : ""}` : ""}</Text>
+      <View style={styles.rowMain}>
+        <Pressable onPress={() => onEdit(item)}>
+          <Text style={styles.quotationNumber}>{item.quotationNumber} · {formatDate(item.quotationDate)}</Text>
+          <Text style={styles.customerName}>{item.customerName}</Text>
+          <Text style={styles.contact}>{item.customerMobileNumber}{item.items.length ? ` · ${item.items.length} item${item.items.length > 1 ? "s" : ""}` : ""}</Text>
+        </Pressable>
 
         <View style={styles.pillRow}>
-          <StatusPill label={item.status} tone={statusTone(item.status)} />
+          <Pressable onPress={() => setChangingStatusId(changingStatusId === item.quotationId ? null : item.quotationId)}>
+            <StatusPill label={item.status} tone={statusTone(item.status)} />
+          </Pressable>
         </View>
-      </Pressable>
+
+        {changingStatusId === item.quotationId && (
+          <View style={styles.statusChangeRow}>
+            {QUOTATION_STATUSES.map((s) => (
+              <Pressable
+                key={s}
+                style={[styles.statusChip, item.status === s && styles.statusChipCurrent]}
+                disabled={setStatusMutation.isPending}
+                onPress={() => setStatusMutation.mutate({ id: item.quotationId, newStatus: s })}
+              >
+                <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextCurrent]}>{s}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
       <View style={styles.rowEnd}>
         <Text style={styles.grandTotal}>{formatCurrency(item.grandTotal)}</Text>
         <Pressable style={styles.pdfButton} onPress={() => handleDownload(item)} disabled={downloadingId === item.quotationId}>
@@ -107,7 +143,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
         <Pressable style={[styles.filterChip, status === null && styles.filterChipSelected]} onPress={() => setStatus(null)}>
           <Text style={[styles.filterChipText, status === null && styles.filterChipTextSelected]}>All</Text>
         </Pressable>
-        {QUOTATION_STATUSES.map((s) => (
+        {SEARCH_FILTER_STATUSES.map((s) => (
           <Pressable key={s} style={[styles.filterChip, status === s && styles.filterChipSelected]} onPress={() => setStatus(s)}>
             <Text style={[styles.filterChipText, status === s && styles.filterChipTextSelected]}>{s}</Text>
           </Pressable>
@@ -151,12 +187,17 @@ const styles = StyleSheet.create({
   filterChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   filterChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   filterChipTextSelected: { color: "#ff9a4d" },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 14 },
   rowMain: { flex: 1, gap: 4 },
   quotationNumber: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
   customerName: { color: "#e8edf3", fontSize: 16, fontWeight: "600" },
   contact: { color: "#a7b7cb", fontSize: 13 },
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
+  statusChangeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  statusChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10, backgroundColor: "#0f1e30" },
+  statusChipCurrent: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
+  statusChipText: { color: "#a7b7cb", fontSize: 11, fontWeight: "600" },
+  statusChipTextCurrent: { color: "#ff9a4d" },
   rowEnd: { flexDirection: "row", alignItems: "center", gap: 10 },
   grandTotal: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
   pdfButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10, minWidth: 44, alignItems: "center" },

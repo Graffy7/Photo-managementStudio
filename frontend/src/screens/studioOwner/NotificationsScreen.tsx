@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notificationsApi } from "../../api/notificationsApi";
 import type { Notification } from "../../types/notification";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 type Filter = "all" | "unread";
 
@@ -22,10 +23,11 @@ export function NotificationsScreen() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["notifications", filter],
     queryFn: () => notificationsApi.search({ isRead: filter === "unread" ? false : undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notifications"] });

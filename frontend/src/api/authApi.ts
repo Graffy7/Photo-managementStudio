@@ -27,4 +27,6 @@ export const authApi = {
     apiClient.post<{ message: string }>("/api/auth/change-password", request).then((res) => res.data),
 
   me: () => apiClient.get<UserProfile>("/api/auth/me").then((res) => res.data),
+
+  logoutEverywhere: () => apiClient.post<{ message: string }>("/api/auth/logout-everywhere").then((res) => res.data),
 };

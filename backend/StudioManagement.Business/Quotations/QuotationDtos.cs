@@ -66,3 +66,8 @@ public class UpdateQuotationRequestDto
     public string? TermsAndConditions { get; set; }
     public List<QuotationItemRequestDto> Items { get; set; } = [];
 }
+
+public class SetQuotationStatusRequestDto
+{
+    public string Status { get; set; } = null!;
+}

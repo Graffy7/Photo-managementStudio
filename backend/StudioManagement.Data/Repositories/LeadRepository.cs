@@ -13,7 +13,8 @@ public class LeadRepository(AppDbContext context) : ILeadRepository
             .Include(l => l.LeadStatus)
             .FirstOrDefaultAsync(l => l.StudioId == studioId && l.LeadId == leadId, ct);
 
-    public async Task<(List<Lead> Items, int TotalCount)> SearchAsync(int studioId, string? search, int? leadStatusId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Lead> Items, int TotalCount)> SearchAsync(
+        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default)
     {
         var query = context.Leads
             .AsNoTracking()
@@ -31,6 +32,16 @@ public class LeadRepository(AppDbContext context) : ILeadRepository
         if (leadStatusId is not null)
         {
             query = query.Where(l => l.LeadStatusId == leadStatusId);
+        }
+
+        if (createdFrom is not null)
+        {
+            query = query.Where(l => l.CreatedAt >= createdFrom.Value.Date);
+        }
+
+        if (createdTo is not null)
+        {
+            query = query.Where(l => l.CreatedAt < createdTo.Value.Date.AddDays(1));
         }
 
         var totalCount = await query.CountAsync(ct);

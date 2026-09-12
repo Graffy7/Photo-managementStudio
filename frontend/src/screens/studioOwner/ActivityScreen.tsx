@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { studioActivityApi } from "../../api/studioActivityApi";
 import type { AuditLogEntry } from "../../types/auditLog";
 import { actionTone, TONE_COLORS } from "../../utils/auditTone";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function timeAgo(value: string): string {
   const diffMs = Date.now() - new Date(value).getTime();
@@ -19,11 +20,12 @@ function timeAgo(value: string): string {
 export function ActivityScreen() {
   const navigation = useNavigation<any>();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["studio-activity"],
     queryFn: () => studioActivityApi.search({ page: 1, pageSize: 50 }),
     refetchInterval: 15000,
   });
+  useRefetchOnFocus(refetch);
 
   const renderItem = ({ item }: { item: AuditLogEntry }) => (
     <View style={styles.row}>

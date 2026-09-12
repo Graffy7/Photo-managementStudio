@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
 using StudioManagement.API.BackgroundServices;
+using StudioManagement.API.Infrastructure;
 using StudioManagement.API.Middleware;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
@@ -24,10 +25,13 @@ using StudioManagement.Business.Leads;
 using StudioManagement.Business.Lookups;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Business.Payments;
+using StudioManagement.Business.PhotoSelection;
 using StudioManagement.Business.Quotations;
 using StudioManagement.Business.Reports;
 using StudioManagement.Business.Services;
+using StudioManagement.Business.Settings;
 using StudioManagement.Business.Workers;
+using StudioManagement.Business.Storage;
 using StudioManagement.Business.Studios;
 using StudioManagement.Business.Subscriptions;
 using StudioManagement.Business.Tenant;
@@ -101,6 +105,12 @@ builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IProfitReportRepository, ProfitReportRepository>();
 builder.Services.AddScoped<IEventWorkerRepository, EventWorkerRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IStudioSettingRepository, StudioSettingRepository>();
+builder.Services.AddScoped<IPhotoSelectionProjectRepository, PhotoSelectionProjectRepository>();
+builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+builder.Services.AddScoped<IPhotoSelectionActivityRepository, PhotoSelectionActivityRepository>();
+builder.Services.AddScoped<IPhotoProcessingJobRepository, PhotoProcessingJobRepository>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
@@ -109,6 +119,10 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudioService, StudioService>();
+builder.Services.AddScoped<IStudioSettingsService, StudioSettingsService>();
+builder.Services.AddScoped<IPhotoSelectionService, PhotoSelectionService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<ILocalPhotoProcessor, LocalPhotoProcessor>();
 builder.Services.AddScoped<IFeatureService, FeatureService>();
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
@@ -153,6 +167,7 @@ builder.Services.AddScoped<IValidator<CreateServiceRequestDto>, CreateServiceReq
 builder.Services.AddScoped<IValidator<UpdateServiceRequestDto>, UpdateServiceRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateQuotationRequestDto>, CreateQuotationRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateQuotationRequestDto>, UpdateQuotationRequestValidator>();
+builder.Services.AddScoped<IValidator<SetQuotationStatusRequestDto>, SetQuotationStatusRequestValidator>();
 builder.Services.AddScoped<IValidator<CreatePaymentRequestDto>, CreatePaymentRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdatePaymentRequestDto>, UpdatePaymentRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateExpenseCategoryRequestDto>, CreateExpenseCategoryRequestValidator>();
@@ -178,6 +193,12 @@ builder.Services.AddScoped<IValidator<ChangePasswordRequestDto>, ChangePasswordR
 builder.Services.AddScoped<IValidator<CreateStudioRequestDto>, CreateStudioRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateStudioRequestDto>, UpdateStudioRequestValidator>();
 builder.Services.AddScoped<IValidator<RenewSubscriptionRequestDto>, RenewSubscriptionRequestValidator>();
+builder.Services.AddScoped<IValidator<BusinessSettingsDto>, BusinessSettingsValidator>();
+builder.Services.AddScoped<IValidator<QuotationSettingsDto>, QuotationSettingsValidator>();
+builder.Services.AddScoped<IValidator<CreatePhotoSelectionProjectRequestDto>, CreatePhotoSelectionProjectRequestValidator>();
+builder.Services.AddScoped<IValidator<GenerateLinkRequestDto>, GenerateLinkRequestValidator>();
+builder.Services.AddScoped<IValidator<SetSelectionRequestDto>, SetSelectionRequestValidator>();
+builder.Services.AddScoped<IValidator<UnlockRequestDto>, UnlockRequestValidator>();
 builder.Services.AddScoped<SuperAdminSeeder>();
 
 builder.Services.AddRateLimiter(options =>
@@ -240,6 +261,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Serves uploaded logos (wwwroot/uploads/...) as plain public image URLs — logos aren't
+// sensitive, so this sits ahead of auth rather than behind an authorized endpoint.
+app.UseStaticFiles();
 
 app.UseCors("StudioAppClients");
 

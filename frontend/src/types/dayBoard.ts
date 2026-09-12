@@ -18,11 +18,18 @@ export interface DayBoardEvent {
   eventTypeName: string | null;
   eventStatus: string;
   budget: number | null;
+  amountPaid: number;
+  balance: number;
   notes: string | null;
   workers: AssignedWorker[];
 }
 
 export interface DayBoard {
+  date: string;
+  events: DayBoardEvent[];
+}
+
+export interface MonthEvents {
   date: string;
   events: DayBoardEvent[];
 }

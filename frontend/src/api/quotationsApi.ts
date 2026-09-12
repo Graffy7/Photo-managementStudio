@@ -1,6 +1,6 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
-import type { CreateQuotationRequest, Quotation, UpdateQuotationRequest } from "../types/quotation";
+import type { CreateQuotationRequest, Quotation, QuotationStatus, UpdateQuotationRequest } from "../types/quotation";
 
 export const quotationsApi = {
   search: (params: { search?: string; status?: string; customerId?: number; page?: number; pageSize?: number }) =>
@@ -13,6 +13,9 @@ export const quotationsApi = {
 
   update: (id: number, request: UpdateQuotationRequest) =>
     apiClient.put<Quotation>(`/api/quotations/${id}`, request).then((res) => res.data),
+
+  setStatus: (id: number, status: QuotationStatus) =>
+    apiClient.post<Quotation>(`/api/quotations/${id}/status`, { status }).then((res) => res.data),
 
   downloadPdf: (id: number) =>
     apiClient.get<ArrayBuffer>(`/api/quotations/${id}/pdf`, { responseType: "arraybuffer" }).then((res) => res.data),

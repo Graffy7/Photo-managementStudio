@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { paymentsApi } from "../../api/paymentsApi";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment, type PaymentStatus } from "../../types/payment";
 import { StatusPill } from "../../components/StatusPill";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -17,8 +18,17 @@ function formatCurrency(value: number): string {
 function statusTone(status: PaymentStatus): "good" | "bad" | "warn" | "neutral" {
   if (status === "Completed") return "good";
   if (status === "Cancelled") return "bad";
-  if (status === "Refunded") return "warn";
+  if (status === "Pending") return "warn";
   return "neutral";
+}
+
+// A payment can be individually "Completed" while its event still has a balance owed —
+// show "Pending" in that case so the list reflects the event's true collection state.
+function displayStatus(item: Payment): PaymentStatus {
+  if (item.paymentStatus === "Completed" && item.eventId !== null && (item.eventBalance ?? 0) > 0) {
+    return "Pending";
+  }
+  return item.paymentStatus;
 }
 
 export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (payment: Payment) => void }) {
@@ -26,20 +36,41 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<PaymentStatus | null>(null);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["payments", search, status],
     queryFn: () => paymentsApi.search({ search: search || undefined, paymentStatus: status ?? undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const renderItem = ({ item }: { item: Payment }) => (
     <Pressable style={styles.row} onPress={() => onEdit(item)}>
       <View style={styles.rowMain}>
         <Text style={styles.paymentDate}>{formatDate(item.paymentDate)} · {PAYMENT_METHOD_LABELS[item.paymentMethod]}</Text>
         <Text style={styles.customerName}>{item.customerName}</Text>
+
+        {item.eventId !== null && (
+          <View style={styles.eventFinanceRow}>
+            <View style={styles.eventFinanceItem}>
+              <Text style={styles.eventFinanceLabel}>Total</Text>
+              <Text style={styles.eventFinanceValue}>{formatCurrency(item.eventBudget ?? 0)}</Text>
+            </View>
+            <View style={styles.eventFinanceItem}>
+              <Text style={styles.eventFinanceLabel}>Advance paid</Text>
+              <Text style={styles.eventFinanceValue}>{formatCurrency(item.eventAmountPaid ?? 0)}</Text>
+            </View>
+            <View style={styles.eventFinanceItem}>
+              <Text style={styles.eventFinanceLabel}>Balance</Text>
+              <Text style={[styles.eventFinanceValue, { color: (item.eventBalance ?? 0) > 0 ? "#f2bd5c" : "#4cc493" }]}>
+                {formatCurrency(item.eventBalance ?? 0)}
+              </Text>
+            </View>
+          </View>
+        )}
+
         <Text style={styles.contact}>{item.customerMobileNumber}{item.referenceNumber ? ` · Ref: ${item.referenceNumber}` : ""}</Text>
 
         <View style={styles.pillRow}>
-          <StatusPill label={item.paymentStatus} tone={statusTone(item.paymentStatus)} />
+          <StatusPill label={displayStatus(item)} tone={statusTone(displayStatus(item))} />
         </View>
       </View>
       <View style={styles.rowEnd}>
@@ -122,11 +153,15 @@ const styles = StyleSheet.create({
   filterChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   filterChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   filterChipTextSelected: { color: "#ff9a4d" },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 14 },
   rowMain: { flex: 1, gap: 4 },
   paymentDate: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
   customerName: { color: "#e8edf3", fontSize: 16, fontWeight: "600" },
   contact: { color: "#a7b7cb", fontSize: 13 },
+  eventFinanceRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 4, marginBottom: 2 },
+  eventFinanceItem: { gap: 1 },
+  eventFinanceLabel: { color: "#6f83a0", fontSize: 10 },
+  eventFinanceValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
   rowEnd: { flexDirection: "row", alignItems: "center", gap: 8 },
   amount: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },

@@ -9,4 +9,5 @@ public interface ICustomerService
     Task<CustomerDto> CreateAsync(int studioId, CreateCustomerRequestDto request, CancellationToken ct = default);
     Task<CustomerDto?> UpdateAsync(int studioId, int customerId, UpdateCustomerRequestDto request, CancellationToken ct = default);
     Task<CustomerDto?> SetActiveAsync(int studioId, int customerId, bool isActive, CancellationToken ct = default);
+    Task<List<CustomerEventSummaryDto>> GetEventsAsync(int studioId, int customerId, CancellationToken ct = default);
 }

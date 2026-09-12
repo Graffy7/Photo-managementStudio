@@ -7,6 +7,7 @@ import { workersApi } from "../../api/workersApi";
 import type { DayBoardEvent } from "../../types/dayBoard";
 import { StatusPill } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -29,7 +30,6 @@ function formatCurrency(value: number): string {
 function statusTone(status: string): "good" | "bad" | "warn" | "neutral" {
   if (status === "Completed") return "good";
   if (status === "Cancelled") return "bad";
-  if (status === "InProgress") return "warn";
   return "neutral";
 }
 
@@ -99,8 +99,26 @@ function EventCard({ event }: { event: DayBoardEvent }) {
 
       <View style={styles.pillRow}>
         {event.eventTypeName && <StatusPill label={event.eventTypeName} tone="neutral" />}
-        {event.budget ? <StatusPill label={formatCurrency(event.budget)} tone="neutral" /> : null}
       </View>
+
+      {event.budget !== null && (
+        <View style={styles.financeRow}>
+          <View style={styles.financeItem}>
+            <Text style={styles.financeLabel}>Total</Text>
+            <Text style={styles.financeValue}>{formatCurrency(event.budget)}</Text>
+          </View>
+          <View style={styles.financeItem}>
+            <Text style={styles.financeLabel}>Advance paid</Text>
+            <Text style={styles.financeValue}>{formatCurrency(event.amountPaid)}</Text>
+          </View>
+          <View style={styles.financeItem}>
+            <Text style={styles.financeLabel}>Balance</Text>
+            <Text style={[styles.financeValue, { color: event.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
+              {formatCurrency(event.balance)}
+            </Text>
+          </View>
+        </View>
+      )}
 
       {event.notes ? <Text style={styles.notes}>{event.notes}</Text> : null}
 
@@ -140,10 +158,11 @@ export function DayBoardScreen() {
   const navigation = useNavigation<any>();
   const [date, setDate] = useState(todayUtc());
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["day-board", date],
     queryFn: () => dayBoardApi.getDayBoard(date),
   });
+  useRefetchOnFocus(refetch);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -210,6 +229,10 @@ const styles = StyleSheet.create({
   venue: { color: "#a7b7cb", fontSize: 13 },
   notes: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
+  financeRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 6 },
+  financeItem: { gap: 1 },
+  financeLabel: { color: "#6f83a0", fontSize: 10 },
+  financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
   smallLabel: { fontSize: 11, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 10, marginBottom: 6 },
   hint: { color: "#6f83a0", fontSize: 12 },
   crewRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
 import type { CreateEventRequest, StudioEvent, UpdateEventRequest } from "../types/event";
+import type { AssignedWorker } from "../types/dayBoard";
 
 export const eventsApi = {
   search: (params: { search?: string; eventStatus?: string; customerId?: number; page?: number; pageSize?: number }) =>
@@ -12,4 +13,15 @@ export const eventsApi = {
 
   update: (id: number, request: UpdateEventRequest) =>
     apiClient.put<StudioEvent>(`/api/events/${id}`, request).then((res) => res.data),
+
+  updateNotes: (eventId: number, notes: string) =>
+    apiClient.patch<StudioEvent>(`/api/events/${eventId}/notes`, { notes: notes || undefined }).then((res) => res.data),
+
+  getAssignedWorkers: (eventId: number) =>
+    apiClient.get<AssignedWorker[]>(`/api/events/${eventId}/workers`).then((res) => res.data),
+
+  assignWorker: (eventId: number, workerId: number, notes?: string) =>
+    apiClient.post<AssignedWorker>(`/api/events/${eventId}/workers`, { workerId, notes }).then((res) => res.data),
+
+  unassignWorker: (eventId: number, workerId: number) => apiClient.delete(`/api/events/${eventId}/workers/${workerId}`),
 };

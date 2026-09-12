@@ -19,4 +19,16 @@ public class DayBoardController(IDayBoardService dayBoardService, ITenantContext
         var board = await dayBoardService.GetDayBoardAsync(StudioId, date ?? DateTime.UtcNow.Date, ct);
         return Ok(board);
     }
+
+    [HttpGet("month")]
+    public async Task<IActionResult> GetMonth([FromQuery] int year, [FromQuery] int month, CancellationToken ct)
+    {
+        if (month is < 1 or > 12)
+        {
+            return BadRequest(new { message = "Month must be between 1 and 12." });
+        }
+
+        var days = await dayBoardService.GetMonthAsync(StudioId, year, month, ct);
+        return Ok(days);
+    }
 }

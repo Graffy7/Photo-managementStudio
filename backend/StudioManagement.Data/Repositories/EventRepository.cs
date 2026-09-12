@@ -10,6 +10,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
         context.Events
             .Include(e => e.Customer)
             .Include(e => e.EventType)
+            .Include(e => e.Payments)
             .FirstOrDefaultAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
     public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, int page, int pageSize, CancellationToken ct = default)
@@ -18,6 +19,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .AsNoTracking()
             .Include(e => e.Customer)
             .Include(e => e.EventType)
+            .Include(e => e.Payments)
             .Where(e => e.StudioId == studioId);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -52,9 +54,20 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.Customer)
             .Include(e => e.EventType)
             .Include(e => e.EventWorkers).ThenInclude(ew => ew.Worker).ThenInclude(w => w.WorkerType)
+            .Include(e => e.Payments)
             .Where(e => e.StudioId == studioId && e.EventDate >= dayStart && e.EventDate < dayEnd)
             .OrderBy(e => e.StartTime ?? TimeSpan.MaxValue)
             .ThenBy(e => e.EventId)
+            .ToListAsync(ct);
+
+    public Task<List<Event>> GetForCustomerAsync(int studioId, int customerId, CancellationToken ct = default) =>
+        context.Events
+            .AsNoTracking()
+            .Include(e => e.EventType)
+            .Include(e => e.EventWorkers)
+            .Include(e => e.Payments)
+            .Where(e => e.StudioId == studioId && e.CustomerId == customerId)
+            .OrderByDescending(e => e.EventDate)
             .ToListAsync(ct);
 
     public async Task AddAsync(Event @event, CancellationToken ct = default) =>

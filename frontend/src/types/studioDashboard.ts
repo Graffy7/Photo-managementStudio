@@ -7,6 +7,7 @@ export const DATE_RANGE_PRESETS = [
   "PreviousMonth",
   "ThisYear",
   "PreviousYear",
+  "Custom",
 ] as const;
 
 export type DateRangePreset = (typeof DATE_RANGE_PRESETS)[number];
@@ -20,6 +21,7 @@ export const DATE_RANGE_PRESET_LABELS: Record<DateRangePreset, string> = {
   PreviousMonth: "Last month",
   ThisYear: "This year",
   PreviousYear: "Last year",
+  Custom: "Custom range",
 };
 
 export interface StudioDashboardSummary {
@@ -44,4 +46,24 @@ export interface StudioDashboardSummary {
   totalExpenses: number;
   expectedProfit: number;
   cashProfit: number;
+
+  // null means there's no previous-period baseline to compare against, not that change is zero.
+  leadsChangePercent: number | null;
+  customersChangePercent: number | null;
+  eventsChangePercent: number | null;
+  revenueChangePercent: number | null;
+
+  topServices: TopService[];
+  revenueTrend: RevenueTrendPoint[];
+}
+
+export interface TopService {
+  serviceName: string;
+  usageCount: number;
+  percentage: number;
+}
+
+export interface RevenueTrendPoint {
+  date: string;
+  amount: number;
 }

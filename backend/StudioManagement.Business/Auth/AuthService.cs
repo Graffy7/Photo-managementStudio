@@ -34,7 +34,12 @@ public class AuthService(
             }
         }
 
-        var response = await BuildLoginResponseAsync(user, request.RememberMe, ip, ct);
+        var previousLastLogin = user.LastLoginAt;
+        user.LastLoginAt = DateTime.UtcNow;
+        userRepository.Update(user);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        var response = await BuildLoginResponseAsync(user, request.RememberMe, ip, ct, previousLastLogin);
         logger.LogInformation("UserId {UserId} logged in.", user.UserId);
         return AuthResult.Success(response);
     }
@@ -96,11 +101,11 @@ public class AuthService(
 
     public async Task<UserProfileDto?> GetProfileAsync(int userId, CancellationToken ct = default)
     {
-        var user = await userRepository.GetByIdAsync(userId, ct);
+        var user = await userRepository.GetByIdWithStudioAsync(userId, ct);
         return user is null ? null : ToProfileDto(user);
     }
 
-    private async Task<LoginResponseDto> BuildLoginResponseAsync(Data.Entities.User user, bool rememberMe, string? ip, CancellationToken ct)
+    private async Task<LoginResponseDto> BuildLoginResponseAsync(Data.Entities.User user, bool rememberMe, string? ip, CancellationToken ct, DateTime? lastLoginAtOverride = null)
     {
         var (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateToken(user);
         var (refreshToken, refreshTokenExpiresAtUtc) = await refreshTokenService.IssueAsync(user.UserId, rememberMe, ip, ct);
@@ -111,16 +116,19 @@ public class AuthService(
             AccessTokenExpiresAtUtc = accessTokenExpiresAtUtc,
             RefreshToken = refreshToken,
             RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc,
-            User = ToProfileDto(user)
+            User = ToProfileDto(user, lastLoginAtOverride)
         };
     }
 
-    private static UserProfileDto ToProfileDto(Data.Entities.User user) => new()
+    private static UserProfileDto ToProfileDto(Data.Entities.User user, DateTime? lastLoginAtOverride = null) => new()
     {
         UserId = user.UserId,
         FullName = user.FullName,
         Email = user.Email,
         UserType = user.UserType,
-        StudioId = user.StudioId
+        StudioId = user.StudioId,
+        StudioName = user.Studio?.StudioName,
+        IsActive = user.IsActive,
+        LastLoginAt = lastLoginAtOverride ?? user.LastLoginAt
     };
 }

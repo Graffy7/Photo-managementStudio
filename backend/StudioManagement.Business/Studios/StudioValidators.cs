@@ -21,7 +21,14 @@ public class UpdateStudioRequestValidator : AbstractValidator<UpdateStudioReques
     public UpdateStudioRequestValidator()
     {
         RuleFor(x => x.StudioName).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.OwnerName).MaximumLength(200);
+        RuleFor(x => x.Email).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.PhoneNumber).MaximumLength(30);
         RuleFor(x => x.Address).MaximumLength(500);
+        RuleFor(x => x.City).MaximumLength(100);
+        RuleFor(x => x.State).MaximumLength(100);
+        RuleFor(x => x.Pincode).MaximumLength(20);
+        RuleFor(x => x.GstNumber).MaximumLength(30);
+        RuleFor(x => x.Website).MaximumLength(300);
     }
 }

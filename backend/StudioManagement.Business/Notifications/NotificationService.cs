@@ -1,4 +1,5 @@
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Settings;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
 using StudioManagement.Data.UnitOfWork;
@@ -7,6 +8,7 @@ namespace StudioManagement.Business.Notifications;
 
 public class NotificationService(
     INotificationRepository notificationRepository,
+    IStudioSettingsService studioSettingsService,
     IUnitOfWork unitOfWork) : INotificationService
 {
     public async Task<PagedResult<NotificationDto>> SearchAsync(int studioId, bool? isRead, int page, int pageSize, CancellationToken ct = default)
@@ -50,6 +52,11 @@ public class NotificationService(
 
     public async Task NotifyAsync(int studioId, string title, string message, string notificationType, CancellationToken ct = default)
     {
+        if (!await studioSettingsService.IsNotificationEnabledAsync(studioId, notificationType, ct))
+        {
+            return;
+        }
+
         var notification = new Notification
         {
             StudioId = studioId,

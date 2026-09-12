@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "../../api/dashboardApi";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -17,10 +18,11 @@ function StatTile({ label, value, tone }: { label: string; value: string | numbe
 }
 
 export function DashboardScreen({ onViewStudios }: { onViewStudios: () => void }) {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: dashboardApi.getSummary,
   });
+  useRefetchOnFocus(refetch);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>

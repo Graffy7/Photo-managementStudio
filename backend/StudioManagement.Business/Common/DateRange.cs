@@ -20,6 +20,16 @@ public class DateRange
     public DateTime Start { get; init; }
     public DateTime End { get; init; }
 
+    // The immediately-preceding window of the same length — used for "vs last period" deltas.
+    // For calendar presets (month/year) this is length-equal rather than calendar-equal (e.g. 28
+    // vs 31 days), which is the honest tradeoff for a single generic definition that works for
+    // every preset, including Custom.
+    public DateRange Previous()
+    {
+        var duration = End - Start;
+        return new DateRange { Start = Start - duration, End = Start };
+    }
+
     public static DateRange Resolve(DateRangePreset preset, DateTime? customStart = null, DateTime? customEnd = null)
     {
         var today = DateTime.UtcNow.Date;

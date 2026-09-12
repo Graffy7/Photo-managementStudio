@@ -1,12 +1,14 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
-import type { Customer, CreateCustomerRequest, UpdateCustomerRequest } from "../types/customer";
+import type { Customer, CreateCustomerRequest, UpdateCustomerRequest, CustomerEventSummary } from "../types/customer";
 
 export const customersApi = {
   search: (params: { search?: string; isActive?: boolean; page?: number; pageSize?: number }) =>
     apiClient.get<PagedResult<Customer>>("/api/customers", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<Customer>(`/api/customers/${id}`).then((res) => res.data),
+
+  getEvents: (id: number) => apiClient.get<CustomerEventSummary[]>(`/api/customers/${id}/events`).then((res) => res.data),
 
   create: (request: CreateCustomerRequest) =>
     apiClient.post<Customer>("/api/customers", request).then((res) => res.data),

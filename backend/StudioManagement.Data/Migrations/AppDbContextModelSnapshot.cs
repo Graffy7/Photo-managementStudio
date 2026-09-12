@@ -237,7 +237,7 @@ namespace StudioManagement.Data.Migrations
 
                     b.ToTable("Events", t =>
                         {
-                            t.HasCheckConstraint("CK_Events_EventStatus", "[EventStatus] IN ('Upcoming','Confirmed','InProgress','Completed','Cancelled')");
+                            t.HasCheckConstraint("CK_Events_EventStatus", "[EventStatus] IN ('Upcoming','Confirmed','Completed','Cancelled')");
                         });
                 });
 
@@ -1001,7 +1001,296 @@ namespace StudioManagement.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_Payments_PaymentMethod", "[PaymentMethod] IN ('Cash','UPI','BankTransfer','Card','Other')");
 
-                            t.HasCheckConstraint("CK_Payments_PaymentStatus", "[PaymentStatus] IN ('Completed','Cancelled','Refunded')");
+                            t.HasCheckConstraint("CK_Payments_PaymentStatus", "[PaymentStatus] IN ('Completed','Cancelled','Pending')");
+                        });
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.Photo", b =>
+                {
+                    b.Property<int>("PhotoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PhotoId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsSelected")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("PhotoNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PhotoSelectionProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PreviewPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("SelectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SelectionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ThumbnailPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PhotoId");
+
+                    b.HasIndex("PhotoSelectionProjectId", "PhotoNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PhotoSelectionProjectId", "SelectionType");
+
+                    b.ToTable("Photos", t =>
+                        {
+                            t.HasCheckConstraint("CK_Photos_SelectionType", "[SelectionType] IN ('None','Normal','Big')");
+                        });
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoProcessingJob", b =>
+                {
+                    b.Property<int>("PhotoProcessingJobId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PhotoProcessingJobId"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CompletedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MissingCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PhotoSelectionProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TotalCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("PhotoProcessingJobId");
+
+                    b.HasIndex("PhotoSelectionProjectId");
+
+                    b.ToTable("PhotoProcessingJobs", t =>
+                        {
+                            t.HasCheckConstraint("CK_PhotoProcessingJobs_Status", "[Status] IN ('Pending','Running','Completed','CompletedWithErrors','Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoProcessingJobItem", b =>
+                {
+                    b.Property<int>("PhotoProcessingJobItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PhotoProcessingJobItemId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("PhotoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PhotoProcessingJobId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("PhotoProcessingJobItemId");
+
+                    b.HasIndex("PhotoId");
+
+                    b.HasIndex("PhotoProcessingJobId");
+
+                    b.ToTable("PhotoProcessingJobItems", t =>
+                        {
+                            t.HasCheckConstraint("CK_PhotoProcessingJobItems_Result", "[Result] IN ('Copied','Missing','Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoSelectionActivity", b =>
+                {
+                    b.Property<int>("PhotoSelectionActivityId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PhotoSelectionActivityId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NewSelectionType")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("OldSelectionType")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("PhotoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PhotoSelectionProjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PhotoSelectionActivityId");
+
+                    b.HasIndex("PhotoId");
+
+                    b.HasIndex("PhotoSelectionProjectId", "CreatedAt");
+
+                    b.ToTable("PhotoSelectionActivities");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoSelectionProject", b =>
+                {
+                    b.Property<int>("PhotoSelectionProjectId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PhotoSelectionProjectId"));
+
+                    b.Property<string>("AccessTokenHash")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DestinationRootFolder")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FirstOpenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LinkGeneratedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PinHash")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReopenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SelectionLimitBig")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SelectionLimitNormal")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SelectionLimitTotal")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SelectionStartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SourceFolder")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("StudioId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PhotoSelectionProjectId");
+
+                    b.HasIndex("AccessTokenHash")
+                        .IsUnique()
+                        .HasFilter("[AccessTokenHash] IS NOT NULL");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("StudioId", "CustomerId");
+
+                    b.ToTable("PhotoSelectionProjects", t =>
+                        {
+                            t.HasCheckConstraint("CK_PhotoSelectionProjects_Status", "[Status] IN ('Draft','LinkGenerated','InProgress','Submitted','Reopened','Processed')");
                         });
                 });
 
@@ -1213,6 +1502,10 @@ namespace StudioManagement.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1221,11 +1514,19 @@ namespace StudioManagement.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("GstNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsBlocked")
                         .HasColumnType("bit");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("OwnerName")
                         .HasMaxLength(200)
@@ -1235,6 +1536,14 @@ namespace StudioManagement.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("Pincode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("StudioName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1242,6 +1551,10 @@ namespace StudioManagement.Data.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.HasKey("StudioId");
 
@@ -1496,6 +1809,9 @@ namespace StudioManagement.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -1909,6 +2225,91 @@ namespace StudioManagement.Data.Migrations
                     b.Navigation("Studio");
                 });
 
+            modelBuilder.Entity("StudioManagement.Data.Entities.Photo", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.PhotoSelectionProject", "SelectionProject")
+                        .WithMany("Photos")
+                        .HasForeignKey("PhotoSelectionProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SelectionProject");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoProcessingJob", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.PhotoSelectionProject", "SelectionProject")
+                        .WithMany("ProcessingJobs")
+                        .HasForeignKey("PhotoSelectionProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SelectionProject");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoProcessingJobItem", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.Photo", "Photo")
+                        .WithMany()
+                        .HasForeignKey("PhotoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudioManagement.Data.Entities.PhotoProcessingJob", "Job")
+                        .WithMany("Items")
+                        .HasForeignKey("PhotoProcessingJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+
+                    b.Navigation("Photo");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoSelectionActivity", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.Photo", "Photo")
+                        .WithMany()
+                        .HasForeignKey("PhotoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("StudioManagement.Data.Entities.PhotoSelectionProject", "SelectionProject")
+                        .WithMany("Activities")
+                        .HasForeignKey("PhotoSelectionProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Photo");
+
+                    b.Navigation("SelectionProject");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoSelectionProject", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudioManagement.Data.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("StudioManagement.Data.Entities.Studio", "Studio")
+                        .WithMany()
+                        .HasForeignKey("StudioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Studio");
+                });
+
             modelBuilder.Entity("StudioManagement.Data.Entities.Quotation", b =>
                 {
                     b.HasOne("StudioManagement.Data.Entities.Customer", "Customer")
@@ -2115,6 +2516,20 @@ namespace StudioManagement.Data.Migrations
                     b.Navigation("CustomFieldValues");
 
                     b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoProcessingJob", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.PhotoSelectionProject", b =>
+                {
+                    b.Navigation("Activities");
+
+                    b.Navigation("Photos");
+
+                    b.Navigation("ProcessingJobs");
                 });
 
             modelBuilder.Entity("StudioManagement.Data.Entities.Quotation", b =>

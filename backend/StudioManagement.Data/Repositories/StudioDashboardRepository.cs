@@ -36,4 +36,32 @@ public class StudioDashboardRepository(AppDbContext context) : IStudioDashboardR
             .Where(e => e.StudioId == studioId && e.ExpenseDate >= start && e.ExpenseDate < end)
             .SumAsync(e => (decimal?)e.Amount, ct)
             .ContinueWith(t => t.Result ?? 0m, ct);
+
+    public Task<int> CountNewCustomersAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default) =>
+        context.Customers.CountAsync(c => c.StudioId == studioId && c.CreatedAt >= start && c.CreatedAt < end, ct);
+
+    public async Task<List<(string ServiceName, int Count)>> GetTopServicesAsync(int studioId, DateTime start, DateTime end, int take, CancellationToken ct = default)
+    {
+        var results = await context.QuotationItems
+            .Where(qi => qi.Quotation.StudioId == studioId && qi.Quotation.QuotationDate >= start && qi.Quotation.QuotationDate < end)
+            .GroupBy(qi => qi.Service.ServiceName)
+            .Select(g => new { ServiceName = g.Key, Count = g.Count() })
+            .OrderByDescending(g => g.Count)
+            .Take(take)
+            .ToListAsync(ct);
+
+        return results.Select(r => (r.ServiceName, r.Count)).ToList();
+    }
+
+    public async Task<List<(DateTime Date, decimal Amount)>> GetDailyRevenueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default)
+    {
+        var results = await context.Payments
+            .Where(p => p.StudioId == studioId && p.PaymentDate >= start && p.PaymentDate < end && p.PaymentStatus == PaymentStatuses.Completed)
+            .GroupBy(p => p.PaymentDate.Date)
+            .Select(g => new { Date = g.Key, Amount = g.Sum(p => p.Amount) })
+            .OrderBy(g => g.Date)
+            .ToListAsync(ct);
+
+        return results.Select(r => (r.Date, r.Amount)).ToList();
+    }
 }

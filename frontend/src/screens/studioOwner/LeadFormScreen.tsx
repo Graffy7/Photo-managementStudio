@@ -91,7 +91,7 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEdit ? "Edit lead" : "New lead"}</Text>
+      <Text style={styles.title}>{isEdit ? "Edit enquiry" : "New enquiry"}</Text>
 
       <Text style={styles.label}>Full name</Text>
       <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Ananya Rao" placeholderTextColor="#6f83a0" />
@@ -118,8 +118,8 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
       />
 
       <LookupChips label="Event type" options={eventTypes ?? []} selectedId={eventTypeId} onSelect={setEventTypeId} />
-      <LookupChips label="Lead source" options={leadSources ?? []} selectedId={leadSourceId} onSelect={setLeadSourceId} />
-      <LookupChips label="Lead status" options={leadStatuses ?? []} selectedId={leadStatusId} onSelect={setLeadStatusId} />
+      <LookupChips label="Enquiry source" options={leadSources ?? []} selectedId={leadSourceId} onSelect={setLeadSourceId} />
+      <LookupChips label="Enquiry status" options={leadStatuses ?? []} selectedId={leadStatusId} onSelect={setLeadStatusId} />
 
       <Text style={styles.label}>Expected event date</Text>
       <TextInput
@@ -170,7 +170,7 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
         <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create lead"}</Text>}
+          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create enquiry"}</Text>}
         </Pressable>
       </View>
     </ScrollView>

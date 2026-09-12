@@ -8,6 +8,12 @@ public class Studio
     public string Email { get; set; } = null!;
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Pincode { get; set; }
+    public string? GstNumber { get; set; }
+    public string? Website { get; set; }
+    public string? LogoUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsBlocked { get; set; }
     public DateTime CreatedAt { get; set; }

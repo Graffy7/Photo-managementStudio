@@ -9,7 +9,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   Other: "Other",
 };
 
-export const PAYMENT_STATUSES = ["Completed", "Cancelled", "Refunded"] as const;
+export const PAYMENT_STATUSES = ["Completed", "Cancelled", "Pending"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export interface Payment {
@@ -19,6 +19,9 @@ export interface Payment {
   customerMobileNumber: string;
   eventId: number | null;
   eventVenue: string | null;
+  eventBudget: number | null;
+  eventAmountPaid: number | null;
+  eventBalance: number | null;
   amount: number;
   paymentDate: string;
   paymentMethod: PaymentMethod;

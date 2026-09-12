@@ -30,11 +30,10 @@ public static class EventStatuses
 {
     public const string Upcoming = "Upcoming";
     public const string Confirmed = "Confirmed";
-    public const string InProgress = "InProgress";
     public const string Completed = "Completed";
     public const string Cancelled = "Cancelled";
 
-    public static readonly string[] All = [Upcoming, Confirmed, InProgress, Completed, Cancelled];
+    public static readonly string[] All = [Upcoming, Confirmed, Completed, Cancelled];
 }
 
 public static class QuotationStatuses
@@ -64,9 +63,9 @@ public static class PaymentStatuses
 {
     public const string Completed = "Completed";
     public const string Cancelled = "Cancelled";
-    public const string Refunded = "Refunded";
+    public const string Pending = "Pending";
 
-    public static readonly string[] All = [Completed, Cancelled, Refunded];
+    public static readonly string[] All = [Completed, Cancelled, Pending];
 }
 
 public static class NotificationTypes
@@ -76,6 +75,48 @@ public static class NotificationTypes
     public const string QuotationAccepted = "QuotationAccepted";
     public const string PaymentReceived = "PaymentReceived";
     public const string EventReminder = "EventReminder";
+    public const string PhotoSelectionSubmitted = "PhotoSelectionSubmitted";
+}
+
+public static class PhotoSelectionStatuses
+{
+    public const string Draft = "Draft";
+    public const string LinkGenerated = "LinkGenerated";
+    public const string InProgress = "InProgress";
+    public const string Submitted = "Submitted";
+    public const string Reopened = "Reopened";
+    public const string Processed = "Processed";
+
+    public static readonly string[] All = [Draft, LinkGenerated, InProgress, Submitted, Reopened, Processed];
+}
+
+public static class PhotoSelectionTypes
+{
+    public const string None = "None";
+    public const string Normal = "Normal";
+    public const string Big = "Big";
+
+    public static readonly string[] All = [None, Normal, Big];
+}
+
+public static class PhotoProcessingJobStatuses
+{
+    public const string Pending = "Pending";
+    public const string Running = "Running";
+    public const string Completed = "Completed";
+    public const string CompletedWithErrors = "CompletedWithErrors";
+    public const string Failed = "Failed";
+
+    public static readonly string[] All = [Pending, Running, Completed, CompletedWithErrors, Failed];
+}
+
+public static class PhotoProcessingResults
+{
+    public const string Copied = "Copied";
+    public const string Missing = "Missing";
+    public const string Failed = "Failed";
+
+    public static readonly string[] All = [Copied, Missing, Failed];
 }
 
 public static class FieldTypes

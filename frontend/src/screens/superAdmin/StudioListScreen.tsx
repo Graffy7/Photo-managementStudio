@@ -6,6 +6,7 @@ import { studiosApi } from "../../api/studiosApi";
 import type { Studio } from "../../types/studio";
 import { StatusPill } from "../../components/StatusPill";
 import { useAuthStore } from "../../auth/authStore";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -32,10 +33,11 @@ export function StudioListScreen({
   const queryClient = useQueryClient();
   const logout = useAuthStore((s) => s.logout);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["studios", search],
     queryFn: () => studiosApi.search({ search: search || undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["studios"] });

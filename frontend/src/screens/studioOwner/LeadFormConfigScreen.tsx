@@ -115,8 +115,8 @@ export function LeadFormConfigScreen() {
       <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
         <Text style={styles.backText}>‹ Settings</Text>
       </Pressable>
-      <Text style={styles.title}>Lead form fields</Text>
-      <Text style={styles.subtitle}>Control what shows on the lead form — hide fields, make them required, or add your own.</Text>
+      <Text style={styles.title}>Enquiry form fields</Text>
+      <Text style={styles.subtitle}>Control what shows on the enquiry form — hide fields, make them required, or add your own.</Text>
 
       {isLoading ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 30 }} />

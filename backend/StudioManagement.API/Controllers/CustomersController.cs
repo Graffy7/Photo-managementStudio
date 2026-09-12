@@ -75,4 +75,16 @@ public class CustomersController(
         var customer = await customerService.SetActiveAsync(StudioId, id, false, ct);
         return customer is null ? NotFound() : Ok(customer);
     }
+
+    [HttpGet("{id:int}/events")]
+    public async Task<IActionResult> GetEvents(int id, CancellationToken ct)
+    {
+        var customer = await customerService.GetByIdAsync(StudioId, id, ct);
+        if (customer is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(await customerService.GetEventsAsync(StudioId, id, ct));
+    }
 }

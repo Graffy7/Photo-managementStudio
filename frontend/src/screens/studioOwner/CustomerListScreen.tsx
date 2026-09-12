@@ -5,16 +5,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customersApi } from "../../api/customersApi";
 import type { Customer } from "../../types/customer";
 import { StatusPill } from "../../components/StatusPill";
+import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
-export function CustomerListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (customer: Customer) => void }) {
+export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (customer: Customer) => void; onView: (customer: Customer) => void }) {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["customers", search],
     queryFn: () => customersApi.search({ search: search || undefined, page: 1, pageSize: 50 }),
   });
+  useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["customers"] });
 
@@ -27,12 +29,16 @@ export function CustomerListScreen({ onCreate, onEdit }: { onCreate: () => void;
         <Text style={styles.customerName}>{item.fullName}</Text>
         <Text style={styles.contact}>{item.mobileNumber}{item.email ? ` · ${item.email}` : ""}</Text>
         {item.address ? <Text style={styles.meta}>{item.address}</Text> : null}
+        {item.notes ? <Text style={styles.notes} numberOfLines={2}>{item.notes}</Text> : null}
 
         <View style={styles.pillRow}>
           <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
         </View>
       </View>
       <View style={styles.actions}>
+        <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
+          <Text style={styles.actionText}>View</Text>
+        </Pressable>
         <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
           <Text style={styles.actionText}>Edit</Text>
         </Pressable>
@@ -81,7 +87,7 @@ export function CustomerListScreen({ onCreate, onEdit }: { onCreate: () => void;
           keyExtractor={(item) => String(item.customerId)}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<Text style={styles.empty}>No customers yet — add the first one, or convert a lead.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>No customers yet — add the first one, or convert an enquiry.</Text>}
           contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
@@ -108,6 +114,7 @@ const styles = StyleSheet.create({
   customerName: { color: "#e8edf3", fontSize: 16, fontWeight: "600" },
   contact: { color: "#a7b7cb", fontSize: 13 },
   meta: { color: "#6f83a0", fontSize: 12 },
+  notes: { color: "#6f83a0", fontSize: 11.5, fontStyle: "italic", marginTop: 2, lineHeight: 15 },
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
   actions: { flexDirection: "row", gap: 8 },
   actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
