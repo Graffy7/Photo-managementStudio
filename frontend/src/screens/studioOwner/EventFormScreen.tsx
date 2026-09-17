@@ -9,11 +9,14 @@ import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPi
 
 interface Props {
   event?: StudioEvent;
+  // Pre-fills the date when opened from a specific day (e.g. clicking "Add Event" with a date
+  // already selected on the Calendar) — ignored in edit mode, still freely editable.
+  initialEventDate?: string;
   onDone: () => void;
   onCancel: () => void;
 }
 
-export function EventFormScreen({ event, onDone, onCancel }: Props) {
+export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: Props) {
   const isEdit = !!event;
   const queryClient = useQueryClient();
 
@@ -21,7 +24,7 @@ export function EventFormScreen({ event, onDone, onCancel }: Props) {
     event ? { customerId: event.customerId, fullName: event.customerName, mobileNumber: event.customerMobileNumber } : null
   );
   const [eventTypeId, setEventTypeId] = useState<number | null>(event?.eventTypeId ?? null);
-  const [eventDate, setEventDate] = useState(event?.eventDate?.slice(0, 10) ?? "");
+  const [eventDate, setEventDate] = useState(event?.eventDate?.slice(0, 10) ?? initialEventDate ?? "");
   const [startTime, setStartTime] = useState(event?.startTime ?? "");
   const [endTime, setEndTime] = useState(event?.endTime ?? "");
   const [venue, setVenue] = useState(event?.venue ?? "");

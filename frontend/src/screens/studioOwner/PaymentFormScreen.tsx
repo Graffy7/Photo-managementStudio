@@ -6,32 +6,58 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment,
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 
+function formatCurrency(value: number): string {
+  return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+interface EventPaymentSummary {
+  total: number | null;
+  advancePaid: number;
+  balance: number;
+}
+
 interface Props {
   payment?: Payment;
+  // Pre-fills the form when opened from a specific event (e.g. "record payment" from an event's
+  // Calendar/Day Board card) so the owner doesn't have to re-search for a customer they're
+  // already looking at — still fully editable, just a head start.
+  initialCustomer?: PickedCustomer;
+  initialEventId?: number;
+  initialAmount?: number;
+  // Shows the event's Total/Advance Paid/Balance so far right in this form — so the owner can see
+  // what they're recording against without leaving to check the event first.
+  eventSummary?: EventPaymentSummary;
   onDone: () => void;
   onCancel: () => void;
 }
 
-export function PaymentFormScreen({ payment, onDone, onCancel }: Props) {
+export function PaymentFormScreen({ payment, initialCustomer, initialEventId, initialAmount, eventSummary, onDone, onCancel }: Props) {
   const isEdit = !!payment;
   const queryClient = useQueryClient();
 
   const [customer, setCustomer] = useState<PickedCustomer | null>(
-    payment ? { customerId: payment.customerId, fullName: payment.customerName, mobileNumber: payment.customerMobileNumber } : null
+    payment ? { customerId: payment.customerId, fullName: payment.customerName, mobileNumber: payment.customerMobileNumber } : (initialCustomer ?? null)
   );
-  const [amount, setAmount] = useState(payment ? String(payment.amount) : "");
-  const [paymentDate, setPaymentDate] = useState(payment?.paymentDate?.slice(0, 10) ?? "");
+  // "Minus" is for refunds/corrections — it subtracts from what the customer has paid so far
+  // (and so adds back to their balance) instead of adding to it. The typed Amount is always the
+  // positive magnitude; this toggle controls its sign.
+  const [mode, setMode] = useState<"add" | "minus">(payment && payment.amount < 0 ? "minus" : "add");
+  const [amount, setAmount] = useState(payment ? String(Math.abs(payment.amount)) : (initialAmount ? String(initialAmount) : ""));
+  const [paymentDate, setPaymentDate] = useState(payment?.paymentDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payment?.paymentMethod ?? "Cash");
   const [referenceNumber, setReferenceNumber] = useState(payment?.referenceNumber ?? "");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(payment?.paymentStatus ?? "Completed");
   const [notes, setNotes] = useState(payment?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
 
+  const signedAmount = Number(amount || 0) * (mode === "minus" ? -1 : 1);
+
   const mutation = useMutation({
     mutationFn: () => {
       const payload = {
         customerId: customer!.customerId,
-        amount: Number(amount),
+        eventId: payment?.eventId ?? initialEventId ?? undefined,
+        amount: signedAmount,
         paymentDate: paymentDate.trim(),
         paymentMethod,
         referenceNumber: referenceNumber.trim() || undefined,
@@ -53,11 +79,56 @@ export function PaymentFormScreen({ payment, onDone, onCancel }: Props) {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{isEdit ? "Edit payment" : "New payment"}</Text>
 
+      {eventSummary && (
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Total</Text>
+              <Text style={styles.summaryValue}>{eventSummary.total !== null ? formatCurrency(eventSummary.total) : "—"}</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Advance paid</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(eventSummary.advancePaid)}</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Balance</Text>
+              <Text style={[styles.summaryValue, { color: eventSummary.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
+                {formatCurrency(eventSummary.balance)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
 
       <Text style={styles.label}>Amount</Text>
-      <TextInput style={styles.input} value={amount} onChangeText={setAmount} placeholder="40000" placeholderTextColor="#6f83a0" keyboardType="numeric" />
+      <View style={styles.amountRow}>
+        <Pressable
+          style={[styles.signButton, mode === "add" && styles.signButtonAddActive]}
+          onPress={() => { if (mode !== "add") setAmount(""); setMode("add"); }}
+        >
+          <Text style={[styles.signButtonText, mode === "add" && styles.signButtonTextActive]}>+ Add</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.signButton, mode === "minus" && styles.signButtonMinusActive]}
+          onPress={() => { if (mode !== "minus") setAmount(""); setMode("minus"); }}
+        >
+          <Text style={[styles.signButtonText, mode === "minus" && styles.signButtonTextActive]}>− Minus</Text>
+        </Pressable>
+        <TextInput
+          style={[styles.input, styles.amountInput]}
+          value={amount}
+          onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ""))}
+          placeholder="Enter amount"
+          placeholderTextColor="#6f83a0"
+          keyboardType="numeric"
+        />
+      </View>
+      {mode === "minus" && (
+        <Text style={styles.minusHint}>This subtracts from what's been paid so far (e.g. a refund or correction).</Text>
+      )}
 
       <Text style={styles.label}>Payment date</Text>
       <TextInput style={styles.input} value={paymentDate} onChangeText={setPaymentDate} placeholder="YYYY-MM-DD" placeholderTextColor="#6f83a0" />
@@ -101,7 +172,11 @@ export function PaymentFormScreen({ payment, onDone, onCancel }: Props) {
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
         <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Record payment"}</Text>}
+          {mutation.isPending ? (
+            <ActivityIndicator color="#0d1826" />
+          ) : (
+            <Text style={styles.saveText}>{isEdit ? "Save changes" : mode === "minus" ? "Record deduction" : "Record payment"}</Text>
+          )}
         </Pressable>
       </View>
     </ScrollView>
@@ -112,11 +187,26 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
+  summaryCard: { backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 14, marginBottom: 18 },
+  summaryRow: { flexDirection: "row", gap: 12 },
+  summaryItem: { flex: 1, gap: 2 },
+  summaryLabel: { color: "#6f83a0", fontSize: 10.5 },
+  summaryValue: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
   label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
   input: {
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
     fontSize: 15, color: "#e8edf3", backgroundColor: "#132540",
   },
+  amountRow: { flexDirection: "row", gap: 8 },
+  amountInput: { flex: 1 },
+  signButton: {
+    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, justifyContent: "center", backgroundColor: "#132540",
+  },
+  signButtonAddActive: { borderColor: "#4cc493", backgroundColor: "rgba(76, 196, 147, 0.14)" },
+  signButtonMinusActive: { borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)" },
+  signButtonText: { color: "#a7b7cb", fontSize: 13, fontWeight: "700" },
+  signButtonTextActive: { color: "#e8edf3" },
+  minusHint: { color: "#ff7a72", fontSize: 11, marginTop: 6 },
   textArea: { minHeight: 72, textAlignVertical: "top" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },

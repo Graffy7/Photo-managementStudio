@@ -9,6 +9,7 @@ public class DayBoardEventDto
     public string? EndTime { get; set; }
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
+    public int CustomerId { get; set; }
     public string CustomerName { get; set; } = null!;
     public string CustomerMobileNumber { get; set; } = null!;
     public string? EventTypeName { get; set; }

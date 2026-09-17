@@ -90,8 +90,12 @@ public class PaymentService(
 
         if (payment.PaymentStatus == PaymentStatuses.Completed)
         {
-            await notificationService.NotifyAsync(
-                studioId, "Payment received", $"Payment received: ₹{payment.Amount:N0} from {dto.CustomerName}", NotificationTypes.PaymentReceived, ct);
+            var isDeduction = payment.Amount < 0;
+            var title = isDeduction ? "Payment deducted" : "Payment received";
+            var message = isDeduction
+                ? $"₹{Math.Abs(payment.Amount):N0} deducted from {dto.CustomerName}'s payments"
+                : $"Payment received: ₹{payment.Amount:N0} from {dto.CustomerName}";
+            await notificationService.NotifyAsync(studioId, title, message, NotificationTypes.PaymentReceived, ct);
         }
 
         return PaymentWriteResult.Success(dto);

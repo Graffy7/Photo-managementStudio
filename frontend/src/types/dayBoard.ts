@@ -13,6 +13,7 @@ export interface DayBoardEvent {
   endTime: string | null;
   venue: string | null;
   venueAddress: string | null;
+  customerId: number;
   customerName: string;
   customerMobileNumber: string;
   eventTypeName: string | null;

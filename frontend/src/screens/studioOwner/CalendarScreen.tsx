@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { dayBoardApi } from "../../api/dayBoardApi";
@@ -9,6 +8,13 @@ import {
   categorizeEventType, CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_ICONS, type EventCategory,
 } from "../../utils/eventCategory";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { EventFormScreen } from "./EventFormScreen";
+import { PaymentFormScreen } from "./PaymentFormScreen";
+
+type CalendarView =
+  | { name: "calendar" }
+  | { name: "createEvent" }
+  | { name: "recordPayment"; event: DayBoardEvent };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = [
@@ -53,18 +59,23 @@ function formatCurrency(value: number): string {
 }
 
 export function CalendarScreen() {
-  const navigation = useNavigation<any>();
   const today = useMemo(() => new Date(), []);
   const [viewedYear, setViewedYear] = useState(today.getFullYear());
   const [viewedMonth, setViewedMonth] = useState(today.getMonth() + 1);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [tipDismissed, setTipDismissed] = useState(false);
+  const [view, setView] = useState<CalendarView>({ name: "calendar" });
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["calendar-month", viewedYear, viewedMonth],
     queryFn: () => dayBoardApi.getMonth(viewedYear, viewedMonth),
   });
   useRefetchOnFocus(refetch);
+
+  const backToCalendar = () => {
+    setView({ name: "calendar" });
+    refetch();
+  };
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, DayBoardEvent[]> = {};
@@ -134,6 +145,24 @@ export function CalendarScreen() {
     ? new Date(`${selectedKey}T00:00:00`).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
     : null;
 
+  if (view.name === "createEvent") {
+    return <EventFormScreen initialEventDate={selectedKey ?? undefined} onDone={backToCalendar} onCancel={() => setView({ name: "calendar" })} />;
+  }
+
+  if (view.name === "recordPayment") {
+    const e = view.event;
+    return (
+      <PaymentFormScreen
+        initialCustomer={{ customerId: e.customerId, fullName: e.customerName, mobileNumber: e.customerMobileNumber }}
+        initialEventId={e.eventId}
+        initialAmount={e.balance > 0 ? e.balance : undefined}
+        eventSummary={{ total: e.budget, advancePaid: e.amountPaid, balance: e.balance }}
+        onDone={backToCalendar}
+        onCancel={() => setView({ name: "calendar" })}
+      />
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.content}>
@@ -147,7 +176,7 @@ export function CalendarScreen() {
               <Text style={styles.subtitle}>See all your booked events at a glance. Click on any date to view details.</Text>
             </View>
           </View>
-          <Pressable style={styles.addButton} onPress={() => navigation.navigate("Events")}>
+          <Pressable style={styles.addButton} onPress={() => setView({ name: "createEvent" })}>
             <Ionicons name="add" size={16} color="#0d1826" />
             <Text style={styles.addButtonText}>Add Event</Text>
           </Pressable>
@@ -301,6 +330,33 @@ export function CalendarScreen() {
                         <View style={[styles.categoryPill, { backgroundColor: `${CATEGORY_COLORS[cat]}22`, borderColor: CATEGORY_COLORS[cat] }]}>
                           <Text style={[styles.categoryPillText, { color: CATEGORY_COLORS[cat] }]}>{CATEGORY_LABELS[cat]}</Text>
                         </View>
+
+                        {e.budget !== null && (
+                          <>
+                            <View style={styles.financeRow}>
+                              <View style={styles.financeItem}>
+                                <Text style={styles.financeLabel}>Total</Text>
+                                <Text style={styles.financeValue}>{formatCurrency(e.budget)}</Text>
+                              </View>
+                              <View style={styles.financeItem}>
+                                <Text style={styles.financeLabel}>Advance paid</Text>
+                                <Text style={styles.financeValue}>{formatCurrency(e.amountPaid)}</Text>
+                              </View>
+                              <View style={styles.financeItem}>
+                                <Text style={styles.financeLabel}>Balance</Text>
+                                <Text style={[styles.financeValue, { color: e.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
+                                  {formatCurrency(e.balance)}
+                                </Text>
+                              </View>
+                            </View>
+                            <Pressable style={styles.recordPaymentButton} onPress={() => setView({ name: "recordPayment", event: e })}>
+                              <Ionicons name="cash-outline" size={13} color="#0d1826" />
+                              <Text style={styles.recordPaymentButtonText}>
+                                {e.balance > 0 ? "Record Payment" : "Add Payment"}
+                              </Text>
+                            </Pressable>
+                          </>
+                        )}
                       </View>
                     );
                   })}
@@ -476,6 +532,16 @@ const styles = StyleSheet.create({
   eventCardMeta: { color: "#a7b7cb", fontSize: 11 },
   categoryPill: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8, marginTop: 2 },
   categoryPillText: { fontSize: 10, fontWeight: "700" },
+
+  financeRow: { flexDirection: "row", gap: 10, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1b2c42" },
+  financeItem: { flex: 1, gap: 1 },
+  financeLabel: { color: "#6f83a0", fontSize: 9.5 },
+  financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
+  recordPaymentButton: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 8, marginTop: 8,
+  },
+  recordPaymentButtonText: { color: "#0d1826", fontSize: 11.5, fontWeight: "700" },
 
   summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   summaryTile: { flexGrow: 1, minWidth: "45%", backgroundColor: "#0f1e30", borderRadius: 10, padding: 12, gap: 4 },

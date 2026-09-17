@@ -53,6 +53,7 @@ public class DayBoardService(IEventRepository eventRepository) : IDayBoardServic
             EndTime = @event.EndTime?.ToString(TimeFormat, CultureInfo.InvariantCulture),
             Venue = @event.Venue,
             VenueAddress = @event.VenueAddress,
+            CustomerId = @event.CustomerId,
             CustomerName = @event.Customer.FullName,
             CustomerMobileNumber = @event.Customer.MobileNumber,
             EventTypeName = @event.EventType?.Name,
