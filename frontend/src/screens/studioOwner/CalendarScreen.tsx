@@ -325,6 +325,7 @@ export function CalendarScreen() {
                         <Text style={styles.eventCardTime}>
                           {start && end ? `${start} - ${end}` : "No time set"}
                         </Text>
+                        <Text style={styles.eventCardMeta}>{e.customerMobileNumber}</Text>
                         <Text style={styles.eventCardMeta}>{e.customerName}</Text>
                         {e.venue && <Text style={styles.eventCardMeta}>{e.venue}</Text>}
                         <View style={[styles.categoryPill, { backgroundColor: `${CATEGORY_COLORS[cat]}22`, borderColor: CATEGORY_COLORS[cat] }]}>
