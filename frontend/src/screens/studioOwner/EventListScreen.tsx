@@ -119,14 +119,28 @@ function EventTeamLine({ eventId }: { eventId: number }) {
 
 export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (event: StudioEvent) => void; onView: (event: StudioEvent) => void }) {
   const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["events", search, eventStatus],
     queryFn: () => eventsApi.search({ search: search || undefined, eventStatus: eventStatus ?? undefined, page: 1, pageSize: 50 }),
   });
   useRefetchOnFocus(refetch);
+
+  const deleteEvent = useMutation({
+    mutationFn: (eventId: number) => eventsApi.delete(eventId),
+    onSuccess: () => {
+      setPendingDeleteId(null);
+      setDeleteError(null);
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-month"] });
+    },
+    onError: (err) => setDeleteError(extractErrorMessage(err)),
+  });
 
   const renderItem = ({ item }: { item: StudioEvent }) => (
     <View style={styles.row}>
@@ -160,14 +174,40 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
           </View>
         )}
       </View>
-      <View style={styles.actions}>
-        <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
-          <Text style={styles.actionText}>View</Text>
-        </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-          <Text style={styles.actionText}>Edit</Text>
-        </Pressable>
-      </View>
+      {pendingDeleteId === item.eventId ? (
+        <View style={styles.deleteBox}>
+          <Text style={styles.deleteText}>Delete this event?</Text>
+          {deleteError ? <Text style={styles.rowError}>{deleteError}</Text> : null}
+          <View style={styles.actions}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => { setPendingDeleteId(null); setDeleteError(null); }}
+              disabled={deleteEvent.isPending}
+            >
+              <Text style={styles.actionText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionBtn, styles.actionBtnDanger]}
+              onPress={() => deleteEvent.mutate(item.eventId)}
+              disabled={deleteEvent.isPending}
+            >
+              {deleteEvent.isPending ? <ActivityIndicator color="#ff7a72" size="small" /> : <Text style={[styles.actionText, styles.actionTextDanger]}>Confirm Delete</Text>}
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.actions}>
+          <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
+            <Text style={styles.actionText}>View</Text>
+          </Pressable>
+          <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
+            <Text style={styles.actionText}>Edit</Text>
+          </Pressable>
+          <Pressable style={styles.actionBtn} onPress={() => { setPendingDeleteId(item.eventId); setDeleteError(null); }}>
+            <Text style={[styles.actionText, styles.actionTextDanger]}>Delete</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 
@@ -275,6 +315,10 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row", gap: 8 },
   actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
   actionText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  actionTextDanger: { color: "#ff7a72" },
+  actionBtnDanger: { borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)" },
+  deleteBox: { gap: 8, alignItems: "flex-end" },
+  deleteText: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
   separator: { height: 1, backgroundColor: "#1b2c42" },
   error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
   empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
