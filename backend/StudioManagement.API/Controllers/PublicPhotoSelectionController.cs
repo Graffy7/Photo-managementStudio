@@ -13,7 +13,9 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/public/photo-selection/{token}")]
 [AllowAnonymous]
-[EnableRateLimiting("auth")]
+// The gallery itself needs headroom (every selection refetches the summary and photo list), so it
+// gets the generous "public-gallery" policy; only Unlock — the PIN guess endpoint — keeps the strict one.
+[EnableRateLimiting("public-gallery")]
 public class PublicPhotoSelectionController(
     IPhotoSelectionService photoSelectionService,
     IPhotoService photoService,
@@ -22,20 +24,25 @@ public class PublicPhotoSelectionController(
 {
     private const string PinHeaderName = "X-Selection-Pin";
 
-    private async Task<int?> ResolveAsync(string token, CancellationToken ct)
+    // A token that doesn't resolve (wrong, revoked, expired) is 404 and says nothing more. A token
+    // that DOES resolve but arrives without the right PIN is 401 — the page needs that to know it
+    // should ask for the PIN rather than report a dead link. Only someone already holding the
+    // (256-bit) token can learn a PIN is required, so nothing is leaked.
+    private async Task<(int? ProjectId, IActionResult? Failure)> ResolveAsync(string token, CancellationToken ct)
     {
         var projectId = await photoSelectionService.ResolveProjectIdAsync(token, ct);
         if (projectId is null)
         {
-            return null;
+            return (null, NotFound());
         }
 
         Request.Headers.TryGetValue(PinHeaderName, out var pin);
         var allowed = await photoSelectionService.ValidateAccessAsync(projectId.Value, pin.FirstOrDefault(), ct);
-        return allowed ? projectId : null;
+        return allowed ? (projectId, null) : (null, Unauthorized(new { message = "A PIN is required to open this gallery." }));
     }
 
     [HttpPost("unlock")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Unlock(string token, UnlockRequestDto request, CancellationToken ct)
     {
         var validation = await unlockValidator.ValidateAsync(request, ct);
@@ -58,10 +65,10 @@ public class PublicPhotoSelectionController(
     [HttpGet]
     public async Task<IActionResult> GetSummary(string token, CancellationToken ct)
     {
-        var projectId = await ResolveAsync(token, ct);
-        if (projectId is null)
+        var (projectId, failure) = await ResolveAsync(token, ct);
+        if (failure is not null)
         {
-            return NotFound();
+            return failure;
         }
 
         await photoSelectionService.RecordFirstOpenAsync(projectId.Value, ct);
@@ -72,10 +79,10 @@ public class PublicPhotoSelectionController(
     [HttpGet("photos")]
     public async Task<IActionResult> GetPhotos(string token, [FromQuery] int? cursor, [FromQuery] int limit, CancellationToken ct)
     {
-        var projectId = await ResolveAsync(token, ct);
-        if (projectId is null)
+        var (projectId, failure) = await ResolveAsync(token, ct);
+        if (failure is not null)
         {
-            return NotFound();
+            return failure;
         }
 
         limit = limit is < 1 or > 100 ? 50 : limit;
@@ -103,10 +110,10 @@ public class PublicPhotoSelectionController(
             return ValidationProblem(ModelState);
         }
 
-        var projectId = await ResolveAsync(token, ct);
-        if (projectId is null)
+        var (projectId, failure) = await ResolveAsync(token, ct);
+        if (failure is not null)
         {
-            return NotFound();
+            return failure;
         }
 
         var result = await photoService.SetSelectionAsync(projectId.Value, photoId, request.SelectionType, ct);
@@ -136,10 +143,10 @@ public class PublicPhotoSelectionController(
     [HttpPost("submit")]
     public async Task<IActionResult> Submit(string token, CancellationToken ct)
     {
-        var projectId = await ResolveAsync(token, ct);
-        if (projectId is null)
+        var (projectId, failure) = await ResolveAsync(token, ct);
+        if (failure is not null)
         {
-            return NotFound();
+            return failure;
         }
 
         var result = await photoSelectionService.SubmitAsync(projectId.Value, ct);

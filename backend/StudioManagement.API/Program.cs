@@ -212,6 +212,17 @@ builder.Services.AddRateLimiter(options =>
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
+
+    // Customer gallery traffic: many small calls per minute is normal (each photo tap refetches
+    // the summary and list), so partition by client only, not per path.
+    options.AddPolicy("public-gallery", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        $"gallery:{httpContext.Connection.RemoteIpAddress}",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 300,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
 });
 
 var jwtKey = builder.Configuration["Jwt:Key"]

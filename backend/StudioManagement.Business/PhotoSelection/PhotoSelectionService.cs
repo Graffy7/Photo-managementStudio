@@ -390,6 +390,14 @@ public class PhotoSelectionService(
         return project.PhotoSelectionProjectId;
     }
 
+    // Wrong-PIN guesses per project. The gallery endpoints re-check the PIN on every call and are
+    // rate-limited generously, so guessing is bounded here instead: after MaxPinFailures wrong PINs
+    // the project rejects every attempt (even a correct PIN) until the window passes. A request with
+    // no PIN at all (the page's first call) isn't a guess and isn't counted.
+    private const int MaxPinFailures = 10;
+    private static readonly TimeSpan PinLockWindow = TimeSpan.FromMinutes(10);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, (int Failures, DateTime WindowStart)> PinFailures = new();
+
     public async Task<bool> ValidateAccessAsync(int projectId, string? suppliedPin, CancellationToken ct = default)
     {
         var project = await projectRepository.GetByIdAsync(projectId, ct);
@@ -401,7 +409,28 @@ public class PhotoSelectionService(
         {
             return true;
         }
-        return !string.IsNullOrWhiteSpace(suppliedPin) && passwordHasher.Verify(suppliedPin, project.PinHash);
+        if (string.IsNullOrWhiteSpace(suppliedPin))
+        {
+            return false;
+        }
+
+        var now = DateTime.UtcNow;
+        if (PinFailures.TryGetValue(projectId, out var state) && now - state.WindowStart < PinLockWindow && state.Failures >= MaxPinFailures)
+        {
+            return false;
+        }
+
+        if (passwordHasher.Verify(suppliedPin, project.PinHash))
+        {
+            PinFailures.TryRemove(projectId, out _);
+            return true;
+        }
+
+        PinFailures.AddOrUpdate(
+            projectId,
+            _ => (1, now),
+            (_, existing) => now - existing.WindowStart >= PinLockWindow ? (1, now) : (existing.Failures + 1, existing.WindowStart));
+        return false;
     }
 
     public async Task<PublicProjectSummaryDto?> GetPublicSummaryAsync(int projectId, CancellationToken ct = default)

@@ -128,10 +128,28 @@ function GalleryContent({ token }: { token: string }) {
   }
 
   if (summaryQuery.isError) {
+    // Only a 404 means the link itself is dead. A missing response (server unreachable / wrong
+    // network) or a 429/5xx is a temporary problem and shouldn't tell the customer to ask for a
+    // new link.
+    const status = statusCodeOf(summaryQuery.error);
+    const linkIsDead = status === 404;
     return (
       <View style={styles.centerScreen}>
-        <Text style={styles.errorTitle}>This link is no longer valid</Text>
-        <Text style={styles.errorSubtitle}>It may have been revoked or expired. Please contact your photographer for a new link.</Text>
+        <Text style={styles.errorTitle}>
+          {linkIsDead ? "This link is no longer valid" : status === 429 ? "Too many requests" : "Couldn't open the gallery"}
+        </Text>
+        <Text style={styles.errorSubtitle}>
+          {linkIsDead
+            ? "It may have been revoked or expired. Please contact your photographer for a new link."
+            : status === 429
+              ? "Please wait a minute and try again."
+              : "We couldn't reach the server. Check your internet connection and try again."}
+        </Text>
+        {!linkIsDead && (
+          <Pressable style={[styles.primaryButton, { marginTop: 20, paddingHorizontal: 28 }]} onPress={() => summaryQuery.refetch()}>
+            <Text style={styles.primaryButtonText}>Try again</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
