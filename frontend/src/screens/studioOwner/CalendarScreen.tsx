@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { dayBoardApi } from "../../api/dayBoardApi";
@@ -10,12 +11,10 @@ import {
   categorizeEventType, CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_ICONS, type EventCategory,
 } from "../../utils/eventCategory";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
-import { EventFormScreen } from "./EventFormScreen";
 import { PaymentFormScreen } from "./PaymentFormScreen";
 
 type CalendarView =
   | { name: "calendar" }
-  | { name: "createEvent" }
   | { name: "recordPayment"; event: DayBoardEvent };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -46,6 +45,7 @@ function formatCurrency(value: number): string {
 }
 
 export function CalendarScreen() {
+  const navigation = useNavigation<any>();
   const today = useMemo(() => new Date(), []);
   const queryClient = useQueryClient();
   const [viewedYear, setViewedYear] = useState(today.getFullYear());
@@ -273,12 +273,13 @@ export function CalendarScreen() {
             <View style={styles.card}>
               <View style={styles.panelHeaderRow}>
                 <Text style={styles.panelTitle}>Events on Selected Date</Text>
-                {view.name !== "createEvent" && (
-                  <Pressable style={styles.addButton} onPress={() => setView({ name: "createEvent" })}>
-                    <Ionicons name="add" size={14} color="#0d1826" />
-                    <Text style={styles.addButtonText}>Add Event</Text>
-                  </Pressable>
-                )}
+                <Pressable
+                  style={styles.addButton}
+                  onPress={() => navigation.navigate("Events", { create: true, date: selectedKey ?? undefined, returnTo: "Calendar" })}
+                >
+                  <Ionicons name="add" size={14} color="#0d1826" />
+                  <Text style={styles.addButtonText}>Add Event</Text>
+                </Pressable>
               </View>
               {selectedLabel ? (
                 <Text style={styles.panelSubtitleAccent}>{selectedLabel}</Text>
@@ -286,14 +287,7 @@ export function CalendarScreen() {
                 <Text style={styles.panelSubtitle}>Pick a date to see what's booked.</Text>
               )}
 
-              {view.name === "createEvent" ? (
-                <EventFormScreen
-                  embedded
-                  initialEventDate={selectedKey ?? undefined}
-                  onDone={backToCalendar}
-                  onCancel={() => setView({ name: "calendar" })}
-                />
-              ) : selectedKey === null ? (
+              {selectedKey === null ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="calendar-clear-outline" size={22} color="#3d5570" />
                   <Text style={styles.empty}>Click a date to see its events.</Text>
