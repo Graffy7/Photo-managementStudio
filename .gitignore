@@ -19,6 +19,5 @@ web-build/
 *.suo
 .DS_Store
 
-## Runtime-uploaded media (studio logos, photo-selection previews) — generated at runtime, not source
+## Runtime-uploaded media (studio logos) — generated at runtime, not source
 backend/StudioManagement.API/wwwroot/uploads/logos/*
-backend/StudioManagement.API/wwwroot/uploads/photo-selection/*

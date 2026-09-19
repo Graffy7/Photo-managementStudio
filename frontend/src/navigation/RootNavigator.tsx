@@ -20,7 +20,6 @@ import { ServicesHome } from "./ServicesHome";
 import { QuotationsHome } from "./QuotationsHome";
 import { PaymentsHome } from "./PaymentsHome";
 import { ExpensesHome } from "./ExpensesHome";
-import { PhotoSelectionHome } from "./PhotoSelectionHome";
 import { ReportsScreen } from "../screens/studioOwner/ReportsScreen";
 import { DayBoardScreen } from "../screens/studioOwner/DayBoardScreen";
 import { CalendarScreen } from "../screens/studioOwner/CalendarScreen";
@@ -72,7 +71,6 @@ export function RootNavigator() {
             <Stack.Screen name="Quotations" component={QuotationsHome} />
             <Stack.Screen name="Payments" component={PaymentsHome} />
             <Stack.Screen name="Expenses" component={ExpensesHome} />
-            <Stack.Screen name="PhotoSelection" component={PhotoSelectionHome} />
             <Stack.Screen name="Reports" component={ReportsScreen} />
             <Stack.Screen name="DayBoard" component={DayBoardScreen} />
             <Stack.Screen name="Calendar" component={CalendarScreen} />

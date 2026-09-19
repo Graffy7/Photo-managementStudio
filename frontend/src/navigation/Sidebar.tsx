@@ -13,7 +13,6 @@ const NAV_ITEMS: { route: string; label: string; icon: keyof typeof Ionicons.gly
   { route: "Leads", label: "Enquiry", icon: "person-add-outline" },
   { route: "Customers", label: "Customers", icon: "people-outline" },
   { route: "Events", label: "Events", icon: "calendar-outline" },
-  { route: "PhotoSelection", label: "Photo Selection", icon: "images-outline" },
   { route: "Workers", label: "Workers", icon: "briefcase-outline" },
   { route: "Services", label: "Services", icon: "pricetags-outline" },
   { route: "Quotations", label: "Quotations", icon: "document-text-outline" },

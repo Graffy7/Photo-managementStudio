@@ -3,15 +3,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { EventListScreen } from "../screens/studioOwner/EventListScreen";
 import { EventFormScreen } from "../screens/studioOwner/EventFormScreen";
 import { EventDetailScreen } from "../screens/studioOwner/EventDetailScreen";
-import { PhotoSelectionManageScreen } from "../screens/studioOwner/photoSelection/PhotoSelectionManageScreen";
 import type { StudioEvent } from "../types/event";
 
 type View =
   | { name: "list" }
   | { name: "create" }
   | { name: "edit"; event: StudioEvent }
-  | { name: "view"; event: StudioEvent }
-  | { name: "photoSelection"; event: StudioEvent; projectId: number };
+  | { name: "view"; event: StudioEvent };
 
 // Route params other screens can pass to jump straight into "create" — e.g. the Calendar's
 // "Add Event" opens this module's create form, pre-filled with the selected date, and asks to be
@@ -62,22 +60,12 @@ export function EventsHome() {
     );
   }
 
-  if (view.name === "photoSelection") {
-    return (
-      <PhotoSelectionManageScreen
-        projectId={view.projectId}
-        onBack={() => setView({ name: "view", event: view.event })}
-      />
-    );
-  }
-
   if (view.name === "view") {
     return (
       <EventDetailScreen
         event={view.event}
         onBack={() => setView({ name: "list" })}
         onEdit={() => setView({ name: "edit", event: view.event })}
-        onManagePhotoSelection={(projectId) => setView({ name: "photoSelection", event: view.event, projectId })}
       />
     );
   }

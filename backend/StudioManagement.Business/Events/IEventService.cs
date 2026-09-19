@@ -21,10 +21,8 @@ public enum EventDeleteResult
 {
     Deleted,
     NotFound,
-    // Quotations and PhotoSelectionProjects both Restrict-delete against Event — deleting one of
-    // those first (or just cancelling the event instead) is the way out.
-    HasQuotations,
-    HasPhotoSelection
+    // Quotations Restrict-delete against Event — cancelling the event instead is the way out.
+    HasQuotations
 }
 
 public interface IEventService

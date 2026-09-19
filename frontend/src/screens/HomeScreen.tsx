@@ -19,13 +19,12 @@ import { useRefetchOnFocus } from "../hooks/useRefetchOnFocus";
 const DASHBOARD_PRESETS: DateRangePreset[] = ["ThisMonth", "PreviousMonth", "ThisYear", "PreviousYear", "Custom"];
 
 const NATIVE_NAV_ROUTES = [
-  "Calendar", "Leads", "Customers", "Events", "PhotoSelection", "Workers", "Services", "Quotations",
+  "Calendar", "Leads", "Customers", "Events", "Workers", "Services", "Quotations",
   "Payments", "Expenses", "Reports", "DayBoard", "Notifications", "Settings",
 ] as const;
 
 const NATIVE_NAV_LABELS: Partial<Record<(typeof NATIVE_NAV_ROUTES)[number], string>> = {
   DayBoard: "Day Board",
-  PhotoSelection: "Photo Selection",
 };
 
 const TIPS = [

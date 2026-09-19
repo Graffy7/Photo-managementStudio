@@ -12,7 +12,6 @@ namespace StudioManagement.Business.Events;
 public class EventService(
     IEventRepository eventRepository,
     ICustomerRepository customerRepository,
-    IPhotoSelectionProjectRepository photoSelectionProjectRepository,
     IPaymentRepository paymentRepository,
     INotificationService notificationService,
     IAuditService auditService,
@@ -172,12 +171,6 @@ public class EventService(
         if (await eventRepository.HasQuotationsAsync(studioId, eventId, ct))
         {
             return EventDeleteResult.HasQuotations;
-        }
-
-        var photoSelectionProjects = await photoSelectionProjectRepository.SearchAsync(studioId, null, eventId, ct);
-        if (photoSelectionProjects.Count > 0)
-        {
-            return EventDeleteResult.HasPhotoSelection;
         }
 
         // Payments/Expenses referencing this event have EventId SetNull at the DB level — they

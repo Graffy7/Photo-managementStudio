@@ -2,7 +2,6 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import type { EventStatus, StudioEvent } from "../../types/event";
 import { EVENT_STATUS_LABELS } from "../../types/event";
 import { StatusPill } from "../../components/StatusPill";
-import { PhotoSelectionCard } from "../../components/PhotoSelectionCard";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -33,12 +32,11 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 export function EventDetailScreen({
-  event, onBack, onEdit, onManagePhotoSelection,
+  event, onBack, onEdit,
 }: {
   event: StudioEvent;
   onBack: () => void;
   onEdit: () => void;
-  onManagePhotoSelection?: (projectId: number) => void;
 }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -91,15 +89,6 @@ export function EventDetailScreen({
           <Field label="Budget" value={formatCurrency(event.budget)} />
           <Field label="File location" value={event.fileLocation ?? "—"} />
         </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionLabel}>Photo Selection</Text>
-        <PhotoSelectionCard
-          customerId={event.customerId}
-          eventId={event.eventId}
-          onManage={(projectId) => onManagePhotoSelection?.(projectId)}
-        />
       </View>
 
       <View style={styles.card}>

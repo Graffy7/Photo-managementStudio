@@ -25,7 +25,6 @@ using StudioManagement.Business.Leads;
 using StudioManagement.Business.Lookups;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Business.Payments;
-using StudioManagement.Business.PhotoSelection;
 using StudioManagement.Business.Quotations;
 using StudioManagement.Business.Reports;
 using StudioManagement.Business.Services;
@@ -106,10 +105,6 @@ builder.Services.AddScoped<IProfitReportRepository, ProfitReportRepository>();
 builder.Services.AddScoped<IEventWorkerRepository, EventWorkerRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IStudioSettingRepository, StudioSettingRepository>();
-builder.Services.AddScoped<IPhotoSelectionProjectRepository, PhotoSelectionProjectRepository>();
-builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
-builder.Services.AddScoped<IPhotoSelectionActivityRepository, PhotoSelectionActivityRepository>();
-builder.Services.AddScoped<IPhotoProcessingJobRepository, PhotoProcessingJobRepository>();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -120,9 +115,6 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudioService, StudioService>();
 builder.Services.AddScoped<IStudioSettingsService, StudioSettingsService>();
-builder.Services.AddScoped<IPhotoSelectionService, PhotoSelectionService>();
-builder.Services.AddScoped<IPhotoService, PhotoService>();
-builder.Services.AddScoped<ILocalPhotoProcessor, LocalPhotoProcessor>();
 builder.Services.AddScoped<IFeatureService, FeatureService>();
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
@@ -195,10 +187,6 @@ builder.Services.AddScoped<IValidator<UpdateStudioRequestDto>, UpdateStudioReque
 builder.Services.AddScoped<IValidator<RenewSubscriptionRequestDto>, RenewSubscriptionRequestValidator>();
 builder.Services.AddScoped<IValidator<BusinessSettingsDto>, BusinessSettingsValidator>();
 builder.Services.AddScoped<IValidator<QuotationSettingsDto>, QuotationSettingsValidator>();
-builder.Services.AddScoped<IValidator<CreatePhotoSelectionProjectRequestDto>, CreatePhotoSelectionProjectRequestValidator>();
-builder.Services.AddScoped<IValidator<GenerateLinkRequestDto>, GenerateLinkRequestValidator>();
-builder.Services.AddScoped<IValidator<SetSelectionRequestDto>, SetSelectionRequestValidator>();
-builder.Services.AddScoped<IValidator<UnlockRequestDto>, UnlockRequestValidator>();
 builder.Services.AddScoped<SuperAdminSeeder>();
 
 builder.Services.AddRateLimiter(options =>
@@ -209,17 +197,6 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 5,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0
-        }));
-
-    // Customer gallery traffic: many small calls per minute is normal (each photo tap refetches
-    // the summary and list), so partition by client only, not per path.
-    options.AddPolicy("public-gallery", httpContext => RateLimitPartition.GetFixedWindowLimiter(
-        $"gallery:{httpContext.Connection.RemoteIpAddress}",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 300,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
