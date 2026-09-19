@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { workersApi } from "../../api/workersApi";
 import { lookupApis } from "../../api/lookupsApi";
 import type { Worker } from "../../types/worker";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { LookupTypeField } from "../../components/LookupTypeField";
 
 interface Props {
   worker?: Worker;
@@ -22,8 +23,6 @@ export function WorkerFormScreen({ worker, onDone, onCancel }: Props) {
   const [workerTypeId, setWorkerTypeId] = useState<number | null>(worker?.workerTypeId ?? null);
   const [notes, setNotes] = useState(worker?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
-
-  const { data: workerTypes } = useQuery({ queryKey: ["lookups", "workerTypes"], queryFn: lookupApis.workerTypes.getAll });
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -73,21 +72,14 @@ export function WorkerFormScreen({ worker, onDone, onCancel }: Props) {
         keyboardType="email-address"
       />
 
-      {workerTypes && workerTypes.length > 0 && (
-        <>
-          <Text style={styles.label}>Worker type</Text>
-          <View style={styles.chipRow}>
-            <Pressable style={[styles.chip, workerTypeId === null && styles.chipSelected]} onPress={() => setWorkerTypeId(null)}>
-              <Text style={[styles.chipText, workerTypeId === null && styles.chipTextSelected]}>None</Text>
-            </Pressable>
-            {workerTypes.map((t) => (
-              <Pressable key={t.id} style={[styles.chip, workerTypeId === t.id && styles.chipSelected]} onPress={() => setWorkerTypeId(t.id)}>
-                <Text style={[styles.chipText, workerTypeId === t.id && styles.chipTextSelected]}>{t.name}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </>
-      )}
+      <LookupTypeField
+        label="Worker type"
+        noun="worker type"
+        queryKey={["lookups", "workerTypes"]}
+        api={lookupApis.workerTypes}
+        selectedId={workerTypeId}
+        onSelect={setWorkerTypeId}
+      />
 
       <Text style={styles.label}>Notes</Text>
       <TextInput

@@ -1,6 +1,7 @@
 using System.Globalization;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Notifications;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -12,6 +13,8 @@ public class EventService(
     IEventRepository eventRepository,
     ICustomerRepository customerRepository,
     IPhotoSelectionProjectRepository photoSelectionProjectRepository,
+    IPaymentRepository paymentRepository,
+    INotificationService notificationService,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IEventService
 {
@@ -67,8 +70,35 @@ public class EventService(
         };
 
         await eventRepository.AddAsync(@event, ct);
+
+        var recordAdvance = request.AdvancePaid is > 0;
+        if (recordAdvance)
+        {
+            // Same SaveChanges as the event itself — either both land or neither does.
+            await paymentRepository.AddAsync(new Payment
+            {
+                StudioId = studioId,
+                CustomerId = request.CustomerId,
+                Event = @event,
+                Amount = request.AdvancePaid!.Value,
+                PaymentDate = now.Date,
+                PaymentMethod = request.AdvancePaymentMethod!,
+                Notes = "Advance recorded when the event was booked",
+                PaymentStatus = PaymentStatuses.Completed,
+                CreatedAt = now,
+                UpdatedAt = now
+            }, ct);
+        }
+
         await unitOfWork.SaveChangesAsync(ct);
         await auditService.LogAsync("Event created", Module, studioId, ct);
+
+        if (recordAdvance)
+        {
+            await auditService.LogAsync("Payment recorded", "Payments", studioId, ct);
+            await notificationService.NotifyAsync(
+                studioId, "Payment received", $"Payment received: ₹{request.AdvancePaid:N0} from {customer.FullName}", NotificationTypes.PaymentReceived, ct);
+        }
 
         var created = await eventRepository.GetByIdAsync(studioId, @event.EventId, ct);
         return EventWriteResult.Success(MapToDto(created!));

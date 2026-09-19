@@ -20,6 +20,15 @@ public class CreateEventRequestValidator : AbstractValidator<CreateEventRequestD
         RuleFor(x => x.StartTime).Matches(TimeOfDayRule.Pattern).When(x => !string.IsNullOrWhiteSpace(x.StartTime));
         RuleFor(x => x.EndTime).Matches(TimeOfDayRule.Pattern).When(x => !string.IsNullOrWhiteSpace(x.EndTime));
         RuleFor(x => x.Budget).GreaterThanOrEqualTo(0).When(x => x.Budget.HasValue);
+        RuleFor(x => x.AdvancePaid).GreaterThanOrEqualTo(0).When(x => x.AdvancePaid.HasValue);
+        RuleFor(x => x.AdvancePaid)
+            .Must((request, advance) => request.Budget.HasValue && advance <= request.Budget)
+            .WithMessage("Advance paid can't be more than the budget (enter the budget first).")
+            .When(x => x.AdvancePaid is > 0);
+        RuleFor(x => x.AdvancePaymentMethod)
+            .Must(m => m is not null && PaymentMethods.All.Contains(m))
+            .WithMessage($"AdvancePaymentMethod must be one of: {string.Join(", ", PaymentMethods.All)}")
+            .When(x => x.AdvancePaid is > 0);
         RuleFor(x => x.Venue).MaximumLength(200);
         RuleFor(x => x.VenueAddress).MaximumLength(500);
         RuleFor(x => x.Notes).MaximumLength(2000);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { eventsApi } from "../../api/eventsApi";
 import { lookupApis } from "../../api/lookupsApi";
 import { EVENT_STATUSES, EVENT_STATUS_LABELS, type EventStatus, type StudioEvent } from "../../types/event";
@@ -8,6 +8,12 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { MiniTimePicker } from "../../components/MiniTimePicker";
+import { LookupTypeField } from "../../components/LookupTypeField";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from "../../types/payment";
+
+function formatCurrency(value: number): string {
+  return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
 
 interface Props {
   event?: StudioEvent;
@@ -32,53 +38,11 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
   const [venue, setVenue] = useState(event?.venue ?? "");
   const [venueAddress, setVenueAddress] = useState(event?.venueAddress ?? "");
   const [budget, setBudget] = useState(event?.budget ? String(event.budget) : "");
+  const [advancePaid, setAdvancePaid] = useState("");
+  const [advanceMethod, setAdvanceMethod] = useState<PaymentMethod>("Cash");
   const [eventStatus, setEventStatus] = useState<EventStatus>(event?.eventStatus ?? "Upcoming");
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
-
-  const { data: eventTypes } = useQuery({ queryKey: ["lookups", "eventTypes"], queryFn: lookupApis.eventTypes.getAll });
-
-  const [addingType, setAddingType] = useState(false);
-  const [newTypeName, setNewTypeName] = useState("");
-  const [typeError, setTypeError] = useState<string | null>(null);
-
-  const createType = useMutation({
-    mutationFn: (name: string) => lookupApis.eventTypes.create({ name }),
-    onSuccess: (created) => {
-      queryClient.invalidateQueries({ queryKey: ["lookups", "eventTypes"] });
-      setEventTypeId(created.id);
-      setNewTypeName("");
-      setAddingType(false);
-    },
-    onError: (err) => setTypeError(extractErrorMessage(err)),
-  });
-
-  // Delete mode: each type chip shows an × that asks for confirmation before removing it (for a
-  // mistyped name, say). A type already used by events/enquiries is refused by the server.
-  const [deleteMode, setDeleteMode] = useState(false);
-  const [pendingDeleteType, setPendingDeleteType] = useState<{ id: number; name: string } | null>(null);
-
-  const deleteType = useMutation({
-    mutationFn: (id: number) => lookupApis.eventTypes.remove(id),
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ["lookups", "eventTypes"] });
-      if (eventTypeId === id) setEventTypeId(null);
-      setPendingDeleteType(null);
-      setTypeError(null);
-    },
-    onError: (err) => setTypeError(extractErrorMessage(err)),
-  });
-
-  // OK on an empty box just closes it, so there's no separate cancel control.
-  const confirmNewType = () => {
-    const name = newTypeName.trim();
-    if (!name) {
-      setAddingType(false);
-      setTypeError(null);
-      return;
-    }
-    createType.mutate(name);
-  };
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -91,6 +55,7 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
         venue: venue.trim() || undefined,
         venueAddress: venueAddress.trim() || undefined,
         budget: budget.trim() ? Number(budget) : undefined,
+        ...(!isEdit && advanceAmount > 0 ? { advancePaid: advanceAmount, advancePaymentMethod: advanceMethod } : {}),
         eventStatus,
         notes: notes.trim() || undefined,
       };
@@ -103,7 +68,17 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
     onError: (err) => setError(extractErrorMessage(err)),
   });
 
-  const canSave = customer !== null && eventDate.trim().length > 0;
+  const budgetAmount = Number(budget) || 0;
+  const advanceAmount = Number(advancePaid) || 0;
+  // New event: the advance being typed. Editing: what's already been paid (payments are managed
+  // from Payments/Calendar, so it's shown read-only here).
+  const paidSoFar = isEdit ? event!.amountPaid : advanceAmount;
+  const balance = budgetAmount - paidSoFar;
+  const advanceError = !isEdit && advanceAmount > 0 && advanceAmount > budgetAmount
+    ? (budgetAmount > 0 ? "Advance can't be more than the budget." : "Enter the budget first.")
+    : null;
+
+  const canSave = customer !== null && eventDate.trim().length > 0 && !advanceError;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -112,74 +87,14 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
 
-      <View style={styles.labelRow}>
-        <Text style={[styles.label, styles.labelInRow]}>Event type</Text>
-        {(eventTypes ?? []).length > 0 && (
-          <Pressable
-            onPress={() => { setDeleteMode((m) => !m); setPendingDeleteType(null); setTypeError(null); }}
-          >
-            <Text style={deleteMode ? styles.doneLink : styles.deleteLink}>{deleteMode ? "Done" : "Delete a type"}</Text>
-          </Pressable>
-        )}
-      </View>
-      <View style={styles.chipRow}>
-        {!deleteMode && (
-          <Pressable style={[styles.chip, eventTypeId === null && styles.chipSelected]} onPress={() => setEventTypeId(null)}>
-            <Text style={[styles.chipText, eventTypeId === null && styles.chipTextSelected]}>None</Text>
-          </Pressable>
-        )}
-        {(eventTypes ?? []).map((t) =>
-          deleteMode ? (
-            <Pressable
-              key={t.id}
-              style={[styles.chip, styles.chipDelete, pendingDeleteType?.id === t.id && styles.chipDeletePending]}
-              onPress={() => { setPendingDeleteType({ id: t.id, name: t.name }); setTypeError(null); }}
-            >
-              <Text style={styles.chipDeleteText}>{t.name}  ×</Text>
-            </Pressable>
-          ) : (
-            <Pressable key={t.id} style={[styles.chip, eventTypeId === t.id && styles.chipSelected]} onPress={() => setEventTypeId(t.id)}>
-              <Text style={[styles.chipText, eventTypeId === t.id && styles.chipTextSelected]}>{t.name}</Text>
-            </Pressable>
-          )
-        )}
-        {!addingType && !deleteMode && (
-          <Pressable style={styles.chip} onPress={() => { setAddingType(true); setTypeError(null); }}>
-            <Text style={styles.addChipText}>+ Add event type</Text>
-          </Pressable>
-        )}
-      </View>
-      {deleteMode && !pendingDeleteType && <Text style={styles.deleteHint}>Tap a type to delete it.</Text>}
-      {deleteMode && pendingDeleteType && (
-        <View style={styles.deleteConfirmRow}>
-          <Text style={styles.deleteConfirmText}>Delete "{pendingDeleteType.name}"?</Text>
-          <View style={styles.deleteConfirmActions}>
-            <Pressable onPress={() => { setPendingDeleteType(null); setTypeError(null); }} disabled={deleteType.isPending}>
-              <Text style={styles.cancelInline}>Cancel</Text>
-            </Pressable>
-            <Pressable style={styles.confirmDeleteButton} onPress={() => deleteType.mutate(pendingDeleteType.id)} disabled={deleteType.isPending}>
-              {deleteType.isPending ? <ActivityIndicator color="#ff7a72" size="small" /> : <Text style={styles.confirmDeleteText}>Confirm Delete</Text>}
-            </Pressable>
-          </View>
-        </View>
-      )}
-      {addingType && (
-        <View style={styles.addTypeRow}>
-          <TextInput
-            style={[styles.input, styles.addTypeInput]}
-            value={newTypeName}
-            onChangeText={setNewTypeName}
-            placeholder="Event type name"
-            placeholderTextColor="#6f83a0"
-            autoFocus
-            onSubmitEditing={confirmNewType}
-          />
-          <Pressable style={styles.okButton} onPress={confirmNewType} disabled={createType.isPending}>
-            {createType.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.okText}>OK</Text>}
-          </Pressable>
-        </View>
-      )}
-      {typeError ? <Text style={styles.error}>{typeError}</Text> : null}
+      <LookupTypeField
+        label="Event type"
+        noun="event type"
+        queryKey={["lookups", "eventTypes"]}
+        api={lookupApis.eventTypes}
+        selectedId={eventTypeId}
+        onSelect={setEventTypeId}
+      />
 
       <Text style={styles.label}>Event date</Text>
       <MiniDatePicker variant="form" value={eventDate} onChange={setEventDate} placeholder="Select event date" />
@@ -202,7 +117,55 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
       <TextInput style={styles.input} value={venueAddress} onChangeText={setVenueAddress} placeholder="Optional" placeholderTextColor="#6f83a0" />
 
       <Text style={styles.label}>Budget</Text>
-      <TextInput style={styles.input} value={budget} onChangeText={setBudget} placeholder="Optional" placeholderTextColor="#6f83a0" keyboardType="numeric" />
+      <TextInput
+        style={styles.input}
+        value={budget}
+        onChangeText={(v) => setBudget(v.replace(/[^0-9.]/g, ""))}
+        placeholder="Optional"
+        placeholderTextColor="#6f83a0"
+        keyboardType="numeric"
+      />
+
+      {!isEdit && (
+        <>
+          <Text style={styles.label}>Advance paid</Text>
+          <TextInput
+            style={[styles.input, advanceError ? styles.inputInvalid : null]}
+            value={advancePaid}
+            onChangeText={(v) => setAdvancePaid(v.replace(/[^0-9.]/g, ""))}
+            placeholder="Optional"
+            placeholderTextColor="#6f83a0"
+            keyboardType="numeric"
+          />
+          {advanceError ? <Text style={styles.error}>{advanceError}</Text> : null}
+          {advanceAmount > 0 && !advanceError && (
+            <View style={[styles.chipRow, { marginTop: 10 }]}>
+              {PAYMENT_METHODS.map((m) => (
+                <Pressable key={m} style={[styles.chip, advanceMethod === m && styles.chipSelected]} onPress={() => setAdvanceMethod(m)}>
+                  <Text style={[styles.chipText, advanceMethod === m && styles.chipTextSelected]}>{PAYMENT_METHOD_LABELS[m]}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </>
+      )}
+
+      {(budgetAmount > 0 || paidSoFar > 0) && (
+        <View style={styles.moneyCard}>
+          <View style={styles.moneyItem}>
+            <Text style={styles.moneyLabel}>Budget</Text>
+            <Text style={styles.moneyValue}>{formatCurrency(budgetAmount)}</Text>
+          </View>
+          <View style={styles.moneyItem}>
+            <Text style={styles.moneyLabel}>Advance paid</Text>
+            <Text style={styles.moneyValue}>{formatCurrency(paidSoFar)}</Text>
+          </View>
+          <View style={styles.moneyItem}>
+            <Text style={styles.moneyLabel}>Balance</Text>
+            <Text style={[styles.moneyValue, { color: balance > 0 ? "#f2bd5c" : "#4cc493" }]}>{formatCurrency(balance)}</Text>
+          </View>
+        </View>
+      )}
 
       <Text style={styles.label}>Status</Text>
       <View style={styles.chipRow}>
@@ -255,25 +218,11 @@ const styles = StyleSheet.create({
   chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   chipTextSelected: { color: "#ff9a4d" },
-  addChipText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
-  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, marginBottom: 6 },
-  labelInRow: { marginTop: 0, marginBottom: 0 },
-  deleteLink: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
-  doneLink: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
-  chipDelete: { borderColor: "#5a3a3d", backgroundColor: "rgba(255, 122, 114, 0.06)" },
-  chipDeletePending: { borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.18)" },
-  chipDeleteText: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
-  deleteHint: { color: "#6f83a0", fontSize: 11.5, marginTop: 8 },
-  deleteConfirmRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 10 },
-  deleteConfirmText: { color: "#ff7a72", fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
-  deleteConfirmActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  cancelInline: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  confirmDeleteButton: { borderWidth: 1, borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
-  confirmDeleteText: { color: "#ff7a72", fontSize: 12, fontWeight: "700" },
-  addTypeRow: { flexDirection: "row", gap: 8, marginTop: 10 },
-  addTypeInput: { flex: 1 },
-  okButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
-  okText: { color: "#0d1826", fontWeight: "700", fontSize: 14 },
+  inputInvalid: { borderColor: "#ff7a72" },
+  moneyCard: { flexDirection: "row", gap: 12, marginTop: 14, backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 14 },
+  moneyItem: { flex: 1, gap: 2 },
+  moneyLabel: { color: "#6f83a0", fontSize: 10.5 },
+  moneyValue: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
   error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
   buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
   cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },

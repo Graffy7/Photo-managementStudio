@@ -40,6 +40,9 @@ export interface CreateEventRequest {
   venue?: string;
   venueAddress?: string;
   budget?: number;
+  // Only honoured when creating: recorded as a Completed payment against the new event.
+  advancePaid?: number;
+  advancePaymentMethod?: string;
   eventStatus: EventStatus;
   fileLocation?: string;
   notes?: string;

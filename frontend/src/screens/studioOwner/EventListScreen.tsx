@@ -7,6 +7,7 @@ import { workersApi } from "../../api/workersApi";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { EVENT_STATUSES, EVENT_STATUS_LABELS, type EventStatus, type StudioEvent } from "../../types/event";
 import { StatusPill } from "../../components/StatusPill";
+import { EventQuoteModal } from "../../components/EventQuoteModal";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -124,6 +125,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [quoteFor, setQuoteFor] = useState<StudioEvent | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["events", search, eventStatus],
@@ -197,6 +199,10 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         </View>
       ) : (
         <View style={styles.actions}>
+          <Pressable style={[styles.actionBtn, styles.quoteBtn]} onPress={() => setQuoteFor(item)}>
+            <Ionicons name="document-text-outline" size={12} color="#7fc0e6" />
+            <Text style={styles.quoteBtnText}>Quote</Text>
+          </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
             <Text style={styles.actionText}>View</Text>
           </Pressable>
@@ -261,6 +267,17 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
           contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
+
+      {quoteFor && (
+        <EventQuoteModal
+          visible
+          onClose={() => setQuoteFor(null)}
+          eventId={quoteFor.eventId}
+          customerId={quoteFor.customerId}
+          customerName={quoteFor.customerName}
+          eventLabel={`${formatDate(quoteFor.eventDate)}${quoteFor.venue ? ` · ${quoteFor.venue}` : ""}`}
+        />
+      )}
     </View>
   );
 }
@@ -315,6 +332,8 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row", gap: 8 },
   actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
   actionText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  quoteBtn: { flexDirection: "row", alignItems: "center", gap: 4, borderColor: "#2c5878", backgroundColor: "rgba(127, 192, 230, 0.08)" },
+  quoteBtnText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
   actionTextDanger: { color: "#ff7a72" },
   actionBtnDanger: { borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)" },
   deleteBox: { gap: 8, alignItems: "flex-end" },

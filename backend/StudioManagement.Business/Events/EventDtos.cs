@@ -33,6 +33,10 @@ public class CreateEventRequestDto
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public decimal? Budget { get; set; }
+    // Optional advance collected when the event is booked — recorded as a Completed payment
+    // against the new event in the same save, so the event and its first payment can't drift apart.
+    public decimal? AdvancePaid { get; set; }
+    public string? AdvancePaymentMethod { get; set; }
     public string EventStatus { get; set; } = null!;
     public string? FileLocation { get; set; }
     public string? Notes { get; set; }
