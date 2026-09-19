@@ -74,4 +74,9 @@ public class EventRepository(AppDbContext context) : IEventRepository
         await context.Events.AddAsync(@event, ct);
 
     public void Update(Event @event) => context.Events.Update(@event);
+
+    public void Remove(Event @event) => context.Events.Remove(@event);
+
+    public Task<bool> HasQuotationsAsync(int studioId, int eventId, CancellationToken ct = default) =>
+        context.Quotations.AnyAsync(q => q.StudioId == studioId && q.EventId == eventId, ct);
 }

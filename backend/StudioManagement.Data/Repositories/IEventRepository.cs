@@ -10,4 +10,9 @@ public interface IEventRepository
     Task<List<Event>> GetForCustomerAsync(int studioId, int customerId, CancellationToken ct = default);
     Task AddAsync(Event @event, CancellationToken ct = default);
     void Update(Event @event);
+    void Remove(Event @event);
+
+    // Quotations Restrict-delete against Event — checked up front so a blocked delete returns a
+    // friendly reason instead of an unhandled FK-violation exception.
+    Task<bool> HasQuotationsAsync(int studioId, int eventId, CancellationToken ct = default);
 }

@@ -17,6 +17,16 @@ public class EventWriteResult
     public static EventWriteResult Fail(EventWriteFailureReason reason) => new() { Succeeded = false, FailureReason = reason };
 }
 
+public enum EventDeleteResult
+{
+    Deleted,
+    NotFound,
+    // Quotations and PhotoSelectionProjects both Restrict-delete against Event — deleting one of
+    // those first (or just cancelling the event instead) is the way out.
+    HasQuotations,
+    HasPhotoSelection
+}
+
 public interface IEventService
 {
     Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, int page, int pageSize, CancellationToken ct = default);
@@ -24,4 +34,5 @@ public interface IEventService
     Task<EventWriteResult> CreateAsync(int studioId, CreateEventRequestDto request, CancellationToken ct = default);
     Task<EventWriteResult?> UpdateAsync(int studioId, int eventId, UpdateEventRequestDto request, CancellationToken ct = default);
     Task<EventDto?> UpdateNotesAsync(int studioId, int eventId, string? notes, CancellationToken ct = default);
+    Task<EventDeleteResult> DeleteAsync(int studioId, int eventId, CancellationToken ct = default);
 }

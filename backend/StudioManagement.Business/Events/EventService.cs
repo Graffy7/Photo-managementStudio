@@ -11,6 +11,7 @@ namespace StudioManagement.Business.Events;
 public class EventService(
     IEventRepository eventRepository,
     ICustomerRepository customerRepository,
+    IPhotoSelectionProjectRepository photoSelectionProjectRepository,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IEventService
 {
@@ -128,6 +129,34 @@ public class EventService(
 
         var updated = await eventRepository.GetByIdAsync(studioId, eventId, ct);
         return MapToDto(updated!);
+    }
+
+    public async Task<EventDeleteResult> DeleteAsync(int studioId, int eventId, CancellationToken ct = default)
+    {
+        var @event = await eventRepository.GetByIdAsync(studioId, eventId, ct);
+        if (@event is null)
+        {
+            return EventDeleteResult.NotFound;
+        }
+
+        if (await eventRepository.HasQuotationsAsync(studioId, eventId, ct))
+        {
+            return EventDeleteResult.HasQuotations;
+        }
+
+        var photoSelectionProjects = await photoSelectionProjectRepository.SearchAsync(studioId, null, eventId, ct);
+        if (photoSelectionProjects.Count > 0)
+        {
+            return EventDeleteResult.HasPhotoSelection;
+        }
+
+        // Payments/Expenses referencing this event have EventId SetNull at the DB level — they
+        // survive as un-linked records rather than blocking or cascading away real financial history.
+        eventRepository.Remove(@event);
+        await unitOfWork.SaveChangesAsync(ct);
+        await auditService.LogAsync("Event deleted", Module, studioId, ct);
+
+        return EventDeleteResult.Deleted;
     }
 
     private static TimeSpan? ParseTime(string? value) =>

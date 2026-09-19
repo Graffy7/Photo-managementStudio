@@ -76,6 +76,19 @@ public class EventsController(
         return Ok(result.Event);
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var result = await eventService.DeleteAsync(StudioId, id, ct);
+        return result switch
+        {
+            EventDeleteResult.NotFound => NotFound(),
+            EventDeleteResult.HasQuotations => BadRequest(new { message = "This event has a quotation attached and can't be deleted. Cancel the event instead." }),
+            EventDeleteResult.HasPhotoSelection => BadRequest(new { message = "This event has a photo selection linked and can't be deleted. Cancel the event instead." }),
+            _ => NoContent()
+        };
+    }
+
     [HttpPatch("{id:int}/notes")]
     public async Task<IActionResult> UpdateNotes(int id, UpdateEventNotesRequestDto request, CancellationToken ct)
     {

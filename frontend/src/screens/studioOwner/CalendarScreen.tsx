@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { dayBoardApi } from "../../api/dayBoardApi";
+import { eventsApi } from "../../api/eventsApi";
+import { extractErrorMessage } from "../../api/errorMessage";
 import type { DayBoardEvent } from "../../types/dayBoard";
 import {
   categorizeEventType, CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_ICONS, type EventCategory,
@@ -60,17 +62,31 @@ function formatCurrency(value: number): string {
 
 export function CalendarScreen() {
   const today = useMemo(() => new Date(), []);
+  const queryClient = useQueryClient();
   const [viewedYear, setViewedYear] = useState(today.getFullYear());
   const [viewedMonth, setViewedMonth] = useState(today.getMonth() + 1);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [tipDismissed, setTipDismissed] = useState(false);
   const [view, setView] = useState<CalendarView>({ name: "calendar" });
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["calendar-month", viewedYear, viewedMonth],
     queryFn: () => dayBoardApi.getMonth(viewedYear, viewedMonth),
   });
   useRefetchOnFocus(refetch);
+
+  const deleteMutation = useMutation({
+    mutationFn: (eventId: number) => eventsApi.delete(eventId),
+    onSuccess: () => {
+      setPendingDeleteId(null);
+      setDeleteError(null);
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      refetch();
+    },
+    onError: (err) => setDeleteError(extractErrorMessage(err)),
+  });
 
   const backToCalendar = () => {
     setView({ name: "calendar" });
@@ -321,6 +337,14 @@ export function CalendarScreen() {
                             <View style={[styles.eventDotSmall, { backgroundColor: CATEGORY_COLORS[cat] }]} />
                             <Text style={styles.eventCardTitle} numberOfLines={1}>{CATEGORY_LABELS[cat]} - {e.customerName}</Text>
                           </View>
+                          {pendingDeleteId !== e.eventId && (
+                            <Pressable
+                              hitSlop={8}
+                              onPress={() => { setPendingDeleteId(e.eventId); setDeleteError(null); }}
+                            >
+                              <Ionicons name="trash-outline" size={15} color="#6f83a0" />
+                            </Pressable>
+                          )}
                         </View>
                         <Text style={styles.eventCardTime}>
                           {start && end ? `${start} - ${end}` : "No time set"}
@@ -357,6 +381,33 @@ export function CalendarScreen() {
                               </Text>
                             </Pressable>
                           </>
+                        )}
+
+                        {pendingDeleteId === e.eventId && (
+                          <View style={styles.deleteConfirmBox}>
+                            <Text style={styles.deleteConfirmText}>Delete this event? This can't be undone.</Text>
+                            {deleteError && <Text style={styles.deleteErrorText}>{deleteError}</Text>}
+                            <View style={styles.deleteConfirmButtons}>
+                              <Pressable
+                                style={styles.deleteCancelButton}
+                                onPress={() => { setPendingDeleteId(null); setDeleteError(null); }}
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Text style={styles.deleteCancelText}>Cancel</Text>
+                              </Pressable>
+                              <Pressable
+                                style={styles.deleteConfirmButton}
+                                onPress={() => deleteMutation.mutate(e.eventId)}
+                                disabled={deleteMutation.isPending}
+                              >
+                                {deleteMutation.isPending ? (
+                                  <ActivityIndicator color="#ff7a72" size="small" />
+                                ) : (
+                                  <Text style={styles.deleteConfirmButtonText}>Confirm Delete</Text>
+                                )}
+                              </Pressable>
+                            </View>
+                          </View>
                         )}
                       </View>
                     );
@@ -533,6 +584,20 @@ const styles = StyleSheet.create({
   eventCardMeta: { color: "#a7b7cb", fontSize: 11 },
   categoryPill: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8, marginTop: 2 },
   categoryPillText: { fontSize: 10, fontWeight: "700" },
+
+  deleteConfirmBox: {
+    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1b2c42", gap: 8,
+  },
+  deleteConfirmText: { color: "#ff7a72", fontSize: 11.5, fontWeight: "600" },
+  deleteErrorText: { color: "#ff7a72", fontSize: 11 },
+  deleteConfirmButtons: { flexDirection: "row", gap: 8 },
+  deleteCancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 8, alignItems: "center" },
+  deleteCancelText: { color: "#a7b7cb", fontSize: 11.5, fontWeight: "700" },
+  deleteConfirmButton: {
+    flex: 1, borderWidth: 1, borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)",
+    borderRadius: 8, paddingVertical: 8, alignItems: "center",
+  },
+  deleteConfirmButtonText: { color: "#ff7a72", fontSize: 11.5, fontWeight: "700" },
 
   financeRow: { flexDirection: "row", gap: 10, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1b2c42" },
   financeItem: { flex: 1, gap: 1 },

@@ -24,4 +24,6 @@ export const eventsApi = {
     apiClient.post<AssignedWorker>(`/api/events/${eventId}/workers`, { workerId, notes }).then((res) => res.data),
 
   unassignWorker: (eventId: number, workerId: number) => apiClient.delete(`/api/events/${eventId}/workers/${workerId}`),
+
+  delete: (id: number) => apiClient.delete(`/api/events/${id}`),
 };
