@@ -41,21 +41,6 @@ function formatTime12h(time: string | null): string | null {
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-function eventDurationMinutes(e: DayBoardEvent): number {
-  if (!e.startTime || !e.endTime) return 0;
-  const [sh, sm] = e.startTime.split(":").map(Number);
-  const [eh, em] = e.endTime.split(":").map(Number);
-  const minutes = (eh * 60 + em) - (sh * 60 + sm);
-  return minutes > 0 ? minutes : 0;
-}
-
-function formatDuration(totalMinutes: number): string {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) return `${minutes}m`;
-  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
-}
-
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
@@ -66,7 +51,6 @@ export function CalendarScreen() {
   const [viewedYear, setViewedYear] = useState(today.getFullYear());
   const [viewedMonth, setViewedMonth] = useState(today.getMonth() + 1);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [tipDismissed, setTipDismissed] = useState(false);
   const [view, setView] = useState<CalendarView>({ name: "calendar" });
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -112,10 +96,8 @@ export function CalendarScreen() {
   }, [allMonthEvents]);
 
   const monthlySummary = useMemo(() => {
-    const totalMinutes = allMonthEvents.reduce((sum, e) => sum + eventDurationMinutes(e), 0);
     const totalValue = allMonthEvents.reduce((sum, e) => sum + (e.budget ?? 0), 0);
-    const distinctCustomers = new Set(allMonthEvents.map((e) => e.customerMobileNumber)).size;
-    return { totalEvents: allMonthEvents.length, totalMinutes, totalValue, distinctCustomers };
+    return { totalEvents: allMonthEvents.length, totalValue };
   }, [allMonthEvents]);
 
   const busiestDay = useMemo(() => {
@@ -161,10 +143,6 @@ export function CalendarScreen() {
     ? new Date(`${selectedKey}T00:00:00`).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
     : null;
 
-  if (view.name === "createEvent") {
-    return <EventFormScreen initialEventDate={selectedKey ?? undefined} onDone={backToCalendar} onCancel={() => setView({ name: "calendar" })} />;
-  }
-
   if (view.name === "recordPayment") {
     const e = view.event;
     return (
@@ -192,10 +170,6 @@ export function CalendarScreen() {
               <Text style={styles.subtitle}>See all your booked events at a glance. Click on any date to view details.</Text>
             </View>
           </View>
-          <Pressable style={styles.addButton} onPress={() => setView({ name: "createEvent" })}>
-            <Ionicons name="add" size={16} color="#0d1826" />
-            <Text style={styles.addButtonText}>Add Event</Text>
-          </Pressable>
         </View>
 
         <View style={styles.statRow}>
@@ -293,28 +267,33 @@ export function CalendarScreen() {
                 </>
               )}
             </View>
-
-            {!tipDismissed && (
-              <View style={styles.tipBanner}>
-                <Ionicons name="bulb-outline" size={16} color="#7fc0e6" />
-                <Text style={styles.tipText}><Text style={styles.tipLabel}>Tip: </Text>Click on any event to view details, edit or manage bookings.</Text>
-                <Pressable onPress={() => setTipDismissed(true)}>
-                  <Ionicons name="close" size={16} color="#6f83a0" />
-                </Pressable>
-              </View>
-            )}
           </View>
 
           <View style={styles.sideColumn}>
             <View style={styles.card}>
-              <Text style={styles.panelTitle}>Events on Selected Date</Text>
+              <View style={styles.panelHeaderRow}>
+                <Text style={styles.panelTitle}>Events on Selected Date</Text>
+                {view.name !== "createEvent" && (
+                  <Pressable style={styles.addButton} onPress={() => setView({ name: "createEvent" })}>
+                    <Ionicons name="add" size={14} color="#0d1826" />
+                    <Text style={styles.addButtonText}>Add Event</Text>
+                  </Pressable>
+                )}
+              </View>
               {selectedLabel ? (
                 <Text style={styles.panelSubtitleAccent}>{selectedLabel}</Text>
               ) : (
                 <Text style={styles.panelSubtitle}>Pick a date to see what's booked.</Text>
               )}
 
-              {selectedKey === null ? (
+              {view.name === "createEvent" ? (
+                <EventFormScreen
+                  embedded
+                  initialEventDate={selectedKey ?? undefined}
+                  onDone={backToCalendar}
+                  onCancel={() => setView({ name: "calendar" })}
+                />
+              ) : selectedKey === null ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="calendar-clear-outline" size={22} color="#3d5570" />
                   <Text style={styles.empty}>Click a date to see its events.</Text>
@@ -421,9 +400,7 @@ export function CalendarScreen() {
               <Text style={styles.panelSubtitle}>{MONTH_NAMES[viewedMonth - 1]} {viewedYear}</Text>
               <View style={styles.summaryGrid}>
                 <SummaryTile icon="calendar-outline" label="Total Events" value={String(monthlySummary.totalEvents)} />
-                <SummaryTile icon="time-outline" label="Total Duration" value={monthlySummary.totalMinutes > 0 ? formatDuration(monthlySummary.totalMinutes) : "—"} />
                 <SummaryTile icon="cash-outline" label="Total Value" value={monthlySummary.totalValue > 0 ? formatCurrency(monthlySummary.totalValue) : "—"} />
-                <SummaryTile icon="people-outline" label="Customers" value={String(monthlySummary.distinctCustomers)} />
               </View>
             </View>
 
@@ -500,10 +477,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3, maxWidth: 420 },
   addButton: {
-    flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#7fc0e6",
-    borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16,
+    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#7fc0e6",
+    borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10,
   },
-  addButtonText: { color: "#0d1826", fontSize: 13, fontWeight: "700" },
+  addButtonText: { color: "#0d1826", fontSize: 12, fontWeight: "700" },
+  panelHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
 
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 18 },
   statCard: { flexGrow: 1, minWidth: 130, backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 14 },
@@ -561,13 +539,6 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendLabel: { color: "#a7b7cb", fontSize: 11, fontWeight: "600" },
-
-  tipBanner: {
-    flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(127, 192, 230, 0.08)",
-    borderWidth: 1, borderColor: "rgba(127, 192, 230, 0.25)", borderRadius: 12, padding: 14,
-  },
-  tipText: { color: "#a7b7cb", fontSize: 12, flex: 1 },
-  tipLabel: { color: "#e8edf3", fontWeight: "700" },
 
   panelTitle: { fontSize: 15, fontWeight: "700", color: "#e8edf3" },
   panelSubtitle: { fontSize: 12, color: "#6f83a0", marginTop: 2, marginBottom: 4 },

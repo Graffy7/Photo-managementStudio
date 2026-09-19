@@ -12,11 +12,14 @@ interface Props {
   // Pre-fills the date when opened from a specific day (e.g. clicking "Add Event" with a date
   // already selected on the Calendar) — ignored in edit mode, still freely editable.
   initialEventDate?: string;
+  // Renders as a plain block (no full-screen scroll/padding/title) so it can sit inside another
+  // panel, e.g. the Calendar's "Events on Selected Date" card.
+  embedded?: boolean;
   onDone: () => void;
   onCancel: () => void;
 }
 
-export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: Props) {
+export function EventFormScreen({ event, initialEventDate, embedded, onDone, onCancel }: Props) {
   const isEdit = !!event;
   const queryClient = useQueryClient();
 
@@ -61,9 +64,12 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
 
   const canSave = customer !== null && eventDate.trim().length > 0;
 
+  const Container = embedded ? View : ScrollView;
+  const containerProps = embedded ? { style: styles.embedded } : { style: styles.screen, contentContainerStyle: styles.content };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEdit ? "Edit event" : "New event"}</Text>
+    <Container {...(containerProps as any)}>
+      {!embedded && <Text style={styles.title}>{isEdit ? "Edit event" : "New event"}</Text>}
 
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
@@ -137,11 +143,12 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
           {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create event"}</Text>}
         </Pressable>
       </View>
-    </ScrollView>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
+  embedded: { marginTop: 4 },
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
