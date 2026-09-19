@@ -38,6 +38,32 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
 
   const { data: eventTypes } = useQuery({ queryKey: ["lookups", "eventTypes"], queryFn: lookupApis.eventTypes.getAll });
 
+  const [addingType, setAddingType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+  const [typeError, setTypeError] = useState<string | null>(null);
+
+  const createType = useMutation({
+    mutationFn: (name: string) => lookupApis.eventTypes.create({ name }),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ["lookups", "eventTypes"] });
+      setEventTypeId(created.id);
+      setNewTypeName("");
+      setAddingType(false);
+    },
+    onError: (err) => setTypeError(extractErrorMessage(err)),
+  });
+
+  // OK on an empty box just closes it, so there's no separate cancel control.
+  const confirmNewType = () => {
+    const name = newTypeName.trim();
+    if (!name) {
+      setAddingType(false);
+      setTypeError(null);
+      return;
+    }
+    createType.mutate(name);
+  };
+
   const mutation = useMutation({
     mutationFn: () => {
       const payload = {
@@ -70,19 +96,39 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
 
-      {eventTypes && eventTypes.length > 0 && (
+      <Text style={styles.label}>Event type</Text>
+      <View style={styles.chipRow}>
+        <Pressable style={[styles.chip, eventTypeId === null && styles.chipSelected]} onPress={() => setEventTypeId(null)}>
+          <Text style={[styles.chipText, eventTypeId === null && styles.chipTextSelected]}>None</Text>
+        </Pressable>
+        {(eventTypes ?? []).map((t) => (
+          <Pressable key={t.id} style={[styles.chip, eventTypeId === t.id && styles.chipSelected]} onPress={() => setEventTypeId(t.id)}>
+            <Text style={[styles.chipText, eventTypeId === t.id && styles.chipTextSelected]}>{t.name}</Text>
+          </Pressable>
+        ))}
+        {!addingType && (
+          <Pressable style={styles.chip} onPress={() => { setAddingType(true); setTypeError(null); }}>
+            <Text style={styles.addChipText}>+ Add event type</Text>
+          </Pressable>
+        )}
+      </View>
+      {addingType && (
         <>
-          <Text style={styles.label}>Event type</Text>
-          <View style={styles.chipRow}>
-            <Pressable style={[styles.chip, eventTypeId === null && styles.chipSelected]} onPress={() => setEventTypeId(null)}>
-              <Text style={[styles.chipText, eventTypeId === null && styles.chipTextSelected]}>None</Text>
+          <View style={styles.addTypeRow}>
+            <TextInput
+              style={[styles.input, styles.addTypeInput]}
+              value={newTypeName}
+              onChangeText={setNewTypeName}
+              placeholder="Event type name"
+              placeholderTextColor="#6f83a0"
+              autoFocus
+              onSubmitEditing={confirmNewType}
+            />
+            <Pressable style={styles.okButton} onPress={confirmNewType} disabled={createType.isPending}>
+              {createType.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.okText}>OK</Text>}
             </Pressable>
-            {eventTypes.map((t) => (
-              <Pressable key={t.id} style={[styles.chip, eventTypeId === t.id && styles.chipSelected]} onPress={() => setEventTypeId(t.id)}>
-                <Text style={[styles.chipText, eventTypeId === t.id && styles.chipTextSelected]}>{t.name}</Text>
-              </Pressable>
-            ))}
           </View>
+          {typeError ? <Text style={styles.error}>{typeError}</Text> : null}
         </>
       )}
 
@@ -160,6 +206,11 @@ const styles = StyleSheet.create({
   chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   chipTextSelected: { color: "#ff9a4d" },
+  addChipText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
+  addTypeRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  addTypeInput: { flex: 1 },
+  okButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
+  okText: { color: "#0d1826", fontWeight: "700", fontSize: 14 },
   error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
   buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
   cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
