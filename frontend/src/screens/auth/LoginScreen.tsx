@@ -10,9 +10,24 @@ export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const login = useAuthStore((s) => s.login);
   const isSubmitting = useAuthStore((s) => s.isSubmitting);
   const error = useAuthStore((s) => s.error);
+
+  const trimmedEmail = email.trim();
+  const emailWarning = !trimmedEmail
+    ? "Please enter your email."
+    : !/^\S+@\S+\.\S+$/.test(trimmedEmail)
+      ? "Please enter a valid email address."
+      : null;
+  const passwordWarning = !password ? "Please enter your password." : null;
+
+  const handleSubmit = () => {
+    setSubmitAttempted(true);
+    if (emailWarning || passwordWarning) return;
+    login(trimmedEmail, password, rememberMe);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -26,7 +41,7 @@ export function LoginScreen() {
 
         <Text style={styles.label}>Email</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, submitAttempted && emailWarning ? styles.inputInvalid : null]}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -34,16 +49,19 @@ export function LoginScreen() {
           placeholder="you@studio.com"
           placeholderTextColor="#7c8ba0"
         />
+        {submitAttempted && emailWarning ? <Text style={styles.fieldWarning}>{emailWarning}</Text> : null}
 
         <Text style={styles.label}>Password</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, submitAttempted && passwordWarning ? styles.inputInvalid : null]}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
           placeholder="••••••••"
           placeholderTextColor="#7c8ba0"
+          onSubmitEditing={handleSubmit}
         />
+        {submitAttempted && passwordWarning ? <Text style={styles.fieldWarning}>{passwordWarning}</Text> : null}
 
         <View style={styles.optionsRow}>
           <Checkbox checked={rememberMe} onToggle={() => setRememberMe((v) => !v)} label="Remember me" />
@@ -56,7 +74,7 @@ export function LoginScreen() {
 
         <Pressable
           style={[styles.button, isSubmitting && styles.buttonDisabled]}
-          onPress={() => login(email, password, rememberMe)}
+          onPress={handleSubmit}
           disabled={isSubmitting}
         >
           {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
@@ -111,6 +129,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#e8edf3",
     backgroundColor: "#0d1826",
+  },
+  inputInvalid: {
+    borderColor: "#ff7a72",
+  },
+  fieldWarning: {
+    color: "#ff7a72",
+    fontSize: 12,
+    marginTop: 6,
   },
   optionsRow: {
     flexDirection: "row",
