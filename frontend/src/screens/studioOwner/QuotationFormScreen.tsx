@@ -6,6 +6,7 @@ import { servicesApi } from "../../api/servicesApi";
 import type { Quotation } from "../../types/quotation";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
 
 interface Props {
   quotation?: Quotation;
@@ -129,10 +130,10 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
       <CustomerPicker selected={customer} onSelect={setCustomer} />
 
       <Text style={styles.label}>Quotation date</Text>
-      <TextInput style={styles.input} value={quotationDate} onChangeText={setQuotationDate} placeholder="YYYY-MM-DD" placeholderTextColor="#6f83a0" />
+      <MiniDatePicker variant="form" value={quotationDate} onChange={setQuotationDate} placeholder="Select quotation date" />
 
       <Text style={styles.label}>Valid until</Text>
-      <TextInput style={styles.input} value={validUntil} onChangeText={setValidUntil} placeholder="YYYY-MM-DD (optional)" placeholderTextColor="#6f83a0" />
+      <MiniDatePicker variant="form" clearable value={validUntil} onChange={setValidUntil} placeholder="Select date (optional)" />
 
       <Text style={styles.sectionLabel}>Line items</Text>
 

@@ -18,13 +18,18 @@ function todayKey(): string {
 }
 
 interface MiniDatePickerProps {
-  label: string;
+  label?: string;
   value: string;
   onChange: (date: string) => void;
   placeholder?: string;
+  // "form" matches a full-width form input (used where a screen used to have a typed YYYY-MM-DD
+  // field); "compact" is the small inline trigger used in filter bars.
+  variant?: "compact" | "form";
+  // Shows a Clear action — for optional dates that can legitimately be left empty.
+  clearable?: boolean;
 }
 
-export function MiniDatePicker({ label, value, onChange, placeholder = "Select date" }: MiniDatePickerProps) {
+export function MiniDatePicker({ label, value, onChange, placeholder = "Select date", variant = "compact", clearable }: MiniDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(() => (value ? new Date(`${value}T00:00:00`).getFullYear() : new Date().getFullYear()));
   const [viewMonth, setViewMonth] = useState(() => (value ? new Date(`${value}T00:00:00`).getMonth() + 1 : new Date().getMonth() + 1));
@@ -62,10 +67,10 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
 
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
-      <Pressable style={styles.trigger} onPress={openPicker}>
-        <Ionicons name="calendar-outline" size={14} color="#7fc0e6" />
-        <Text style={[styles.triggerText, !value && styles.placeholderText]}>{displayLabel}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+      <Pressable style={[styles.trigger, variant === "form" && styles.triggerForm]} onPress={openPicker}>
+        <Ionicons name="calendar-outline" size={variant === "form" ? 18 : 14} color="#7fc0e6" />
+        <Text style={[styles.triggerText, variant === "form" && styles.triggerTextForm, !value && styles.placeholderText]}>{displayLabel}</Text>
       </Pressable>
 
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -110,6 +115,17 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
                 );
               })}
             </View>
+
+            <View style={styles.footer}>
+              {clearable && value ? (
+                <Pressable onPress={() => { onChange(""); setOpen(false); }}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </Pressable>
+              ) : <View />}
+              <Pressable onPress={() => { onChange(todayKey()); setOpen(false); }}>
+                <Text style={styles.todayText}>Today</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -124,7 +140,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#132540", minWidth: 140,
   },
   triggerText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
-  placeholderText: { color: "#4a5f78", fontWeight: "500" },
+  triggerForm: { paddingVertical: 10, paddingHorizontal: 14, minWidth: 0, width: "100%" },
+  triggerTextForm: { fontSize: 15, fontWeight: "400" },
+  placeholderText: { color: "#6f83a0", fontWeight: "400" },
+  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#1b2c42" },
+  clearText: { color: "#ff7a72", fontSize: 12, fontWeight: "700" },
+  todayText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
 
   backdrop: { flex: 1, backgroundColor: "rgba(3, 8, 15, 0.6)", alignItems: "center", justifyContent: "center" },
   popover: {

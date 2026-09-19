@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dayBoardApi } from "../../api/dayBoardApi";
 import { workersApi } from "../../api/workersApi";
 import type { DayBoardEvent } from "../../types/dayBoard";
 import { StatusPill } from "../../components/StatusPill";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
@@ -180,7 +181,9 @@ export function DayBoardScreen() {
         <Pressable style={styles.navButton} onPress={() => setDate((d) => shiftDate(d, -1))}>
           <Text style={styles.navButtonText}>‹ Prev</Text>
         </Pressable>
-        <TextInput style={styles.dateInput} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor="#6f83a0" />
+        <View style={styles.datePickerSlot}>
+          <MiniDatePicker value={date} onChange={(d) => d && setDate(d)} />
+        </View>
         <Pressable style={styles.navButton} onPress={() => setDate(todayUtc())}>
           <Text style={styles.navButtonText}>Today</Text>
         </Pressable>
@@ -213,10 +216,7 @@ const styles = StyleSheet.create({
   dateNav: { flexDirection: "row", gap: 8, marginBottom: 20 },
   navButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#132540" },
   navButtonText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
-  dateInput: {
-    flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    color: "#e8edf3", backgroundColor: "#132540", fontSize: 14,
-  },
+  datePickerSlot: { flex: 1, justifyContent: "center" },
   error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
   empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
   card: {

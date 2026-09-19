@@ -6,20 +6,19 @@ import { lookupApis } from "../../api/lookupsApi";
 import { EVENT_STATUSES, EVENT_STATUS_LABELS, type EventStatus, type StudioEvent } from "../../types/event";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { MiniTimePicker } from "../../components/MiniTimePicker";
 
 interface Props {
   event?: StudioEvent;
   // Pre-fills the date when opened from a specific day (e.g. clicking "Add Event" with a date
   // already selected on the Calendar) — ignored in edit mode, still freely editable.
   initialEventDate?: string;
-  // Renders as a plain block (no full-screen scroll/padding/title) so it can sit inside another
-  // panel, e.g. the Calendar's "Events on Selected Date" card.
-  embedded?: boolean;
   onDone: () => void;
   onCancel: () => void;
 }
 
-export function EventFormScreen({ event, initialEventDate, embedded, onDone, onCancel }: Props) {
+export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: Props) {
   const isEdit = !!event;
   const queryClient = useQueryClient();
 
@@ -64,12 +63,9 @@ export function EventFormScreen({ event, initialEventDate, embedded, onDone, onC
 
   const canSave = customer !== null && eventDate.trim().length > 0;
 
-  const Container = embedded ? View : ScrollView;
-  const containerProps = embedded ? { style: styles.embedded } : { style: styles.screen, contentContainerStyle: styles.content };
-
   return (
-    <Container {...(containerProps as any)}>
-      {!embedded && <Text style={styles.title}>{isEdit ? "Edit event" : "New event"}</Text>}
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>{isEdit ? "Edit event" : "New event"}</Text>
 
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
@@ -91,16 +87,16 @@ export function EventFormScreen({ event, initialEventDate, embedded, onDone, onC
       )}
 
       <Text style={styles.label}>Event date</Text>
-      <TextInput style={styles.input} value={eventDate} onChangeText={setEventDate} placeholder="YYYY-MM-DD" placeholderTextColor="#6f83a0" />
+      <MiniDatePicker variant="form" value={eventDate} onChange={setEventDate} placeholder="Select event date" />
 
       <View style={styles.timeRow}>
         <View style={styles.timeField}>
           <Text style={styles.label}>Start time</Text>
-          <TextInput style={styles.input} value={startTime} onChangeText={setStartTime} placeholder="HH:mm" placeholderTextColor="#6f83a0" />
+          <MiniTimePicker clearable value={startTime} onChange={setStartTime} placeholder="Start time" />
         </View>
         <View style={styles.timeField}>
           <Text style={styles.label}>End time</Text>
-          <TextInput style={styles.input} value={endTime} onChangeText={setEndTime} placeholder="HH:mm" placeholderTextColor="#6f83a0" />
+          <MiniTimePicker clearable value={endTime} onChange={setEndTime} placeholder="End time" />
         </View>
       </View>
 
@@ -143,12 +139,11 @@ export function EventFormScreen({ event, initialEventDate, embedded, onDone, onC
           {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create event"}</Text>}
         </Pressable>
       </View>
-    </Container>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  embedded: { marginTop: 4 },
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },

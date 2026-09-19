@@ -5,6 +5,7 @@ import { expensesApi } from "../../api/expensesApi";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
 import type { Expense } from "../../types/expense";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
 
 interface Props {
   expense?: Expense;
@@ -65,7 +66,7 @@ export function ExpenseFormScreen({ expense, onDone, onCancel }: Props) {
       <TextInput style={styles.input} value={amount} onChangeText={setAmount} placeholder="2500" placeholderTextColor="#6f83a0" keyboardType="numeric" />
 
       <Text style={styles.label}>Expense date</Text>
-      <TextInput style={styles.input} value={expenseDate} onChangeText={setExpenseDate} placeholder="YYYY-MM-DD" placeholderTextColor="#6f83a0" />
+      <MiniDatePicker variant="form" value={expenseDate} onChange={setExpenseDate} placeholder="Select expense date" />
 
       <Text style={styles.label}>Description</Text>
       <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Optional" placeholderTextColor="#6f83a0" />

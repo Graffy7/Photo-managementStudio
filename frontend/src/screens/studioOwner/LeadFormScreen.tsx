@@ -6,6 +6,7 @@ import { lookupApis } from "../../api/lookupsApi";
 import type { Lead } from "../../types/lead";
 import type { Lookup } from "../../types/lookup";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
 
 interface Props {
   lead?: Lead;
@@ -122,13 +123,7 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
       <LookupChips label="Enquiry status" options={leadStatuses ?? []} selectedId={leadStatusId} onSelect={setLeadStatusId} />
 
       <Text style={styles.label}>Expected event date</Text>
-      <TextInput
-        style={styles.input}
-        value={expectedEventDate}
-        onChangeText={setExpectedEventDate}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor="#6f83a0"
-      />
+      <MiniDatePicker variant="form" clearable value={expectedEventDate} onChange={setExpectedEventDate} placeholder="Select date (optional)" />
 
       <Text style={styles.label}>Expected budget</Text>
       <TextInput
@@ -155,13 +150,7 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
       />
 
       <Text style={styles.label}>Follow-up date</Text>
-      <TextInput
-        style={styles.input}
-        value={followUpDate}
-        onChangeText={setFollowUpDate}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor="#6f83a0"
-      />
+      <MiniDatePicker variant="form" clearable value={followUpDate} onChange={setFollowUpDate} placeholder="Select date (optional)" />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 

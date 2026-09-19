@@ -5,6 +5,7 @@ import { paymentsApi } from "../../api/paymentsApi";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment, type PaymentMethod, type PaymentStatus } from "../../types/payment";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -131,7 +132,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
       )}
 
       <Text style={styles.label}>Payment date</Text>
-      <TextInput style={styles.input} value={paymentDate} onChangeText={setPaymentDate} placeholder="YYYY-MM-DD" placeholderTextColor="#6f83a0" />
+      <MiniDatePicker variant="form" value={paymentDate} onChange={setPaymentDate} placeholder="Select payment date" />
 
       <Text style={styles.label}>Payment method</Text>
       <View style={styles.chipRow}>
