@@ -58,6 +58,18 @@ public abstract class LookupControllerBase<T>(
         }
         return Ok(result.Lookup);
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var result = await lookupService.DeleteAsync(StudioId, id, ct);
+        return result switch
+        {
+            LookupDeleteResult.NotFound => NotFound(),
+            LookupDeleteResult.InUse => Conflict(new { message = "This is already used by existing records, so it can't be deleted. Deactivate it instead." }),
+            _ => NoContent()
+        };
+    }
 }
 
 [ApiController]

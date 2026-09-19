@@ -6,6 +6,15 @@ public enum LookupFailureReason
     DuplicateName
 }
 
+public enum LookupDeleteResult
+{
+    Deleted,
+    NotFound,
+    // Events, enquiries, workers etc. reference lookups with Restrict, so a value that's already
+    // in use can't be hard-deleted — the owner can deactivate it instead.
+    InUse
+}
+
 public class LookupResult
 {
     public bool Succeeded { get; private init; }

@@ -7,6 +7,7 @@ function createLookupApi(basePath: string) {
     create: (request: CreateLookupRequest) => apiClient.post<Lookup>(basePath, request).then((res) => res.data),
     update: (id: number, request: UpdateLookupRequest) =>
       apiClient.put<Lookup>(`${basePath}/${id}`, request).then((res) => res.data),
+    remove: (id: number) => apiClient.delete(`${basePath}/${id}`),
   };
 }
 

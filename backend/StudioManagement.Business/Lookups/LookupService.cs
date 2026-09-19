@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using StudioManagement.Business.Audit;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -67,6 +68,28 @@ public class LookupService<T>(ITenantRepository<T> repository, IAuditService aud
         await unitOfWork.SaveChangesAsync(ct);
         await auditService.LogAsync($"{TypeName} lookup updated: {entity.Name}", Module, studioId, ct);
         return LookupResult.Success(ToDto(entity));
+    }
+
+    public async Task<LookupDeleteResult> DeleteAsync(int studioId, int id, CancellationToken ct = default)
+    {
+        var entity = await repository.GetByIdAsync(studioId, id, ct);
+        if (entity is null)
+        {
+            return LookupDeleteResult.NotFound;
+        }
+
+        try
+        {
+            repository.Remove(entity);
+            await unitOfWork.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return LookupDeleteResult.InUse;
+        }
+
+        await auditService.LogAsync($"{TypeName} lookup deleted: {entity.Name}", Module, studioId, ct);
+        return LookupDeleteResult.Deleted;
     }
 
     private LookupDto ToDto(T entity) => new()

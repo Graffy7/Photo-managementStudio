@@ -53,6 +53,22 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
     onError: (err) => setTypeError(extractErrorMessage(err)),
   });
 
+  // Delete mode: each type chip shows an × that asks for confirmation before removing it (for a
+  // mistyped name, say). A type already used by events/enquiries is refused by the server.
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [pendingDeleteType, setPendingDeleteType] = useState<{ id: number; name: string } | null>(null);
+
+  const deleteType = useMutation({
+    mutationFn: (id: number) => lookupApis.eventTypes.remove(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["lookups", "eventTypes"] });
+      if (eventTypeId === id) setEventTypeId(null);
+      setPendingDeleteType(null);
+      setTypeError(null);
+    },
+    onError: (err) => setTypeError(extractErrorMessage(err)),
+  });
+
   // OK on an empty box just closes it, so there's no separate cancel control.
   const confirmNewType = () => {
     const name = newTypeName.trim();
@@ -96,41 +112,74 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
 
-      <Text style={styles.label}>Event type</Text>
-      <View style={styles.chipRow}>
-        <Pressable style={[styles.chip, eventTypeId === null && styles.chipSelected]} onPress={() => setEventTypeId(null)}>
-          <Text style={[styles.chipText, eventTypeId === null && styles.chipTextSelected]}>None</Text>
-        </Pressable>
-        {(eventTypes ?? []).map((t) => (
-          <Pressable key={t.id} style={[styles.chip, eventTypeId === t.id && styles.chipSelected]} onPress={() => setEventTypeId(t.id)}>
-            <Text style={[styles.chipText, eventTypeId === t.id && styles.chipTextSelected]}>{t.name}</Text>
+      <View style={styles.labelRow}>
+        <Text style={[styles.label, styles.labelInRow]}>Event type</Text>
+        {(eventTypes ?? []).length > 0 && (
+          <Pressable
+            onPress={() => { setDeleteMode((m) => !m); setPendingDeleteType(null); setTypeError(null); }}
+          >
+            <Text style={deleteMode ? styles.doneLink : styles.deleteLink}>{deleteMode ? "Done" : "Delete a type"}</Text>
           </Pressable>
-        ))}
-        {!addingType && (
+        )}
+      </View>
+      <View style={styles.chipRow}>
+        {!deleteMode && (
+          <Pressable style={[styles.chip, eventTypeId === null && styles.chipSelected]} onPress={() => setEventTypeId(null)}>
+            <Text style={[styles.chipText, eventTypeId === null && styles.chipTextSelected]}>None</Text>
+          </Pressable>
+        )}
+        {(eventTypes ?? []).map((t) =>
+          deleteMode ? (
+            <Pressable
+              key={t.id}
+              style={[styles.chip, styles.chipDelete, pendingDeleteType?.id === t.id && styles.chipDeletePending]}
+              onPress={() => { setPendingDeleteType({ id: t.id, name: t.name }); setTypeError(null); }}
+            >
+              <Text style={styles.chipDeleteText}>{t.name}  ×</Text>
+            </Pressable>
+          ) : (
+            <Pressable key={t.id} style={[styles.chip, eventTypeId === t.id && styles.chipSelected]} onPress={() => setEventTypeId(t.id)}>
+              <Text style={[styles.chipText, eventTypeId === t.id && styles.chipTextSelected]}>{t.name}</Text>
+            </Pressable>
+          )
+        )}
+        {!addingType && !deleteMode && (
           <Pressable style={styles.chip} onPress={() => { setAddingType(true); setTypeError(null); }}>
             <Text style={styles.addChipText}>+ Add event type</Text>
           </Pressable>
         )}
       </View>
-      {addingType && (
-        <>
-          <View style={styles.addTypeRow}>
-            <TextInput
-              style={[styles.input, styles.addTypeInput]}
-              value={newTypeName}
-              onChangeText={setNewTypeName}
-              placeholder="Event type name"
-              placeholderTextColor="#6f83a0"
-              autoFocus
-              onSubmitEditing={confirmNewType}
-            />
-            <Pressable style={styles.okButton} onPress={confirmNewType} disabled={createType.isPending}>
-              {createType.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.okText}>OK</Text>}
+      {deleteMode && !pendingDeleteType && <Text style={styles.deleteHint}>Tap a type to delete it.</Text>}
+      {deleteMode && pendingDeleteType && (
+        <View style={styles.deleteConfirmRow}>
+          <Text style={styles.deleteConfirmText}>Delete "{pendingDeleteType.name}"?</Text>
+          <View style={styles.deleteConfirmActions}>
+            <Pressable onPress={() => { setPendingDeleteType(null); setTypeError(null); }} disabled={deleteType.isPending}>
+              <Text style={styles.cancelInline}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.confirmDeleteButton} onPress={() => deleteType.mutate(pendingDeleteType.id)} disabled={deleteType.isPending}>
+              {deleteType.isPending ? <ActivityIndicator color="#ff7a72" size="small" /> : <Text style={styles.confirmDeleteText}>Confirm Delete</Text>}
             </Pressable>
           </View>
-          {typeError ? <Text style={styles.error}>{typeError}</Text> : null}
-        </>
+        </View>
       )}
+      {addingType && (
+        <View style={styles.addTypeRow}>
+          <TextInput
+            style={[styles.input, styles.addTypeInput]}
+            value={newTypeName}
+            onChangeText={setNewTypeName}
+            placeholder="Event type name"
+            placeholderTextColor="#6f83a0"
+            autoFocus
+            onSubmitEditing={confirmNewType}
+          />
+          <Pressable style={styles.okButton} onPress={confirmNewType} disabled={createType.isPending}>
+            {createType.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.okText}>OK</Text>}
+          </Pressable>
+        </View>
+      )}
+      {typeError ? <Text style={styles.error}>{typeError}</Text> : null}
 
       <Text style={styles.label}>Event date</Text>
       <MiniDatePicker variant="form" value={eventDate} onChange={setEventDate} placeholder="Select event date" />
@@ -207,6 +256,20 @@ const styles = StyleSheet.create({
   chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   chipTextSelected: { color: "#ff9a4d" },
   addChipText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
+  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, marginBottom: 6 },
+  labelInRow: { marginTop: 0, marginBottom: 0 },
+  deleteLink: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
+  doneLink: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
+  chipDelete: { borderColor: "#5a3a3d", backgroundColor: "rgba(255, 122, 114, 0.06)" },
+  chipDeletePending: { borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.18)" },
+  chipDeleteText: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
+  deleteHint: { color: "#6f83a0", fontSize: 11.5, marginTop: 8 },
+  deleteConfirmRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 10 },
+  deleteConfirmText: { color: "#ff7a72", fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
+  deleteConfirmActions: { flexDirection: "row", alignItems: "center", gap: 14 },
+  cancelInline: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  confirmDeleteButton: { borderWidth: 1, borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
+  confirmDeleteText: { color: "#ff7a72", fontSize: 12, fontWeight: "700" },
   addTypeRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   addTypeInput: { flex: 1 },
   okButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
