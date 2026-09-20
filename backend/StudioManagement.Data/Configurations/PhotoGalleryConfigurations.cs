@@ -1,0 +1,101 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using StudioManagement.Data.Common;
+using StudioManagement.Data.Entities;
+
+namespace StudioManagement.Data.Configurations;
+
+public class PhotoGalleryConfiguration : IEntityTypeConfiguration<PhotoGallery>
+{
+    public void Configure(EntityTypeBuilder<PhotoGallery> b)
+    {
+        b.HasKey(x => x.PhotoGalleryId);
+        b.Property(x => x.SourceFolder).HasMaxLength(1000);
+        b.Property(x => x.TokenHash).HasMaxLength(200);
+        b.Property(x => x.TokenProtected).HasMaxLength(400);
+        b.Property(x => x.Status).IsRequired().HasMaxLength(20);
+        b.Property(x => x.ExpiresAt).HasColumnType("datetime2");
+        b.Property(x => x.LinkGeneratedAt).HasColumnType("datetime2");
+        b.Property(x => x.FirstOpenedAt).HasColumnType("datetime2");
+        b.Property(x => x.LastSelectionAt).HasColumnType("datetime2");
+        b.Property(x => x.SubmittedAt).HasColumnType("datetime2");
+        b.Property(x => x.PreviewsPurgedAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
+
+        // One gallery per event; the customer link is resolved by the hash of a random token.
+        b.HasIndex(x => x.EventId).IsUnique();
+        b.HasIndex(x => x.TokenHash).IsUnique().HasFilter("[TokenHash] IS NOT NULL");
+        b.HasIndex(x => new { x.StudioId, x.CustomerId });
+
+        b.HasOne(x => x.Studio).WithMany()
+            .HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Customer).WithMany()
+            .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Event).WithMany()
+            .HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_PhotoGalleries_Status", CheckConstraintSql.In("Status", GalleryStatuses.All)));
+    }
+}
+
+public class PhotoConfiguration : IEntityTypeConfiguration<Photo>
+{
+    public void Configure(EntityTypeBuilder<Photo> b)
+    {
+        b.HasKey(x => x.PhotoId);
+        b.Property(x => x.FileName).IsRequired().HasMaxLength(300);
+        b.Property(x => x.SourceRelativePath).IsRequired().HasMaxLength(1000);
+        b.Property(x => x.ThumbnailPath).HasMaxLength(500);
+        b.Property(x => x.PreviewPath).HasMaxLength(500);
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+
+        b.HasIndex(x => new { x.PhotoGalleryId, x.PhotoNumber }).IsUnique();
+        b.HasIndex(x => new { x.PhotoGalleryId, x.FileName });
+
+        b.HasOne(x => x.Gallery).WithMany(x => x.Photos)
+            .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PhotoSelectionConfiguration : IEntityTypeConfiguration<PhotoSelection>
+{
+    public void Configure(EntityTypeBuilder<PhotoSelection> b)
+    {
+        b.HasKey(x => x.PhotoSelectionId);
+        b.Property(x => x.SelectedAt).HasColumnType("datetime2");
+        b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
+
+        // Counts (Normal / Big / total) are always "selections in this gallery grouped by type".
+        b.HasIndex(x => new { x.PhotoGalleryId, x.SelectionType });
+
+        // The unique FK on PhotoId is what guarantees a single selection row per photo.
+        b.HasOne(x => x.Photo).WithOne(x => x.Selection)
+            .HasForeignKey<PhotoSelection>(x => x.PhotoId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Gallery).WithMany()
+            .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_PhotoSelections_SelectionType", "[SelectionType] IN (1, 2)"));
+    }
+}
+
+public class PhotoImportJobConfiguration : IEntityTypeConfiguration<PhotoImportJob>
+{
+    public void Configure(EntityTypeBuilder<PhotoImportJob> b)
+    {
+        b.HasKey(x => x.PhotoImportJobId);
+        b.Property(x => x.Status).IsRequired().HasMaxLength(30);
+        b.Property(x => x.SourceFolder).IsRequired().HasMaxLength(1000);
+        b.Property(x => x.ErrorMessage).HasMaxLength(1000);
+        b.Property(x => x.StartedAt).HasColumnType("datetime2");
+        b.Property(x => x.CompletedAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+
+        b.HasIndex(x => new { x.PhotoGalleryId, x.CreatedAt });
+
+        b.HasOne(x => x.Gallery).WithMany()
+            .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_PhotoImportJobs_Status", CheckConstraintSql.In("Status", ImportJobStatuses.All)));
+    }
+}

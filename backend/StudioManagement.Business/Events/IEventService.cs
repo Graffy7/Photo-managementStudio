@@ -22,7 +22,9 @@ public enum EventDeleteResult
     Deleted,
     NotFound,
     // Quotations Restrict-delete against Event — cancelling the event instead is the way out.
-    HasQuotations
+    HasQuotations,
+    // A photo-selection gallery exists for the event (Restrict FK) — its selections are the customer's work.
+    HasPhotoGallery
 }
 
 public interface IEventService

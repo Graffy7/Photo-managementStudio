@@ -75,6 +75,36 @@ public static class NotificationTypes
     public const string QuotationAccepted = "QuotationAccepted";
     public const string PaymentReceived = "PaymentReceived";
     public const string EventReminder = "EventReminder";
+    public const string PhotoSelectionSubmitted = "PhotoSelectionSubmitted";
+}
+
+public static class GalleryStatuses
+{
+    public const string Open = "Open";
+    public const string Locked = "Locked";
+
+    public static readonly string[] All = [Open, Locked];
+}
+
+// Stored as a small int (1/2) on PhotoSelections; the labels are what customers and owners see.
+public static class SelectionTypes
+{
+    public const int Normal = 1;
+    public const int Big = 2;
+
+    public static bool IsValid(int value) => value is Normal or Big;
+    public static string Label(int value) => value == Big ? "Big" : "Normal";
+}
+
+public static class ImportJobStatuses
+{
+    public const string Queued = "Queued";
+    public const string Running = "Running";
+    public const string Completed = "Completed";
+    public const string CompletedWithErrors = "CompletedWithErrors";
+    public const string Failed = "Failed";
+
+    public static readonly string[] All = [Queued, Running, Completed, CompletedWithErrors, Failed];
 }
 
 public static class FieldTypes

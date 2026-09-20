@@ -173,6 +173,11 @@ public class EventService(
             return EventDeleteResult.HasQuotations;
         }
 
+        if (await eventRepository.HasPhotoGalleryAsync(studioId, eventId, ct))
+        {
+            return EventDeleteResult.HasPhotoGallery;
+        }
+
         // Payments/Expenses referencing this event have EventId SetNull at the DB level — they
         // survive as un-linked records rather than blocking or cascading away real financial history.
         eventRepository.Remove(@event);

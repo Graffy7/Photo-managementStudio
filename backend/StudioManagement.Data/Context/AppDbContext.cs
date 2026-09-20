@@ -39,6 +39,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PhotoGallery> PhotoGalleries => Set<PhotoGallery>();
+    public DbSet<Photo> Photos => Set<Photo>();
+    public DbSet<PhotoSelection> PhotoSelections => Set<PhotoSelection>();
+    public DbSet<PhotoImportJob> PhotoImportJobs => Set<PhotoImportJob>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

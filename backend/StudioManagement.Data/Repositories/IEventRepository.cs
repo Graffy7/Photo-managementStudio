@@ -15,4 +15,7 @@ public interface IEventRepository
     // Quotations Restrict-delete against Event — checked up front so a blocked delete returns a
     // friendly reason instead of an unhandled FK-violation exception.
     Task<bool> HasQuotationsAsync(int studioId, int eventId, CancellationToken ct = default);
+
+    // PhotoGalleries Restrict-delete against Event too (its customer selections are worth keeping).
+    Task<bool> HasPhotoGalleryAsync(int studioId, int eventId, CancellationToken ct = default);
 }

@@ -1,0 +1,164 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using StudioManagement.Business.PhotoSelection;
+using StudioManagement.Business.Tenant;
+using StudioManagement.Data.Common;
+using StudioManagement.Data.Repositories;
+
+namespace StudioManagement.API.Controllers;
+
+// The studio owner's side of photo selection: open a gallery for an event, import the photos from a
+// folder, send the private link, and see what the customer picked.
+[ApiController]
+[Route("api/photo-galleries")]
+[Authorize(Roles = UserTypes.StudioOwner)]
+public class PhotoGalleriesController(
+    IPhotoGalleryService galleryService,
+    IPhotoImportService importService,
+    IValidator<ImportRequestDto> importValidator,
+    IValidator<GenerateLinkRequestDto> linkValidator,
+    ITenantContext tenantContext) : ControllerBase
+{
+    private int StudioId => tenantContext.CurrentStudioId!.Value;
+
+    [HttpGet("completed-events")]
+    public async Task<IActionResult> CompletedEvents(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default) =>
+        Ok(await galleryService.GetCompletedEventsAsync(StudioId, search, page, pageSize, ct));
+
+    // Opens the event's gallery, creating it the first time.
+    [HttpPost("events/{eventId:int}")]
+    public async Task<IActionResult> OpenForEvent(int eventId, CancellationToken ct)
+    {
+        var gallery = await galleryService.GetOrCreateForEventAsync(StudioId, eventId, ct);
+        return gallery is null ? NotFound() : Ok(gallery);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken ct)
+    {
+        var gallery = await galleryService.GetAsync(StudioId, id, ct);
+        return gallery is null ? NotFound() : Ok(gallery);
+    }
+
+    // Folders on the studio's own machine, so the owner picks the originals' location instead of
+    // typing a path. Restricted to PhotoGallery:AllowedImportRoots when that is configured.
+    [HttpGet("browse-folders")]
+    public IActionResult BrowseFolders([FromQuery] string? path)
+    {
+        var result = importService.BrowseFolders(path);
+        return result is null ? BadRequest(new { message = "That folder can't be opened." }) : Ok(result);
+    }
+
+    [HttpPost("{id:int}/import")]
+    public async Task<IActionResult> StartImport(int id, ImportRequestDto request, CancellationToken ct)
+    {
+        var validation = await importValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await importService.StartAsync(StudioId, id, request.SourceFolder, ct);
+        if (result.Succeeded)
+        {
+            return Accepted(result.Job);
+        }
+
+        return result.FailureReason switch
+        {
+            ImportFailureReason.GalleryNotFound => NotFound(),
+            ImportFailureReason.FolderNotFound => BadRequest(new { message = "That folder wasn't found on this computer." }),
+            ImportFailureReason.FolderNotAllowed => BadRequest(new { message = "Photos can't be imported from that folder." }),
+            ImportFailureReason.NoImages => BadRequest(new { message = "No new photos were found in that folder (JPG, PNG, WebP, TIFF or BMP)." }),
+            _ => Conflict(new { message = "An import is already running for this event." })
+        };
+    }
+
+    [HttpGet("{id:int}/import/{jobId:int}")]
+    public async Task<IActionResult> GetImportJob(int id, int jobId, CancellationToken ct)
+    {
+        var job = await importService.GetJobAsync(StudioId, id, jobId, ct);
+        return job is null ? NotFound() : Ok(job);
+    }
+
+    [HttpPost("{id:int}/link")]
+    public async Task<IActionResult> GenerateLink(int id, GenerateLinkRequestDto request, CancellationToken ct)
+    {
+        var validation = await linkValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await galleryService.GenerateLinkAsync(StudioId, id, request.ExpiresInDays, ct);
+        if (result.Succeeded)
+        {
+            return Ok(result.Link);
+        }
+
+        return result.FailureReason switch
+        {
+            LinkFailureReason.GalleryNotFound => NotFound(),
+            LinkFailureReason.ImportRunning => Conflict(new { message = "Photos are still being prepared. Send the link once the import finishes." }),
+            LinkFailureReason.PreviewsRemoved => BadRequest(new { message = "The previews for this event were removed after its link expired, so it can't be shared again." }),
+            _ => BadRequest(new { message = "Import the photos first — there is nothing for the customer to choose from yet." })
+        };
+    }
+
+    [HttpDelete("{id:int}/link")]
+    public async Task<IActionResult> RevokeLink(int id, CancellationToken ct) =>
+        await galleryService.RevokeLinkAsync(StudioId, id, ct) ? NoContent() : NotFound();
+
+    [HttpPost("{id:int}/lock")]
+    public async Task<IActionResult> Lock(int id, CancellationToken ct) =>
+        await galleryService.SetLockedAsync(StudioId, id, true, ct) ? NoContent() : NotFound();
+
+    [HttpPost("{id:int}/unlock")]
+    public async Task<IActionResult> Unlock(int id, CancellationToken ct) =>
+        await galleryService.SetLockedAsync(StudioId, id, false, ct) ? NoContent() : NotFound();
+
+    [HttpGet("{id:int}/photos")]
+    public async Task<IActionResult> Photos(
+        int id,
+        [FromQuery] string? filter,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 60,
+        CancellationToken ct = default)
+    {
+        var parsed = Enum.TryParse<PhotoFilter>(filter, ignoreCase: true, out var f) ? f : PhotoFilter.All;
+        var result = await galleryService.GetPhotosAsync(StudioId, id, parsed, search, page, pageSize, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpGet("{id:int}/export")]
+    public async Task<IActionResult> Export(int id, CancellationToken ct)
+    {
+        var export = await galleryService.ExportSelectionAsync(StudioId, id, ct);
+        return export is null ? NotFound() : File(export.Content, "text/csv", export.FileName);
+    }
+
+    [HttpGet("{id:int}/share-message")]
+    public async Task<IActionResult> ShareMessage(int id, [FromQuery] string baseUrl, [FromQuery] bool reminder = false, CancellationToken ct = default)
+    {
+        var result = await galleryService.GetShareMessageAsync(StudioId, id, baseUrl, reminder, ct);
+        if (result.Succeeded)
+        {
+            return Ok(result.Share);
+        }
+
+        return result.FailureReason switch
+        {
+            ShareFailureReason.GalleryNotFound => NotFound(),
+            ShareFailureReason.InvalidBaseUrl => BadRequest(new { message = "baseUrl must be an http(s) address." }),
+            _ => BadRequest(new { message = "There is no active link to share. Generate a new link first." })
+        };
+    }
+}

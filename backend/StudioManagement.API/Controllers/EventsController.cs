@@ -84,6 +84,7 @@ public class EventsController(
         {
             EventDeleteResult.NotFound => NotFound(),
             EventDeleteResult.HasQuotations => BadRequest(new { message = "This event has a quotation attached and can't be deleted. Cancel the event instead." }),
+            EventDeleteResult.HasPhotoGallery => BadRequest(new { message = "This event has a photo selection gallery and can't be deleted. Cancel the event instead." }),
             _ => NoContent()
         };
     }

@@ -79,4 +79,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
 
     public Task<bool> HasQuotationsAsync(int studioId, int eventId, CancellationToken ct = default) =>
         context.Quotations.AnyAsync(q => q.StudioId == studioId && q.EventId == eventId, ct);
+
+    public Task<bool> HasPhotoGalleryAsync(int studioId, int eventId, CancellationToken ct = default) =>
+        context.PhotoGalleries.AnyAsync(g => g.StudioId == studioId && g.EventId == eventId, ct);
 }
