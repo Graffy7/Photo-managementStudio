@@ -7,6 +7,15 @@ public class PhotoGalleryOptions
     // which matches today's single-machine deployment (the backend runs on the studio's own PC).
     public string[] AllowedImportRoots { get; set; } = [];
 
+    // Size/quality of the small copies the customer looks at (WebP). Measured on real photos, these
+    // defaults store roughly 40% less than 1600px/q75 with no visible difference at normal viewing
+    // size. Raise them for sharper zooming, lower them to save more disk; applies to newly imported
+    // photos only.
+    public int PreviewMaxDimension { get; set; } = 1280;
+    public int PreviewQuality { get; set; } = 70;
+    public int ThumbnailMaxDimension { get; set; } = 360;
+    public int ThumbnailQuality { get; set; } = 65;
+
     // How long after a gallery's link expires its preview files are kept before cleanup deletes them.
     public int PreviewPurgeGraceDays { get; set; } = 30;
 
