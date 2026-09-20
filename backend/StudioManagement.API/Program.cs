@@ -144,11 +144,14 @@ builder.Services.AddHostedService<EventReminderBackgroundService>();
 // galleries' preview files are swept daily.
 builder.Services.AddScoped<IPhotoGalleryRepository, PhotoGalleryRepository>();
 builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+builder.Services.AddScoped<IPhotoCopyRepository, PhotoCopyRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("PhotoGallery").Get<PhotoGalleryOptions>() ?? new PhotoGalleryOptions());
 builder.Services.AddSingleton<ILinkTokenProtector, LinkTokenProtector>();
 builder.Services.AddSingleton<IPhotoPreviewGenerator, ImageSharpPhotoPreviewGenerator>();
 builder.Services.AddSingleton<IPhotoImportQueue, PhotoImportQueue>();
+builder.Services.AddSingleton<IPhotoCopyQueue, PhotoCopyQueue>();
 builder.Services.AddScoped<IPhotoImportService, PhotoImportService>();
+builder.Services.AddScoped<IPhotoSelectionCopyService, PhotoSelectionCopyService>();
 builder.Services.AddScoped<IPhotoGalleryService, PhotoGalleryService>();
 builder.Services.AddScoped<IPublicPhotoSelectionService, PublicPhotoSelectionService>();
 builder.Services.AddScoped<IGalleryCleanupService, GalleryCleanupService>();
@@ -156,6 +159,7 @@ builder.Services.AddScoped<IValidator<ImportRequestDto>, ImportRequestValidator>
 builder.Services.AddScoped<IValidator<GenerateLinkRequestDto>, GenerateLinkRequestValidator>();
 builder.Services.AddScoped<IValidator<SetSelectionRequestDto>, SetSelectionRequestValidator>();
 builder.Services.AddHostedService<PhotoImportBackgroundService>();
+builder.Services.AddHostedService<PhotoCopyBackgroundService>();
 builder.Services.AddHostedService<GalleryCleanupBackgroundService>();
 
 builder.Services.AddScoped<ILookupService<EventType>, LookupService<EventType>>();

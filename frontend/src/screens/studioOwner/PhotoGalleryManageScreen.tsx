@@ -7,6 +7,7 @@ import { buildCustomerLink, photoSelectionApi, photoUrl } from "../../api/photoS
 import { extractErrorMessage } from "../../api/errorMessage";
 import { StatusPill } from "../../components/StatusPill";
 import { FolderBrowserModal } from "../../components/FolderBrowserModal";
+import { SelectionCopyPanel } from "./SelectionCopyPanel";
 import { downloadBytes } from "../../utils/downloadFile";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
 import type { OwnerGallery, OwnerPhoto, PhotoFilter } from "../../types/photoSelection";
@@ -46,8 +47,9 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
     queryKey: ["photo-gallery", eventId],
     queryFn: () => photoSelectionApi.openForEvent(eventId),
     refetchInterval: (query) => {
-      const job = query.state.data?.latestImport;
-      return job && (job.status === "Queued" || job.status === "Running") ? 1500 : 15000;
+      const data = query.state.data;
+      const active = (s?: string) => s === "Queued" || s === "Running";
+      return active(data?.latestImport?.status) || active(data?.latestCopyJob?.status) ? 1500 : 15000;
     },
   });
 
@@ -74,6 +76,7 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header gallery={gallery} onBack={onBack} />
       <Stats gallery={gallery} />
+      <SelectionCopyPanel gallery={gallery} onChanged={refresh} />
       <ImportPanel gallery={gallery} onChanged={refresh} />
       <LinkPanel gallery={gallery} onChanged={refresh} />
       <PhotosPanel gallery={gallery} />

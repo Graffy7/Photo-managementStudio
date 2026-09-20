@@ -5,6 +5,7 @@ import { API_BASE_URL } from "../constants/config";
 import type { PagedResult } from "../types/studio";
 import type {
   CompletedEventGallery,
+  CopyJob,
   FolderBrowseResult,
   GalleryCounts,
   GenerateLinkResult,
@@ -40,6 +41,9 @@ export const photoSelectionApi = {
 
   getImportJob: (galleryId: number, jobId: number) =>
     apiClient.get<ImportJob>(`/api/photo-galleries/${galleryId}/import/${jobId}`).then((r) => r.data),
+
+  startSelectionCopy: (galleryId: number) =>
+    apiClient.post<CopyJob>(`/api/photo-galleries/${galleryId}/selection-copy`).then((r) => r.data),
 
   generateLink: (galleryId: number, expiresInDays: number) =>
     apiClient.post<GenerateLinkResult>(`/api/photo-galleries/${galleryId}/link`, { expiresInDays }).then((r) => r.data),

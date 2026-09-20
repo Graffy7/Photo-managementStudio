@@ -120,21 +120,13 @@ public class PhotoImportService(
         return entries;
     }
 
-    private bool IsAllowed(string fullPath)
-    {
-        if (options.AllowedImportRoots.Length == 0)
-        {
-            return true;
-        }
-
-        var candidate = Path.GetFullPath(fullPath).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
-        return options.AllowedImportRoots.Any(root =>
-            candidate.StartsWith(Path.GetFullPath(root).TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
-    }
+    private bool IsAllowed(string fullPath) => options.IsAllowed(fullPath);
 
     private static IEnumerable<string> EnumerateImages(string folder) =>
         Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
-            .Where(f => ImageExtensions.Contains(Path.GetExtension(f)));
+            .Where(f => ImageExtensions.Contains(Path.GetExtension(f)))
+            // Our own Customer Selection copies are not new photos.
+            .Where(f => !SelectionFolders.IsInsideGenerated(Path.GetRelativePath(folder, f)));
 
     // ---- Starting an import ------------------------------------------------------------------
 
@@ -266,6 +258,7 @@ public class PhotoImportService(
                             {
                                 PhotoGalleryId = job.PhotoGalleryId,
                                 FileName = Path.GetFileName(chunk[i].FullPath),
+                                SourceFolder = job.SourceFolder,
                                 SourceRelativePath = chunk[i].Relative,
                                 ThumbnailPath = preview.ThumbnailUrl,
                                 PreviewPath = preview.PreviewUrl,

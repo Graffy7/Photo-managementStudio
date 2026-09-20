@@ -43,6 +43,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Photo> Photos => Set<Photo>();
     public DbSet<PhotoSelection> PhotoSelections => Set<PhotoSelection>();
     public DbSet<PhotoImportJob> PhotoImportJobs => Set<PhotoImportJob>();
+    public DbSet<PhotoCopyJob> PhotoCopyJobs => Set<PhotoCopyJob>();
+    public DbSet<PhotoSelectionCopy> PhotoSelectionCopies => Set<PhotoSelectionCopy>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

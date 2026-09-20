@@ -125,3 +125,11 @@ public static class FieldTypes
     public static readonly string[] All =
         [Text, TextArea, Number, Date, DateTime, Dropdown, MultiSelect, Checkbox, Radio, Switch, Email, Phone];
 }
+
+public static class CopyJobKinds
+{
+    public const string Create = "Create";
+    public const string Sync = "Sync";
+
+    public static readonly string[] All = [Create, Sync];
+}

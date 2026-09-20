@@ -170,6 +170,12 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
         context.PhotoGalleries.Where(g => g.PhotoGalleryId == galleryId)
             .ExecuteUpdateAsync(s => s.SetProperty(g => g.PreviewsPurgedAt, now).SetProperty(g => g.UpdatedAt, now), ct);
 
+    public Task MarkSelectionSyncedAsync(int galleryId, DateTime syncedAt, CancellationToken ct = default) =>
+        context.PhotoGalleries.Where(g => g.PhotoGalleryId == galleryId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(g => g.SelectionCreatedAt, g => g.SelectionCreatedAt ?? syncedAt)
+                .SetProperty(g => g.SelectionSyncedAt, syncedAt), ct);
+
     public Task<PhotoImportJob?> GetJobByIdAsync(int jobId, CancellationToken ct = default) =>
         context.PhotoImportJobs.AsNoTracking().FirstOrDefaultAsync(j => j.PhotoImportJobId == jobId, ct);
 

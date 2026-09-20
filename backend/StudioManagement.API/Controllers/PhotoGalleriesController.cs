@@ -16,6 +16,7 @@ namespace StudioManagement.API.Controllers;
 public class PhotoGalleriesController(
     IPhotoGalleryService galleryService,
     IPhotoImportService importService,
+    IPhotoSelectionCopyService copyService,
     IValidator<ImportRequestDto> importValidator,
     IValidator<GenerateLinkRequestDto> linkValidator,
     ITenantContext tenantContext) : ControllerBase
@@ -84,6 +85,36 @@ public class PhotoGalleriesController(
     public async Task<IActionResult> GetImportJob(int id, int jobId, CancellationToken ct)
     {
         var job = await importService.GetJobAsync(StudioId, id, jobId, ct);
+        return job is null ? NotFound() : Ok(job);
+    }
+
+    // "Create Selected Photos" (first time) / "Sync Selected Photos" (afterwards): copies the customer's
+    // chosen ORIGINAL files into <original folder>\Customer Selection\Normal and \Big Size.
+    [HttpPost("{id:int}/selection-copy")]
+    public async Task<IActionResult> StartSelectionCopy(int id, CancellationToken ct)
+    {
+        var result = await copyService.StartAsync(StudioId, id, ct);
+        if (result.Succeeded)
+        {
+            return Accepted(result.Job);
+        }
+
+        return result.FailureReason switch
+        {
+            CopyFailureReason.GalleryNotFound => NotFound(),
+            CopyFailureReason.NotSubmitted => BadRequest(new { message = "The customer hasn't submitted their selection yet." }),
+            CopyFailureReason.NothingSelected => BadRequest(new { message = "The customer hasn't selected any photos." }),
+            CopyFailureReason.NoSourceFolder => BadRequest(new { message = "No photos folder is recorded for this event. Import the photos first." }),
+            CopyFailureReason.SourceFolderMissing => BadRequest(new { message = "The photos folder can't be found or opened. Check the drive is connected, then try again." }),
+            CopyFailureReason.ImportRunning => Conflict(new { message = "Photos are still being imported. Try again when the import finishes." }),
+            _ => Conflict(new { message = "This is already running." })
+        };
+    }
+
+    [HttpGet("{id:int}/selection-copy/{jobId:int}")]
+    public async Task<IActionResult> GetSelectionCopyJob(int id, int jobId, CancellationToken ct)
+    {
+        var job = await copyService.GetJobAsync(StudioId, id, jobId, ct);
         return job is null ? NotFound() : Ok(job);
     }
 

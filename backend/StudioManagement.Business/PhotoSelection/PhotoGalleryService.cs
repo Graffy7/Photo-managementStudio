@@ -15,6 +15,7 @@ namespace StudioManagement.Business.PhotoSelection;
 public partial class PhotoGalleryService(
     IPhotoGalleryRepository galleryRepository,
     IPhotoRepository photoRepository,
+    IPhotoCopyRepository copyRepository,
     IEventRepository eventRepository,
     ILinkTokenProtector tokenProtector,
     PhotoGalleryOptions options,
@@ -291,6 +292,7 @@ public partial class PhotoGalleryService(
     {
         var counts = await galleryRepository.GetCountsAsync(gallery.PhotoGalleryId, ct);
         var job = await galleryRepository.GetLatestJobAsync(gallery.PhotoGalleryId, ct);
+        var copyJob = await copyRepository.GetLatestJobAsync(gallery.PhotoGalleryId, ct);
         var now = DateTime.UtcNow;
         var hasLink = gallery.IsLinkActive && gallery.TokenHash is not null;
 
@@ -329,7 +331,13 @@ public partial class PhotoGalleryService(
                 ErrorMessage = job.ErrorMessage,
                 StartedAt = job.StartedAt,
                 CompletedAt = job.CompletedAt
-            }
+            },
+            SelectionFolder = string.IsNullOrWhiteSpace(gallery.SourceFolder) ? null : Path.Combine(gallery.SourceFolder, SelectionFolders.RootName),
+            SelectionCreatedAt = gallery.SelectionCreatedAt,
+            SelectionSyncedAt = gallery.SelectionSyncedAt,
+            SelectionOutOfSync = gallery.SelectionCreatedAt is not null &&
+                                 (gallery.SelectionSyncedAt is null || gallery.LastSelectionAt > gallery.SelectionSyncedAt),
+            LatestCopyJob = copyJob is null ? null : PhotoSelectionCopyService.ToDto(copyJob)
         };
     }
 

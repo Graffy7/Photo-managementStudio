@@ -115,3 +115,24 @@ public class SubmitResult
     public static SubmitResult Fail(SubmitFailureReason reason) => new() { Succeeded = false, FailureReason = reason };
     public static SubmitResult NoAccess(GalleryAccessFailure failure) => new() { Succeeded = false, AccessFailure = failure };
 }
+
+public enum CopyFailureReason
+{
+    GalleryNotFound,
+    NotSubmitted,
+    NothingSelected,
+    NoSourceFolder,
+    SourceFolderMissing,
+    AlreadyRunning,
+    ImportRunning
+}
+
+public class CopyStartResult
+{
+    public bool Succeeded { get; private init; }
+    public CopyFailureReason? FailureReason { get; private init; }
+    public CopyJobDto? Job { get; private init; }
+
+    public static CopyStartResult Success(CopyJobDto job) => new() { Succeeded = true, Job = job };
+    public static CopyStartResult Fail(CopyFailureReason reason) => new() { Succeeded = false, FailureReason = reason };
+}

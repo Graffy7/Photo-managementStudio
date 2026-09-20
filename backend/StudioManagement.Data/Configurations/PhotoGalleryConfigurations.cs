@@ -20,6 +20,8 @@ public class PhotoGalleryConfiguration : IEntityTypeConfiguration<PhotoGallery>
         b.Property(x => x.LastSelectionAt).HasColumnType("datetime2");
         b.Property(x => x.SubmittedAt).HasColumnType("datetime2");
         b.Property(x => x.PreviewsPurgedAt).HasColumnType("datetime2");
+        b.Property(x => x.SelectionCreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.SelectionSyncedAt).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
 
@@ -45,6 +47,7 @@ public class PhotoConfiguration : IEntityTypeConfiguration<Photo>
     {
         b.HasKey(x => x.PhotoId);
         b.Property(x => x.FileName).IsRequired().HasMaxLength(300);
+        b.Property(x => x.SourceFolder).HasMaxLength(1000);
         b.Property(x => x.SourceRelativePath).IsRequired().HasMaxLength(1000);
         b.Property(x => x.ThumbnailPath).HasMaxLength(500);
         b.Property(x => x.PreviewPath).HasMaxLength(500);
@@ -97,5 +100,51 @@ public class PhotoImportJobConfiguration : IEntityTypeConfiguration<PhotoImportJ
             .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);
 
         b.ToTable(t => t.HasCheckConstraint("CK_PhotoImportJobs_Status", CheckConstraintSql.In("Status", ImportJobStatuses.All)));
+    }
+}
+
+public class PhotoCopyJobConfiguration : IEntityTypeConfiguration<PhotoCopyJob>
+{
+    public void Configure(EntityTypeBuilder<PhotoCopyJob> b)
+    {
+        b.HasKey(x => x.PhotoCopyJobId);
+        b.Property(x => x.Kind).IsRequired().HasMaxLength(10);
+        b.Property(x => x.Status).IsRequired().HasMaxLength(30);
+        b.Property(x => x.ErrorMessage).HasMaxLength(1000);
+        b.Property(x => x.StartedAt).HasColumnType("datetime2");
+        b.Property(x => x.CompletedAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+
+        b.HasIndex(x => new { x.PhotoGalleryId, x.CreatedAt });
+
+        b.HasOne(x => x.Gallery).WithMany()
+            .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);
+
+        b.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_PhotoCopyJobs_Status", CheckConstraintSql.In("Status", ImportJobStatuses.All));
+            t.HasCheckConstraint("CK_PhotoCopyJobs_Kind", CheckConstraintSql.In("Kind", CopyJobKinds.All));
+        });
+    }
+}
+
+public class PhotoSelectionCopyConfiguration : IEntityTypeConfiguration<PhotoSelectionCopy>
+{
+    public void Configure(EntityTypeBuilder<PhotoSelectionCopy> b)
+    {
+        b.HasKey(x => x.PhotoSelectionCopyId);
+        b.Property(x => x.DestinationPath).IsRequired().HasMaxLength(1500);
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+
+        // A photo has at most one generated copy at a time (it is in Normal or Big Size, never both).
+        b.HasIndex(x => x.PhotoId).IsUnique();
+        b.HasIndex(x => x.PhotoGalleryId);
+
+        b.HasOne(x => x.Photo).WithMany()
+            .HasForeignKey(x => x.PhotoId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Gallery).WithMany()
+            .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_PhotoSelectionCopies_SelectionType", "[SelectionType] IN (1, 2)"));
     }
 }

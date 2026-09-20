@@ -41,6 +41,9 @@ public interface IPhotoGalleryRepository
     Task<bool> MarkSubmittedAsync(int galleryId, DateTime now, CancellationToken ct = default);
     Task MarkPreviewsPurgedAsync(int galleryId, DateTime now, CancellationToken ct = default);
 
+    // Records a finished create/sync: SelectionCreatedAt is set the first time only.
+    Task MarkSelectionSyncedAsync(int galleryId, DateTime syncedAt, CancellationToken ct = default);
+
     Task<PhotoImportJob?> GetJobAsync(int galleryId, int jobId, CancellationToken ct = default);
     Task<PhotoImportJob?> GetJobByIdAsync(int jobId, CancellationToken ct = default);
     Task<PhotoImportJob?> GetLatestJobAsync(int galleryId, CancellationToken ct = default);

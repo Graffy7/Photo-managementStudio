@@ -26,6 +26,11 @@ public class PhotoGallery : ITenantEntity
     public DateTime? LastSelectionAt { get; set; }
     public DateTime? SubmittedAt { get; set; }
     public DateTime? PreviewsPurgedAt { get; set; }
+
+    // Customer Selection folders: first created, and the moment of the latest sync (a customer change
+    // after this means the folders are out of date).
+    public DateTime? SelectionCreatedAt { get; set; }
+    public DateTime? SelectionSyncedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

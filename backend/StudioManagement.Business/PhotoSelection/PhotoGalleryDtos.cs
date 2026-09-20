@@ -67,6 +67,15 @@ public class OwnerGalleryDto
     public bool PreviewsPurged { get; set; }
     public GalleryCountsDto Counts { get; set; } = new();
     public ImportJobDto? LatestImport { get; set; }
+
+    // "Create Selected Photos" state. SelectionFolder is where the copies go (owner-only path).
+    public string? SelectionFolder { get; set; }
+    public DateTime? SelectionCreatedAt { get; set; }
+    public DateTime? SelectionSyncedAt { get; set; }
+
+    // True once created and the customer has changed their selection since the last sync.
+    public bool SelectionOutOfSync { get; set; }
+    public CopyJobDto? LatestCopyJob { get; set; }
 }
 
 public class CompletedEventGalleryDto

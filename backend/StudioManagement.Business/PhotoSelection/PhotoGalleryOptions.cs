@@ -17,4 +17,18 @@ public class PhotoGalleryOptions
     // Previews are generated a few at a time — enough to keep a CPU busy without decoding many
     // 25MB originals into memory at once.
     public int ImportParallelism { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
+
+    // Whether a folder may be read from / written to under the AllowedImportRoots restriction
+    // (everything is allowed when no roots are configured).
+    public bool IsAllowed(string fullPath)
+    {
+        if (AllowedImportRoots.Length == 0)
+        {
+            return true;
+        }
+
+        var candidate = Path.GetFullPath(fullPath).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        return AllowedImportRoots.Any(root =>
+            candidate.StartsWith(Path.GetFullPath(root).TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+    }
 }

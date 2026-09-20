@@ -51,6 +51,11 @@ export interface OwnerGallery {
   previewsPurged: boolean;
   counts: GalleryCounts;
   latestImport: ImportJob | null;
+  selectionFolder: string | null;
+  selectionCreatedAt: string | null;
+  selectionSyncedAt: string | null;
+  selectionOutOfSync: boolean;
+  latestCopyJob: CopyJob | null;
 }
 
 export interface CompletedEventGallery {
@@ -148,4 +153,23 @@ export interface SubmitResult {
   submittedAt: string;
   alreadySubmitted: boolean;
   counts: GalleryCounts;
+}
+
+// "Create Selected Photos" / "Sync Selected Photos" — copies the chosen originals into
+// <original folder>\Customer Selection\Normal and \Big Size.
+export interface CopyJob {
+  jobId: number;
+  kind: "Create" | "Sync";
+  status: "Queued" | "Running" | "Completed" | "CompletedWithErrors" | "Failed";
+  totalCount: number;
+  normalCount: number;
+  bigCount: number;
+  processedCount: number;
+  createdCount: number;
+  existsCount: number;
+  removedCount: number;
+  failedCount: number;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 }
