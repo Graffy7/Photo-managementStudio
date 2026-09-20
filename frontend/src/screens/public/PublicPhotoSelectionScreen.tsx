@@ -94,6 +94,8 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   const [changedSinceSubmit, setChangedSinceSubmit] = useState(gallery.changedSinceSubmit);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  // Only offer Back when there is somewhere to go back to (a link opened in a fresh tab has no history).
+  const [canGoBack] = useState(() => typeof window !== "undefined" && window.history.length > 1);
 
   // A saved change after the customer has already submitted means the studio's copy is out of date.
   const submittedRef = useRef(submitted);
@@ -169,6 +171,11 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
       <View style={styles.sticky}>
         <View style={[styles.inner, { maxWidth: MAX_CONTENT_WIDTH }]}>
           <View style={styles.headerRow}>
+            {canGoBack && (
+              <Pressable style={styles.backButton} onPress={() => window.history.back()} accessibilityRole="button" accessibilityLabel="Go back">
+                <Text style={styles.backText}>‹ Back</Text>
+              </Pressable>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={styles.studio} numberOfLines={1}>{gallery.studioName}</Text>
               <Text style={styles.headline} numberOfLines={1}>
@@ -354,6 +361,8 @@ const styles = StyleSheet.create({
   sticky: { backgroundColor: "#0f1e30", borderBottomWidth: 1, borderBottomColor: "#1b2c42", zIndex: 5 },
   inner: { width: "100%", alignSelf: "center" },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: PADDING, paddingTop: 10 },
+  backButton: { backgroundColor: "#132540", borderRadius: 9, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: "#23405c" },
+  backText: { color: "#7fc0e6", fontWeight: "700", fontSize: 13 },
   studio: { color: "#7fc0e6", fontSize: 11, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
   headline: { color: "#e8edf3", fontSize: 15, fontWeight: "700", marginTop: 1 },
   photoCount: { color: "#6f83a0", fontSize: 12 },
