@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Business.Audit;
 using StudioManagement.Data.Common;
@@ -320,12 +321,16 @@ public class PhotoImportService(
         }
     }
 
+    // "IMG_9" before "IMG_10": digits compare as numbers, so unpadded camera names keep shooting order.
+    private static readonly IComparer<string> NaturalOrder = Comparer<string>.Create((a, b) =>
+        CultureInfo.InvariantCulture.CompareInfo.Compare(a, b, CompareOptions.NumericOrdering | CompareOptions.IgnoreCase));
+
     private record FileEntry(string FullPath, string Relative);
 
     private static List<FileEntry> ListFiles(string folder) =>
         EnumerateImages(folder)
             .Select(f => new FileEntry(f, Path.GetRelativePath(folder, f)))
-            .OrderBy(f => f.Relative, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(f => f.Relative, NaturalOrder)
             .ToList();
 
     private static ImportJobDto ToDto(PhotoImportJob job) => new()
