@@ -5,6 +5,7 @@ import { settingsApi } from "../../../api/settingsApi";
 import { extractErrorMessage } from "../../../api/errorMessage";
 import { Toggle } from "../../../components/Toggle";
 import type { NotificationSettings } from "../../../types/settings";
+import { ReminderTestPanel } from "./ReminderTestPanel";
 
 function ToggleRow({
   label,
@@ -63,6 +64,7 @@ export function NotificationSettingsTab() {
   }
 
   return (
+    <>
     <View style={styles.list}>
       <ToggleRow label="Event reminder" value={settings.eventReminder} onValueChange={(v) => update({ eventReminder: v })} />
       <ToggleRow label="Customer payment reminder" value={settings.paymentReminder} onValueChange={(v) => update({ paymentReminder: v })} />
@@ -70,7 +72,7 @@ export function NotificationSettingsTab() {
       <ToggleRow label="Quotation notification" value={settings.quotationNotification} onValueChange={(v) => update({ quotationNotification: v })} />
       <ToggleRow
         label="WhatsApp notification"
-        caption="Not connected to a live WhatsApp integration yet — this toggle is saved for when one is added."
+        caption="Turns on the day-before WhatsApp reminders. Messages are only delivered once a WhatsApp provider is set up on the server."
         value={settings.whatsAppNotification}
         onValueChange={(v) => update({ whatsAppNotification: v })}
       />
@@ -78,6 +80,8 @@ export function NotificationSettingsTab() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {saved ? <Text style={styles.success}>✓ Saved</Text> : null}
     </View>
+    <ReminderTestPanel />
+    </>
   );
 }
 

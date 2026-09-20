@@ -2,6 +2,8 @@ import { apiClient } from "./client";
 import type {
   BusinessSettings,
   NotificationSettings,
+  ReminderPreview,
+  ReminderRunResult,
   QuotationSettings,
   StudioProfile,
   UpdateStudioProfileRequest,
@@ -39,6 +41,14 @@ export const settingsApi = {
 
   updateNotificationSettings: (request: NotificationSettings) =>
     apiClient.put<NotificationSettings>("/api/studio-settings/notifications", request).then((res) => res.data),
+
+  // Builds tomorrow's two WhatsApp reminder messages and shows them separately, marked TEST. Nothing is
+  // sent unless sendToOwner is true — and then only to the studio owner's own number, never a worker's.
+  testWhatsAppReminder: (request: { eventId?: number; sendToOwner?: boolean }) =>
+    apiClient.post<ReminderPreview>("/api/notifications/whatsapp-reminders/test", request).then((res) => res.data),
+
+  sendWhatsAppRemindersNow: () =>
+    apiClient.post<ReminderRunResult>("/api/notifications/whatsapp-reminders/send-now").then((res) => res.data),
 
   getQuotationSettings: () => apiClient.get<QuotationSettings>("/api/studio-settings/quotation").then((res) => res.data),
 

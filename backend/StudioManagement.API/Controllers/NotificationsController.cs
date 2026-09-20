@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Business.Tenant;
+using StudioManagement.Business.WhatsApp;
 using StudioManagement.Data.Common;
 
 namespace StudioManagement.API.Controllers;
@@ -12,6 +13,7 @@ namespace StudioManagement.API.Controllers;
 public class NotificationsController(
     INotificationService notificationService,
     IEventReminderService eventReminderService,
+    IWhatsAppReminderService whatsAppReminderService,
     ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
@@ -40,4 +42,20 @@ public class NotificationsController(
     [HttpPost("check-event-reminders")]
     public async Task<IActionResult> CheckEventReminders(CancellationToken ct) =>
         Ok(new { created = await eventReminderService.CreateRemindersForStudioAsync(StudioId, DateTime.UtcNow, ct) });
+
+    // "Test Event Reminder": builds the two day-before WhatsApp messages and shows them separately, marked
+    // TEST, with who would receive each. Nothing is sent unless sendToOwner is set — and then only to the
+    // owner's own phone. Pass eventId to preview a specific event as if it were tomorrow.
+    [HttpPost("whatsapp-reminders/test")]
+    public async Task<IActionResult> TestWhatsAppReminder(TestReminderRequestDto request, CancellationToken ct)
+    {
+        var preview = await whatsAppReminderService.PreviewAsync(StudioId, DateTime.Now, request, ct);
+        return preview is null ? NotFound(new { message = "That event wasn't found." }) : Ok(preview);
+    }
+
+    // Send today's due WhatsApp reminders now, without waiting for the reminder time. Reminders already
+    // sent are never repeated.
+    [HttpPost("whatsapp-reminders/send-now")]
+    public async Task<IActionResult> SendWhatsAppRemindersNow(CancellationToken ct) =>
+        Ok(await whatsAppReminderService.SendRemindersForStudioAsync(StudioId, DateTime.Now, ignoreTime: true, ct));
 }

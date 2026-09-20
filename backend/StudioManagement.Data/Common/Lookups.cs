@@ -133,3 +133,28 @@ public static class CopyJobKinds
 
     public static readonly string[] All = [Create, Sync];
 }
+
+public static class WhatsAppReminderTypes
+{
+    public const string TomorrowEvent = "TomorrowEvent";
+    public const string TomorrowPayment = "TomorrowPayment";
+
+    public static readonly string[] All = [TomorrowEvent, TomorrowPayment];
+}
+
+public static class WhatsAppRecipientTypes
+{
+    public const string Owner = "Owner";
+    public const string Worker = "Worker";
+
+    public static readonly string[] All = [Owner, Worker];
+}
+
+public static class WhatsAppLogStatuses
+{
+    public const string Sent = "Sent";
+    public const string Failed = "Failed";
+    public const string Skipped = "Skipped";
+
+    public static readonly string[] All = [Sent, Failed, Skipped];
+}

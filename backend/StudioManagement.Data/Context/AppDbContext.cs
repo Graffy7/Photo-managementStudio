@@ -44,6 +44,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PhotoSelection> PhotoSelections => Set<PhotoSelection>();
     public DbSet<PhotoImportJob> PhotoImportJobs => Set<PhotoImportJob>();
     public DbSet<PhotoCopyJob> PhotoCopyJobs => Set<PhotoCopyJob>();
+    public DbSet<WhatsAppReminderLog> WhatsAppReminderLogs => Set<WhatsAppReminderLog>();
     public DbSet<PhotoSelectionCopy> PhotoSelectionCopies => Set<PhotoSelectionCopy>();
 
 

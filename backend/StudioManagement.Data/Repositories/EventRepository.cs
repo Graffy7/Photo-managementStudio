@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
 
@@ -56,6 +57,19 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.EventWorkers).ThenInclude(ew => ew.Worker).ThenInclude(w => w.WorkerType)
             .Include(e => e.Payments)
             .Where(e => e.StudioId == studioId && e.EventDate >= dayStart && e.EventDate < dayEnd)
+            .OrderBy(e => e.StartTime ?? TimeSpan.MaxValue)
+            .ThenBy(e => e.EventId)
+            .ToListAsync(ct);
+
+    public Task<List<Event>> GetForReminderAsync(int studioId, DateTime dayStart, DateTime dayEnd, int? eventId = null, CancellationToken ct = default) =>
+        context.Events
+            .AsNoTracking()
+            .Include(e => e.Customer)
+            .Include(e => e.EventType)
+            .Include(e => e.EventWorkers).ThenInclude(ew => ew.Worker).ThenInclude(w => w.WorkerType)
+            .Where(e => e.StudioId == studioId
+                        && e.EventStatus != EventStatuses.Cancelled
+                        && (eventId != null ? e.EventId == eventId : e.EventDate >= dayStart && e.EventDate < dayEnd))
             .OrderBy(e => e.StartTime ?? TimeSpan.MaxValue)
             .ThenBy(e => e.EventId)
             .ToListAsync(ct);

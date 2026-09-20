@@ -62,3 +62,44 @@ export interface QuotationSettings {
   showContact: boolean;
   showLogo: boolean;
 }
+
+// ---- Tomorrow's WhatsApp reminders (two separate messages)
+
+export interface ReminderRecipient {
+  name: string;
+  kind: "Owner" | "Worker";
+  phone: string | null;
+  eventCount: number;
+  willReceive: boolean;
+  note: string | null;
+}
+
+export interface ReminderMessagePreview {
+  title: string;
+  text: string;
+  recipients: ReminderRecipient[];
+}
+
+export interface ReminderChecks {
+  eventMessageHasNoPaymentInfo: boolean;
+  paymentMessageIsOwnerOnly: boolean;
+  workersReceivingPaymentMessage: number;
+}
+
+export interface ReminderPreview {
+  isTest: boolean;
+  date: string;
+  eventCount: number;
+  provider: string;
+  warnings: string[];
+  eventMessage: ReminderMessagePreview;
+  paymentMessage: ReminderMessagePreview;
+  checks: ReminderChecks;
+  sendResults: string[];
+}
+
+export interface ReminderRunResult {
+  sent: number;
+  failed: number;
+  skipped: number;
+}
