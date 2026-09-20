@@ -13,6 +13,10 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 }
 
+// react-native-web's Alert.alert() is a no-op stub, so the confirmation is rendered inline in the
+// row itself. Turning a studio off or blocking it locks its owner out, so neither happens on one tap.
+type PendingAction = { studioId: number; kind: "activate" | "deactivate" | "block" | "unblock" } | null;
+
 export function StudioListScreen({
   onCreate,
   onView,
@@ -32,6 +36,7 @@ export function StudioListScreen({
 }) {
   const navigation = useNavigation<any>();
   const [search, setSearch] = useState("");
+  const [pending, setPending] = useState<PendingAction>(null);
   const queryClient = useQueryClient();
   const logout = useAuthStore((s) => s.logout);
 
@@ -44,6 +49,7 @@ export function StudioListScreen({
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["studios"] });
     queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    setPending(null);
   };
 
   const activate = useMutation({ mutationFn: studiosApi.activate, onSuccess: invalidate });
@@ -51,57 +57,107 @@ export function StudioListScreen({
   const block = useMutation({ mutationFn: studiosApi.block, onSuccess: invalidate });
   const unblock = useMutation({ mutationFn: studiosApi.unblock, onSuccess: invalidate });
 
-  const renderItem = ({ item }: { item: Studio }) => (
-    <View style={styles.row}>
-      <View style={styles.rowMain}>
-        <Text style={styles.studioName}>{item.studioName}</Text>
-        <Text style={styles.owner}>{item.ownerName} · {item.email}</Text>
-        {item.address ? <Text style={styles.address}>{item.address}</Text> : null}
+  // What each confirmation says, in plain words about the consequence for the studio's owner.
+  const confirmText = (kind: NonNullable<PendingAction>["kind"]) => {
+    switch (kind) {
+      case "deactivate":
+        return "Turn this studio off? Its owner won't be able to sign in until you turn it back on.";
+      case "activate":
+        return "Turn this studio back on? Its owner will be able to sign in again.";
+      case "block":
+        return "Block this studio? Its owner is locked out straight away.";
+      default:
+        return "Unblock this studio? Its owner can sign in again.";
+    }
+  };
 
-        <View style={styles.pillRow}>
-          <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
-          {item.isBlocked && <StatusPill label="Blocked" tone="bad" />}
-          {item.planName && <StatusPill label={item.planName} tone="neutral" />}
+  const runPending = (studioId: number, kind: NonNullable<PendingAction>["kind"]) => {
+    if (kind === "activate") activate.mutate(studioId);
+    else if (kind === "deactivate") deactivate.mutate(studioId);
+    else if (kind === "block") block.mutate(studioId);
+    else unblock.mutate(studioId);
+  };
+
+  const renderItem = ({ item }: { item: Studio }) => {
+    const isPending = pending?.studioId === item.studioId;
+    const isBusy = activate.isPending || deactivate.isPending || block.isPending || unblock.isPending;
+
+    return (
+      <View style={styles.row}>
+        <View style={styles.rowMain}>
+          <Text style={styles.studioName}>{item.studioName}</Text>
+          <Text style={styles.owner}>{item.ownerName} · {item.email}</Text>
+          {item.address ? <Text style={styles.address}>{item.address}</Text> : null}
+
+          <View style={styles.pillRow}>
+            <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
+            {item.isBlocked && <StatusPill label="Blocked" tone="bad" />}
+            {item.planName && <StatusPill label={item.planName} tone="neutral" />}
+          </View>
+
+          {item.subscriptionStartDate && (
+            <Text style={styles.subMeta}>
+              Started {formatDate(item.subscriptionStartDate)} · Renews {formatDate(item.subscriptionEndDate)}
+            </Text>
+          )}
+
+          {isPending && <Text style={styles.confirmText}>{confirmText(pending!.kind)}</Text>}
         </View>
 
-        {item.subscriptionStartDate && (
-          <Text style={styles.subMeta}>
-            Started {formatDate(item.subscriptionStartDate)} · Renews {formatDate(item.subscriptionEndDate)}
-          </Text>
+        {isPending ? (
+          <View style={styles.actions}>
+            <Pressable style={styles.actionBtn} disabled={isBusy} onPress={() => setPending(null)}>
+              <Text style={styles.actionText}>No</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionBtn, styles.actionBtnDanger]}
+              disabled={isBusy}
+              onPress={() => runPending(item.studioId, pending!.kind)}
+            >
+              {isBusy ? (
+                <ActivityIndicator color="#ff7a72" size="small" />
+              ) : (
+                <Text style={[styles.actionText, styles.actionTextDanger]}>
+                  Yes, {pending!.kind}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            <Pressable style={[styles.actionBtn, styles.viewBtn]} onPress={() => onView(item)}>
+              <Text style={[styles.actionText, styles.viewText]}>View</Text>
+            </Pressable>
+            <Pressable style={styles.actionBtn} onPress={() => onManageFeatures(item)}>
+              <Text style={styles.actionText}>Modules</Text>
+            </Pressable>
+            <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
+              <Text style={styles.actionText}>Edit</Text>
+            </Pressable>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => setPending({ studioId: item.studioId, kind: item.isActive ? "deactivate" : "activate" })}
+            >
+              <Text style={styles.actionText}>{item.isActive ? "Deactivate" : "Activate"}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionBtn, item.isBlocked ? undefined : styles.actionBtnDanger]}
+              onPress={() => setPending({ studioId: item.studioId, kind: item.isBlocked ? "unblock" : "block" })}
+            >
+              <Text style={[styles.actionText, !item.isBlocked && styles.actionTextDanger]}>
+                {item.isBlocked ? "Unblock" : "Block"}
+              </Text>
+            </Pressable>
+            {item.planName && (
+              <Pressable style={styles.actionBtn} onPress={() => onRenew(item)}>
+                <Text style={styles.actionText}>Renew</Text>
+              </Pressable>
+            )}
+          </View>
         )}
       </View>
-      <View style={styles.actions}>
-        <Pressable style={[styles.actionBtn, styles.viewBtn]} onPress={() => onView(item)}>
-          <Text style={[styles.actionText, styles.viewText]}>View</Text>
-        </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => onManageFeatures(item)}>
-          <Text style={styles.actionText}>Modules</Text>
-        </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-          <Text style={styles.actionText}>Edit</Text>
-        </Pressable>
-        <Pressable
-          style={styles.actionBtn}
-          onPress={() => (item.isActive ? deactivate.mutate(item.studioId) : activate.mutate(item.studioId))}
-        >
-          <Text style={styles.actionText}>{item.isActive ? "Deactivate" : "Activate"}</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.actionBtn, item.isBlocked ? undefined : styles.actionBtnDanger]}
-          onPress={() => (item.isBlocked ? unblock.mutate(item.studioId) : block.mutate(item.studioId))}
-        >
-          <Text style={[styles.actionText, !item.isBlocked && styles.actionTextDanger]}>
-            {item.isBlocked ? "Unblock" : "Block"}
-          </Text>
-        </Pressable>
-        {item.planName && (
-          <Pressable style={styles.actionBtn} onPress={() => onRenew(item)}>
-            <Text style={styles.actionText}>Renew</Text>
-          </Pressable>
-        )}
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -179,6 +235,7 @@ const styles = StyleSheet.create({
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
   subMeta: { color: "#6f83a0", fontSize: 12, marginTop: 4 },
   actions: { flexDirection: "row", gap: 8 },
+  confirmText: { color: "#f2bd5c", fontSize: 12, marginTop: 8, lineHeight: 17 },
   actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
   viewBtn: { borderColor: "#7fc0e6", backgroundColor: "rgba(127,192,230,0.12)" },
   viewText: { color: "#7fc0e6" },
