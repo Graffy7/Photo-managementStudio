@@ -223,6 +223,7 @@ builder.Services.AddScoped<IValidator<ResetPasswordRequestDto>, ResetPasswordReq
 builder.Services.AddScoped<IValidator<ChangePasswordRequestDto>, ChangePasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateStudioRequestDto>, CreateStudioRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateStudioRequestDto>, UpdateStudioRequestValidator>();
+builder.Services.AddScoped<IValidator<ResetStudioPasswordRequestDto>, ResetStudioPasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<RenewSubscriptionRequestDto>, RenewSubscriptionRequestValidator>();
 builder.Services.AddScoped<IValidator<BusinessSettingsDto>, BusinessSettingsValidator>();
 builder.Services.AddScoped<IValidator<QuotationSettingsDto>, QuotationSettingsValidator>();

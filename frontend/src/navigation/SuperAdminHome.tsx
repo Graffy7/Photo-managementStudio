@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardScreen } from "../screens/superAdmin/DashboardScreen";
 import { StudioListScreen } from "../screens/superAdmin/StudioListScreen";
 import { StudioFormScreen } from "../screens/superAdmin/StudioFormScreen";
+import { StudioDetailScreen } from "../screens/superAdmin/StudioDetailScreen";
 import { AuditLogScreen } from "../screens/superAdmin/AuditLogScreen";
 import { StudioFeaturesScreen } from "../screens/superAdmin/StudioFeaturesScreen";
 import { RenewSubscriptionScreen } from "../screens/superAdmin/RenewSubscriptionScreen";
@@ -11,6 +12,7 @@ type View =
   | { name: "dashboard" }
   | { name: "list" }
   | { name: "create" }
+  | { name: "view"; studio: Studio }
   | { name: "edit"; studio: Studio }
   | { name: "activity" }
   | { name: "features"; studio: Studio }
@@ -27,12 +29,22 @@ export function SuperAdminHome() {
     return <StudioFormScreen onDone={() => setView({ name: "list" })} onCancel={() => setView({ name: "list" })} />;
   }
 
+  if (view.name === "view") {
+    return (
+      <StudioDetailScreen
+        studio={view.studio}
+        onBack={() => setView({ name: "list" })}
+        onEdit={(studio) => setView({ name: "edit", studio })}
+      />
+    );
+  }
+
   if (view.name === "edit") {
     return (
       <StudioFormScreen
         studio={view.studio}
-        onDone={() => setView({ name: "list" })}
-        onCancel={() => setView({ name: "list" })}
+        onDone={() => setView({ name: "view", studio: view.studio })}
+        onCancel={() => setView({ name: "view", studio: view.studio })}
       />
     );
   }
@@ -58,6 +70,7 @@ export function SuperAdminHome() {
   return (
     <StudioListScreen
       onCreate={() => setView({ name: "create" })}
+      onView={(studio) => setView({ name: "view", studio })}
       onEdit={(studio) => setView({ name: "edit", studio })}
       onViewActivity={() => setView({ name: "activity" })}
       onManageFeatures={(studio) => setView({ name: "features", studio })}

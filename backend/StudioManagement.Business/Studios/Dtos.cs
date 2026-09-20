@@ -18,6 +18,13 @@ public class StudioDto
     public bool IsBlocked { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // The owner's actual login account. LoginEmail is what they type on the login page, which is what
+    // the super admin needs to see — Studio.Email above is only the studio's contact address.
+    public int? OwnerUserId { get; set; }
+    public string? LoginEmail { get; set; }
+    public bool OwnerIsActive { get; set; }
+    public DateTime? OwnerLastLoginAt { get; set; }
+
     public int? SubscriptionPlanId { get; set; }
     public string? PlanName { get; set; }
     public string? SubscriptionStatus { get; set; }
@@ -50,4 +57,11 @@ public class UpdateStudioRequestDto
     public string? Pincode { get; set; }
     public string? GstNumber { get; set; }
     public string? Website { get; set; }
+}
+
+// Super admin setting a new password for a studio owner (for example when they are locked out).
+// The existing password can never be read back — it is stored only as a one-way hash.
+public class ResetStudioPasswordRequestDto
+{
+    public string NewPassword { get; set; } = null!;
 }

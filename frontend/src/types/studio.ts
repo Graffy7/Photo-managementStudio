@@ -13,6 +13,12 @@ export interface Studio {
   subscriptionStatus: string | null;
   subscriptionStartDate: string | null;
   subscriptionEndDate: string | null;
+
+  // The owner's login account. loginEmail is what they actually type on the login page.
+  ownerUserId: number | null;
+  loginEmail: string | null;
+  ownerIsActive: boolean;
+  ownerLastLoginAt: string | null;
 }
 
 export interface PagedResult<T> {

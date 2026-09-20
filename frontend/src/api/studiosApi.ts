@@ -17,4 +17,10 @@ export const studiosApi = {
   deactivate: (id: number) => apiClient.post<Studio>(`/api/studios/${id}/deactivate`).then((res) => res.data),
   block: (id: number) => apiClient.post<Studio>(`/api/studios/${id}/block`).then((res) => res.data),
   unblock: (id: number) => apiClient.post<Studio>(`/api/studios/${id}/unblock`).then((res) => res.data),
+
+  // Sets a NEW password for the studio owner. The current one can never be read back.
+  resetOwnerPassword: (id: number, newPassword: string) =>
+    apiClient
+      .post<{ loginEmail: string; message: string }>(`/api/studios/${id}/reset-owner-password`, { newPassword })
+      .then((res) => res.data),
 };

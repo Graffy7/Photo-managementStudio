@@ -15,6 +15,7 @@ function formatDate(value: string | null): string {
 
 export function StudioListScreen({
   onCreate,
+  onView,
   onEdit,
   onViewActivity,
   onManageFeatures,
@@ -22,6 +23,7 @@ export function StudioListScreen({
   onViewDashboard,
 }: {
   onCreate: () => void;
+  onView: (studio: Studio) => void;
   onEdit: (studio: Studio) => void;
   onViewActivity: () => void;
   onManageFeatures: (studio: Studio) => void;
@@ -69,6 +71,9 @@ export function StudioListScreen({
         )}
       </View>
       <View style={styles.actions}>
+        <Pressable style={[styles.actionBtn, styles.viewBtn]} onPress={() => onView(item)}>
+          <Text style={[styles.actionText, styles.viewText]}>View</Text>
+        </Pressable>
         <Pressable style={styles.actionBtn} onPress={() => onManageFeatures(item)}>
           <Text style={styles.actionText}>Modules</Text>
         </Pressable>
@@ -175,6 +180,8 @@ const styles = StyleSheet.create({
   subMeta: { color: "#6f83a0", fontSize: 12, marginTop: 4 },
   actions: { flexDirection: "row", gap: 8 },
   actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
+  viewBtn: { borderColor: "#7fc0e6", backgroundColor: "rgba(127,192,230,0.12)" },
+  viewText: { color: "#7fc0e6" },
   actionBtnDanger: { borderColor: "rgba(255, 122, 114, 0.4)" },
   actionText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   actionTextDanger: { color: "#ff7a72" },

@@ -32,3 +32,12 @@ public class UpdateStudioRequestValidator : AbstractValidator<UpdateStudioReques
         RuleFor(x => x.Website).MaximumLength(300);
     }
 }
+
+public class ResetStudioPasswordRequestValidator : AbstractValidator<ResetStudioPasswordRequestDto>
+{
+    public ResetStudioPasswordRequestValidator()
+    {
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8)
+            .WithMessage("The new password must be at least 8 characters.");
+    }
+}
