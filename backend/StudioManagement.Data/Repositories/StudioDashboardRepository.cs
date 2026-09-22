@@ -64,4 +64,29 @@ public class StudioDashboardRepository(AppDbContext context) : IStudioDashboardR
 
         return results.Select(r => (r.Date, r.Amount)).ToList();
     }
+
+    public async Task<List<DailyRevenueItem>> GetDailyRevenueBreakdownAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default)
+    {
+        // Same filter as GetDailyRevenueAsync, so each day's items add up to that day's total exactly.
+        var rows = await context.Payments
+            .AsNoTracking()
+            .Where(p => p.StudioId == studioId && p.PaymentDate >= start && p.PaymentDate < end && p.PaymentStatus == PaymentStatuses.Completed)
+            .Select(p => new
+            {
+                Date = p.PaymentDate.Date,
+                p.EventId,
+                EventTypeName = p.Event != null && p.Event.EventType != null ? p.Event.EventType.Name : null,
+                CustomerName = p.Customer.FullName,
+                Venue = p.Event != null ? p.Event.Venue : null,
+                p.Amount
+            })
+            .ToListAsync(ct);
+
+        return rows
+            .GroupBy(r => new { r.Date, r.EventId, r.EventTypeName, r.CustomerName, r.Venue })
+            .Select(g => new DailyRevenueItem(g.Key.Date, g.Key.EventId, g.Key.EventTypeName, g.Key.CustomerName, g.Key.Venue, g.Sum(r => r.Amount)))
+            .OrderBy(i => i.Date)
+            .ThenByDescending(i => i.Amount)
+            .ToList();
+    }
 }

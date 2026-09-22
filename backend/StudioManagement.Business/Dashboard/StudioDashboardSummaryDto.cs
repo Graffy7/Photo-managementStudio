@@ -42,8 +42,21 @@ public class TopServiceDto
     public decimal Percentage { get; set; }
 }
 
+// What one event contributed to a day's revenue. EventId is null for a payment not linked to an event.
+public class RevenueTrendEventDto
+{
+    public int? EventId { get; set; }
+    public string EventName { get; set; } = null!;
+    public string CustomerName { get; set; } = null!;
+    public string? Venue { get; set; }
+    public decimal Amount { get; set; }
+}
+
 public class RevenueTrendPointDto
 {
     public DateTime Date { get; set; }
     public decimal Amount { get; set; }
+
+    // Which events the day's revenue came from, largest first — shown when hovering the chart.
+    public List<RevenueTrendEventDto> Events { get; set; } = [];
 }

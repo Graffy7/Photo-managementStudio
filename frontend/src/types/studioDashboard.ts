@@ -63,7 +63,17 @@ export interface TopService {
   percentage: number;
 }
 
+export interface RevenueTrendEvent {
+  eventId: number | null;
+  eventName: string;
+  customerName: string;
+  venue: string | null;
+  amount: number;
+}
+
 export interface RevenueTrendPoint {
   date: string;
   amount: number;
+  // Which events that day's revenue came from, largest first.
+  events: RevenueTrendEvent[];
 }

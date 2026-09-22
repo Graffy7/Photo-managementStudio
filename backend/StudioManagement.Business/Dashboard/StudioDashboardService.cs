@@ -41,6 +41,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
 
         var topServices = await repository.GetTopServicesAsync(studioId, range.Start, range.End, 3, ct);
         var revenueTrend = await repository.GetDailyRevenueAsync(studioId, range.Start, range.End, ct);
+        var revenueBreakdown = await repository.GetDailyRevenueBreakdownAsync(studioId, range.Start, range.End, ct);
 
         // Previous-period baselines, purely for the "vs last period" deltas above.
         var previousLeads = await repository.CountLeadsAsync(studioId, previous.Start, previous.End, ct);
@@ -86,7 +87,22 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
                 Percentage = totalServiceUsage == 0 ? 0m : Math.Round((decimal)s.Count / totalServiceUsage * 100, 0)
             }).ToList(),
 
-            RevenueTrend = revenueTrend.Select(r => new RevenueTrendPointDto { Date = r.Date, Amount = r.Amount }).ToList()
+            RevenueTrend = revenueTrend.Select(r => new RevenueTrendPointDto
+            {
+                Date = r.Date,
+                Amount = r.Amount,
+                Events = revenueBreakdown
+                    .Where(b => b.Date == r.Date)
+                    .Select(b => new RevenueTrendEventDto
+                    {
+                        EventId = b.EventId,
+                        EventName = b.EventId is null ? "Payment (no event)" : b.EventTypeName ?? "Event",
+                        CustomerName = b.CustomerName,
+                        Venue = b.Venue,
+                        Amount = b.Amount
+                    })
+                    .ToList()
+            }).ToList()
         };
     }
 

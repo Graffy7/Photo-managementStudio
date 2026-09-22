@@ -187,6 +187,17 @@ export function HomeScreen() {
   const revenuePoints = (data?.revenueTrend ?? []).map((p) => ({
     label: new Date(p.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     value: p.amount,
+    // Hover tooltip: the date, the day's full total, and what each event contributed.
+    detail: {
+      title: new Date(p.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+      total: formatCurrency(p.amount),
+      items: (p.events ?? []).map((e) => ({
+        name: e.eventName,
+        // Customer and venue tell apart two events of the same type on the same day.
+        sub: e.venue ? `${e.customerName} · ${e.venue}` : e.customerName,
+        value: formatCurrency(e.amount),
+      })),
+    },
   }));
 
   return (
