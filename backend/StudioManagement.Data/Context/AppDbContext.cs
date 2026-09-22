@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudioManagement.Data.Entities;
 
 namespace StudioManagement.Data.Context;
@@ -51,5 +52,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        MarkTimestampsAsUtc(modelBuilder);
+    }
+
+    // Every "...At" column (CreatedAt, UpdatedAt, LastLoginAt, SubmittedAt, ...) is written from
+    // DateTime.UtcNow, but SQL Server hands it back without a time zone, so the API sent e.g.
+    // "03:34:03" and browsers read it as local time — 5.5 hours off in India. Tagging these values as
+    // UTC when they're read makes the API send "03:34:03Z", which every client converts correctly.
+    //
+    // Calendar dates (EventDate, PaymentDate, ValidUntil, ...) are deliberately left alone: they're a
+    // day on the calendar, not an instant, and must not move when shown in another time zone.
+    private static void MarkTimestampsAsUtc(ModelBuilder modelBuilder)
+    {
+        var utc = new ValueConverter<DateTime, DateTime>(
+            toDb => toDb.Kind == DateTimeKind.Local ? toDb.ToUniversalTime() : toDb,
+            fromDb => DateTime.SpecifyKind(fromDb, DateTimeKind.Utc));
+
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entity.GetProperties())
+            {
+                var isDateTime = property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?);
+                if (isDateTime && property.Name.EndsWith("At", StringComparison.Ordinal) && property.GetValueConverter() is null)
+                {
+                    property.SetValueConverter(utc);
+                }
+            }
+        }
     }
 }
