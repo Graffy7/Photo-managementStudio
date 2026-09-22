@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform, useWindowDimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -146,6 +146,7 @@ export function HomeScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const narrow = useWindowDimensions().width < 600;
 
   const [preset, setPreset] = useState<DateRangePreset>("ThisMonth");
   const [customStart, setCustomStart] = useState("");
@@ -201,9 +202,9 @@ export function HomeScreen() {
   }));
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, narrow && styles.contentNarrow]}>
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerLeft}>
           <Text style={styles.greeting}>
             {greeting()}, <Text style={styles.greetingName}>{user?.fullName?.split(" ")[0] ?? "there"}</Text> 👋
           </Text>
@@ -442,7 +443,10 @@ function dayOfYear(): number {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 28, maxWidth: 1400, width: "100%", alignSelf: "center" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 16 },
+  contentNarrow: { padding: 16 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 16, flexWrap: "wrap" },
+  // On a phone there isn't room for the greeting beside the date and bell, so they wrap below it.
+  headerLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 260 },
   greeting: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   greetingName: { color: "#7fc0e6" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3 },
@@ -488,8 +492,8 @@ const styles = StyleSheet.create({
   deltaNeutral: { fontSize: 11, color: "#6f83a0", marginTop: 8 },
 
   columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
-  mainColumn: { flexGrow: 2, flexBasis: 420, gap: 16 },
-  sideColumn: { flexGrow: 1, flexBasis: 300, gap: 16 },
+  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 420, minWidth: 0, gap: 16 },
+  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
 
   panel: { backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18 },
   panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },

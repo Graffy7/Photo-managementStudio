@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,6 +45,7 @@ function formatCurrency(value: number): string {
 }
 
 export function CalendarScreen() {
+  const narrow = useWindowDimensions().width < 600;
   const navigation = useNavigation<any>();
   const today = useMemo(() => new Date(), []);
   const queryClient = useQueryClient();
@@ -159,13 +160,13 @@ export function CalendarScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.content}>
+      <View style={[styles.content, narrow && styles.contentNarrow]}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.titleIcon}>
               <Ionicons name="calendar" size={16} color="#7fc0e6" />
             </View>
-            <View>
+            <View style={{ flexShrink: 1 }}>
               <Text style={styles.title}>Calendar</Text>
               <Text style={styles.subtitle}>See all your booked events at a glance. Click on any date to view details.</Text>
             </View>
@@ -461,9 +462,10 @@ function SummaryTile({ icon, label, value }: { icon: string; label: string; valu
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 28, maxWidth: 1300, width: "100%", alignSelf: "center" },
+  contentNarrow: { padding: 16 },
 
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 16, flexWrap: "wrap" },
-  headerLeft: { flexDirection: "row", gap: 12, flex: 1, minWidth: 260 },
+  headerLeft: { flexDirection: "row", gap: 12, flex: 1, minWidth: 240 },
   titleIcon: {
     width: 32, height: 32, borderRadius: 9, backgroundColor: "rgba(127, 192, 230, 0.14)",
     alignItems: "center", justifyContent: "center", marginTop: 2,
@@ -484,8 +486,8 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: "#a7b7cb", marginTop: 2 },
 
   columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
-  mainColumn: { flexGrow: 2, flexBasis: 560, gap: 16 },
-  sideColumn: { flexGrow: 1, flexBasis: 300, gap: 16 },
+  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 560, minWidth: 0, gap: 16 },
+  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
 
   card: { backgroundColor: "#132540", borderRadius: 14, borderWidth: 1, borderColor: "#23405c", padding: 18 },
 
