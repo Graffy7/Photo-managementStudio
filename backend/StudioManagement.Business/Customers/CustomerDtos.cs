@@ -1,4 +1,4 @@
-namespace StudioManagement.Business.Customers;
+﻿namespace StudioManagement.Business.Customers;
 
 public class CustomerDto
 {
@@ -46,4 +46,10 @@ public class CustomerEventSummaryDto
     public decimal Balance { get; set; }
     public int WorkerCount { get; set; }
     public string? Notes { get; set; }
+
+    // The accepted quotation's total - what the customer actually agreed to - with the quotation
+    // count beside it so the history shows how many versions were raised.
+    public decimal? ApprovedAmount { get; set; }
+    public int QuotationCount { get; set; }
+    public DateTime? CompletedAt { get; set; }
 }

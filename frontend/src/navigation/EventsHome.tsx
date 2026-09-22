@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { EventListScreen } from "../screens/studioOwner/EventListScreen";
 import { EventFormScreen } from "../screens/studioOwner/EventFormScreen";
 import { EventDetailScreen } from "../screens/studioOwner/EventDetailScreen";
+import { eventsApi } from "../api/eventsApi";
 import type { StudioEvent } from "../types/event";
 
 type View =
@@ -18,6 +19,8 @@ interface CreateParams {
   create?: boolean;
   date?: string;
   returnTo?: string;
+  // Opens one event's history straight away - the Customer page's "View" uses this.
+  eventId?: number;
 }
 
 export function EventsHome() {
@@ -35,6 +38,18 @@ export function EventsHome() {
     setReturnTo(params.returnTo ?? null);
     navigation.setParams({ create: undefined, date: undefined, returnTo: undefined });
   }, [params?.create, params?.date, params?.returnTo, navigation]);
+
+  // Arriving with an eventId (from a customer's event history) opens that event's record.
+  useEffect(() => {
+    const eventId = params?.eventId;
+    if (!eventId) return;
+    // The param is cleared only once the event has loaded: clearing it first would re-run this
+    // effect, and its cleanup would cancel the very fetch that is still in flight.
+    eventsApi.getById(eventId).then((event) => {
+      setView({ name: "view", event });
+      navigation.setParams({ eventId: undefined });
+    }).catch(() => navigation.setParams({ eventId: undefined }));
+  }, [params?.eventId, navigation]);
 
   const finishCreate = () => {
     setView({ name: "list" });

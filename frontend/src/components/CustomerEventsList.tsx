@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { customersApi } from "../api/customersApi";
 import { eventsApi } from "../api/eventsApi";
@@ -177,7 +178,7 @@ function EventNotesSection({ customerId, eventId, notes }: { customerId: number;
   );
 }
 
-function EventRow({ event, customerId }: { event: CustomerEventSummary; customerId: number }) {
+function EventRow({ event, customerId, onViewEvent }: { event: CustomerEventSummary; customerId: number; onViewEvent: (eventId: number) => void }) {
   return (
     <View style={styles.eventRow}>
       <View style={styles.eventTop}>
@@ -186,6 +187,10 @@ function EventRow({ event, customerId }: { event: CustomerEventSummary; customer
           <Text style={styles.eventDate}>{formatDate(event.eventDate)}</Text>
         </View>
         <StatusPill label={event.eventStatus} tone={statusTone(event.eventStatus)} />
+        {/* Opens the event's full record: every quotation version and PDF, payments, crew. */}
+        <Pressable style={styles.viewButton} onPress={() => onViewEvent(event.eventId)} accessibilityRole="button">
+          <Text style={styles.viewButtonText}>View</Text>
+        </Pressable>
       </View>
 
       <View style={styles.eventMetaRow}>
@@ -200,12 +205,21 @@ function EventRow({ event, customerId }: { event: CustomerEventSummary; customer
       <EventNotesSection customerId={customerId} eventId={event.eventId} notes={event.notes} />
 
       <View style={styles.eventFinanceGrid}>
-        <Field label="Budget" value={event.budget !== null ? formatCurrency(event.budget) : "—"} />
+        {/* Once a quotation is accepted, that agreed total is what matters, not the rough budget. */}
+        <Field
+          label={event.approvedAmount !== null ? "Approved amount" : "Budget"}
+          value={event.approvedAmount !== null
+            ? formatCurrency(event.approvedAmount)
+            : event.budget !== null ? formatCurrency(event.budget) : "—"}
+        />
         <Field label="Advance paid" value={formatCurrency(event.amountPaid)} />
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Balance</Text>
           <Text style={[styles.fieldValue, { color: event.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>{formatCurrency(event.balance)}</Text>
         </View>
+        {event.quotationCount > 0 && (
+          <Field label="Quotations" value={`${event.quotationCount} version${event.quotationCount === 1 ? "" : "s"}`} />
+        )}
       </View>
 
       <View style={styles.crewCard}>
@@ -216,6 +230,9 @@ function EventRow({ event, customerId }: { event: CustomerEventSummary; customer
 }
 
 export function CustomerEventsList({ customerId }: { customerId: number }) {
+  const navigation = useNavigation<any>();
+  const openEvent = (eventId: number) => navigation.navigate("Events", { eventId });
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ["customer-events", customerId],
     queryFn: () => customersApi.getEvents(customerId),
@@ -238,7 +255,7 @@ export function CustomerEventsList({ customerId }: { customerId: number }) {
       {data.map((event, i) => (
         <View key={event.eventId}>
           {i > 0 && <View style={styles.eventSeparator} />}
-          <EventRow event={event} customerId={customerId} />
+          <EventRow event={event} customerId={customerId} onViewEvent={openEvent} />
         </View>
       ))}
     </View>
@@ -247,6 +264,8 @@ export function CustomerEventsList({ customerId }: { customerId: number }) {
 
 const styles = StyleSheet.create({
   empty: { color: "#a7b7cb", fontSize: 14, lineHeight: 20 },
+  viewButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0f1e30" },
+  viewButtonText: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
   field: { minWidth: 120, gap: 3 },
   fieldLabel: { color: "#6f83a0", fontSize: 11 },
   fieldValue: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },

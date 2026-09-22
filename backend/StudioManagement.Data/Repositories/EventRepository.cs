@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -14,7 +14,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.Payments)
             .FirstOrDefaultAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
-    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default)
     {
         var query = context.Events
             .AsNoTracking()
@@ -37,6 +37,13 @@ public class EventRepository(AppDbContext context) : IEventRepository
         if (customerId is not null)
         {
             query = query.Where(e => e.CustomerId == customerId);
+        }
+
+        // EventDate is a calendar day stored at midnight, so an exact day match is enough.
+        if (eventDate is not null)
+        {
+            var day = eventDate.Value.Date;
+            query = query.Where(e => e.EventDate == day);
         }
 
         var totalCount = await query.CountAsync(ct);
@@ -80,6 +87,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.EventType)
             .Include(e => e.EventWorkers)
             .Include(e => e.Payments)
+            .Include(e => e.Quotations)
             .Where(e => e.StudioId == studioId && e.CustomerId == customerId)
             .OrderByDescending(e => e.EventDate)
             .ToListAsync(ct);

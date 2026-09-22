@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
 
@@ -47,6 +47,13 @@ public class QuotationRepository(AppDbContext context) : IQuotationRepository
 
         return (items, totalCount);
     }
+
+    public Task<List<Quotation>> GetForEventAsync(int studioId, int eventId, CancellationToken ct = default) =>
+        context.Quotations
+            .AsNoTracking()
+            .Where(q => q.StudioId == studioId && q.EventId == eventId)
+            .OrderBy(q => q.QuotationDate).ThenBy(q => q.QuotationId)
+            .ToListAsync(ct);
 
     public Task<int> CountAllAsync(int studioId, CancellationToken ct = default) =>
         context.Quotations.CountAsync(q => q.StudioId == studioId, ct);

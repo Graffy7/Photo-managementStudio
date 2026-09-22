@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { eventsApi } from "../../api/eventsApi";
@@ -8,6 +8,8 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { EVENT_STATUSES, EVENT_STATUS_LABELS, type EventStatus, type StudioEvent } from "../../types/event";
 import { StatusPill } from "../../components/StatusPill";
 import { EventQuoteModal } from "../../components/EventQuoteModal";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -123,13 +125,20 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
+  const [eventDate, setEventDate] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [quoteFor, setQuoteFor] = useState<StudioEvent | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["events", search, eventStatus],
-    queryFn: () => eventsApi.search({ search: search || undefined, eventStatus: eventStatus ?? undefined, page: 1, pageSize: 50 }),
+    queryKey: ["events", search, eventStatus, eventDate],
+    queryFn: () => eventsApi.search({
+      search: search || undefined,
+      eventStatus: eventStatus ?? undefined,
+      eventDate: eventDate || undefined,
+      page: 1,
+      pageSize: 50,
+    }),
   });
   useRefetchOnFocus(refetch);
 
@@ -234,13 +243,22 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by customer or venue"
-        placeholderTextColor="#6f83a0"
-      />
+      <View style={styles.searchRow}>
+        <SearchInput
+          style={[styles.search, styles.searchInput]}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search by customer or venue"
+        />
+        {/* Pick a day to see only that day's events. */}
+        <MiniDatePicker clearable value={eventDate} onChange={setEventDate} placeholder="Any date" />
+        {!!eventDate && (
+          <Pressable style={styles.clearDate} onPress={() => setEventDate("")} accessibilityRole="button" accessibilityLabel="Clear date">
+            <Ionicons name="close" size={14} color="#a7b7cb" />
+            <Text style={styles.clearDateText}>Clear</Text>
+          </Pressable>
+        )}
+      </View>
 
       <View style={styles.filterRow}>
         <Pressable style={[styles.filterChip, eventStatus === null && styles.filterChipSelected]} onPress={() => setEventStatus(null)}>
@@ -263,7 +281,13 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
           keyExtractor={(item) => String(item.eventId)}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<Text style={styles.empty}>No events yet — add the first one.</Text>}
+          ListEmptyComponent={
+            <Text style={styles.empty}>
+              {search || eventDate || eventStatus
+                ? "No events match this search."
+                : "No events yet — add the first one."}
+            </Text>
+          }
           contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
@@ -292,6 +316,13 @@ const styles = StyleSheet.create({
   newButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
   backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
   backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  searchRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 12 },
+  searchInput: { flexGrow: 1, flexShrink: 1, flexBasis: 220, marginBottom: 0 },
+  clearDate: {
+    flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6, paddingHorizontal: 10,
+    borderRadius: 8, borderWidth: 1, borderColor: "#23405c", backgroundColor: "#132540",
+  },
+  clearDateText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   search: {
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
     color: "#e8edf3", backgroundColor: "#132540", marginBottom: 12, fontSize: 14,

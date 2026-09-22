@@ -1,4 +1,4 @@
-using StudioManagement.Business.Common;
+﻿using StudioManagement.Business.Common;
 
 namespace StudioManagement.Business.Events;
 
@@ -29,8 +29,9 @@ public enum EventDeleteResult
 
 public interface IEventService
 {
-    Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default);
     Task<EventDto?> GetByIdAsync(int studioId, int eventId, CancellationToken ct = default);
+    Task<EventHistoryDto?> GetHistoryAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<EventWriteResult> CreateAsync(int studioId, CreateEventRequestDto request, CancellationToken ct = default);
     Task<EventWriteResult?> UpdateAsync(int studioId, int eventId, UpdateEventRequestDto request, CancellationToken ct = default);
     Task<EventDto?> UpdateNotesAsync(int studioId, int eventId, string? notes, CancellationToken ct = default);

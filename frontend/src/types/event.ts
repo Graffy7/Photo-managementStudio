@@ -27,6 +27,9 @@ export interface StudioEvent {
   eventStatus: EventStatus;
   fileLocation: string | null;
   notes: string | null;
+  // Stamped the first time the event is marked Completed; null for events completed before this
+  // was recorded.
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,3 +52,42 @@ export interface CreateEventRequest {
 }
 
 export type UpdateEventRequest = CreateEventRequest;
+
+// ---- Event history: the permanent record of one event ----
+
+export interface EventHistoryQuotation {
+  quotationId: number;
+  // "V1", "V2", ... in the order they were raised for this event.
+  version: string;
+  quotationNumber: string;
+  quotationDate: string;
+  status: string;
+  grandTotal: number;
+  isApproved: boolean;
+}
+
+export interface EventHistoryPayment {
+  paymentId: number;
+  paymentDate: string;
+  amount: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  referenceNumber: string | null;
+  notes: string | null;
+}
+
+export interface EventHistoryWorker {
+  workerId: number;
+  workerName: string;
+  workerTypeName: string | null;
+  role: string | null;
+}
+
+export interface EventHistory {
+  event: StudioEvent;
+  workers: EventHistoryWorker[];
+  quotations: EventHistoryQuotation[];
+  approvedQuotation: EventHistoryQuotation | null;
+  payments: EventHistoryPayment[];
+  finalAmount: number | null;
+}

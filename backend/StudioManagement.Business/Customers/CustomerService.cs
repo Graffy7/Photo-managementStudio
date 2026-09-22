@@ -1,4 +1,4 @@
-using StudioManagement.Business.Audit;
+﻿using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -121,7 +121,14 @@ public class CustomerService(
                 AmountPaid = amountPaid,
                 Balance = (e.Budget ?? 0) - amountPaid,
                 WorkerCount = e.EventWorkers.Count,
-                Notes = e.Notes
+                Notes = e.Notes,
+                ApprovedAmount = e.Quotations
+                    .Where(q => q.Status == QuotationStatuses.Accepted)
+                    .OrderBy(q => q.QuotationDate).ThenBy(q => q.QuotationId)
+                    .Select(q => (decimal?)q.GrandTotal)
+                    .LastOrDefault(),
+                QuotationCount = e.Quotations.Count,
+                CompletedAt = e.CompletedAt
             };
         }).ToList();
     }

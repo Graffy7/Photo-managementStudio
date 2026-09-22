@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
 using StudioManagement.Business.Notifications;
@@ -13,6 +13,8 @@ public class EventService(
     IEventRepository eventRepository,
     ICustomerRepository customerRepository,
     IPaymentRepository paymentRepository,
+    IQuotationRepository quotationRepository,
+    IEventWorkerRepository eventWorkerRepository,
     INotificationService notificationService,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IEventService
@@ -20,12 +22,12 @@ public class EventService(
     private const string Module = "Events";
     private const string TimeFormat = @"hh\:mm";
 
-    public async Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await eventRepository.SearchAsync(studioId, search, eventStatus, customerId, page, pageSize, ct);
+        var (items, totalCount) = await eventRepository.SearchAsync(studioId, search, eventStatus, customerId, eventDate, page, pageSize, ct);
         return new PagedResult<EventDto>
         {
             Items = items.Select(MapToDto).ToList(),
@@ -64,6 +66,7 @@ public class EventService(
             EventStatus = request.EventStatus,
             FileLocation = request.FileLocation,
             Notes = request.Notes,
+            CompletedAt = request.EventStatus == EventStatuses.Completed ? now : null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -128,6 +131,17 @@ public class EventService(
         @event.Venue = request.Venue;
         @event.VenueAddress = request.VenueAddress;
         @event.Budget = request.Budget;
+        // The completion date is stamped once, the first time the event is marked Completed, and
+        // survives later edits. Moving the event back out of Completed clears it.
+        if (request.EventStatus == EventStatuses.Completed)
+        {
+            @event.CompletedAt ??= DateTime.UtcNow;
+        }
+        else
+        {
+            @event.CompletedAt = null;
+        }
+
         @event.EventStatus = request.EventStatus;
         @event.FileLocation = request.FileLocation;
         @event.Notes = request.Notes;
@@ -190,6 +204,60 @@ public class EventService(
     private static TimeSpan? ParseTime(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : TimeSpan.ParseExact(value, TimeFormat, CultureInfo.InvariantCulture);
 
+    // The event's permanent record: the crew, every quotation ever raised for it (superseded ones
+    // included) and every payment. Read-only, and nothing here is ever deleted or rewritten.
+    public async Task<EventHistoryDto?> GetHistoryAsync(int studioId, int eventId, CancellationToken ct = default)
+    {
+        var @event = await eventRepository.GetByIdAsync(studioId, eventId, ct);
+        if (@event is null)
+        {
+            return null;
+        }
+
+        var assignments = await eventWorkerRepository.GetByEventIdAsync(eventId, ct);
+        var quotations = await quotationRepository.GetForEventAsync(studioId, eventId, ct);
+        var payments = await paymentRepository.GetForEventAsync(studioId, eventId, ct);
+
+        var quotationDtos = quotations.Select((q, index) => new EventHistoryQuotationDto
+        {
+            QuotationId = q.QuotationId,
+            Version = $"V{index + 1}",
+            QuotationNumber = q.QuotationNumber,
+            QuotationDate = q.QuotationDate,
+            Status = q.Status,
+            GrandTotal = q.GrandTotal,
+            IsApproved = q.Status == QuotationStatuses.Accepted
+        }).ToList();
+
+        // If more than one was ever accepted, the most recent accepted one is the live agreement.
+        var approved = quotationDtos.LastOrDefault(q => q.IsApproved);
+
+        return new EventHistoryDto
+        {
+            Event = MapToDto(@event),
+            Workers = assignments.Select(a => new EventHistoryWorkerDto
+            {
+                WorkerId = a.WorkerId,
+                WorkerName = a.Worker.FullName,
+                WorkerTypeName = a.Worker.WorkerType?.Name,
+                Role = a.Notes
+            }).ToList(),
+            Quotations = quotationDtos,
+            ApprovedQuotation = approved,
+            Payments = payments.Select(p => new EventHistoryPaymentDto
+            {
+                PaymentId = p.PaymentId,
+                PaymentDate = p.PaymentDate,
+                Amount = p.Amount,
+                PaymentMethod = p.PaymentMethod,
+                PaymentStatus = p.PaymentStatus,
+                ReferenceNumber = p.ReferenceNumber,
+                Notes = p.Notes
+            }).ToList(),
+            FinalAmount = approved?.GrandTotal ?? @event.Budget
+        };
+    }
+
     private static EventDto MapToDto(Event @event)
     {
         var amountPaid = @event.Payments.Where(p => p.PaymentStatus == PaymentStatuses.Completed).Sum(p => p.Amount);
@@ -213,6 +281,7 @@ public class EventService(
             EventStatus = @event.EventStatus,
             FileLocation = @event.FileLocation,
             Notes = @event.Notes,
+            CompletedAt = @event.CompletedAt,
             CreatedAt = @event.CreatedAt,
             UpdatedAt = @event.UpdatedAt
         };

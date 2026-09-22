@@ -1,4 +1,4 @@
-namespace StudioManagement.Data.Entities;
+﻿namespace StudioManagement.Data.Entities;
 
 public class Event : ITenantEntity
 {
@@ -15,6 +15,11 @@ public class Event : ITenantEntity
     public string EventStatus { get; set; } = null!;
     public string? FileLocation { get; set; }
     public string? Notes { get; set; }
+
+    // Set the moment the event is marked Completed, so the historical record keeps the real
+    // completion date even if the row is touched again later.
+    public DateTime? CompletedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

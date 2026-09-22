@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Events;
@@ -24,10 +24,11 @@ public class EventsController(
         [FromQuery] string? search,
         [FromQuery] string? eventStatus,
         [FromQuery] int? customerId,
+        [FromQuery] DateTime? eventDate,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default) =>
-        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, page, pageSize, ct));
+        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
@@ -94,6 +95,14 @@ public class EventsController(
     {
         var updated = await eventService.UpdateNotesAsync(StudioId, id, request.Notes, ct);
         return updated is null ? NotFound() : Ok(updated);
+    }
+
+    // The event's permanent history: crew, every quotation version and every payment.
+    [HttpGet("{id:int}/history")]
+    public async Task<IActionResult> GetHistory(int id, CancellationToken ct)
+    {
+        var history = await eventService.GetHistoryAsync(StudioId, id, ct);
+        return history is null ? NotFound() : Ok(history);
     }
 
     [HttpGet("{id:int}/workers")]

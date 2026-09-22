@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, Scroll
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
 import { servicesApi } from "../../api/servicesApi";
+import { eventsApi } from "../../api/eventsApi";
 import type { Quotation } from "../../types/quotation";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
@@ -36,6 +37,22 @@ function nextKey(): string {
 export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
   const isEdit = !!quotation;
   const queryClient = useQueryClient();
+
+  // Editing is still allowed, but an accepted quotation — or one belonging to a finished event — is
+  // what the customer was actually given, so saying so up front keeps history from being rewritten
+  // by accident.
+  const { data: linkedEvent } = useQuery({
+    queryKey: ["event", quotation?.eventId],
+    queryFn: () => eventsApi.getById(quotation!.eventId!),
+    enabled: isEdit && quotation?.eventId != null,
+  });
+  const historyWarning = !isEdit
+    ? null
+    : linkedEvent?.eventStatus === "Completed"
+      ? "Its event is already completed, so these amounts and its PDF are the studio's record of what was agreed."
+      : quotation?.status === "Accepted"
+        ? "The customer has accepted it, so this amount and its PDF are what they agreed to."
+        : null;
 
   const [customer, setCustomer] = useState<PickedCustomer | null>(
     quotation ? { customerId: quotation.customerId, fullName: quotation.customerName, mobileNumber: quotation.customerMobileNumber } : null
@@ -125,6 +142,17 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{isEdit ? `Edit ${quotation!.quotationNumber}` : "New quotation"}</Text>
+
+      {historyWarning && (
+        <View style={styles.warning}>
+          <Text style={styles.warningTitle}>This quotation is part of a permanent record</Text>
+          <Text style={styles.warningText}>{historyWarning}</Text>
+          <Text style={styles.warningText}>
+            If the price has changed, raise a new quotation for this event instead — it becomes the next
+            version and the old one stays exactly as the customer received it.
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.label}>Customer</Text>
       <CustomerPicker selected={customer} onSelect={setCustomer} />
@@ -244,6 +272,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 24, maxWidth: 520, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
+  warning: {
+    borderWidth: 1, borderColor: "rgba(242, 189, 92, 0.45)", backgroundColor: "rgba(242, 189, 92, 0.08)",
+    borderRadius: 10, padding: 14, marginBottom: 20, gap: 6,
+  },
+  warningTitle: { color: "#f2bd5c", fontSize: 13, fontWeight: "700" },
+  warningText: { color: "#a7b7cb", fontSize: 12, lineHeight: 18 },
   label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
   smallLabel: { fontSize: 11, color: "#6f83a0", marginBottom: 4 },
   sectionLabel: {

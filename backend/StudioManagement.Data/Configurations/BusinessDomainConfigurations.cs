@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -66,6 +66,7 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         b.Property(x => x.EventStatus).IsRequired().HasMaxLength(30);
         b.Property(x => x.FileLocation).HasMaxLength(1000);
         b.Property(x => x.EventDate).HasColumnType("datetime2");
+        b.Property(x => x.CompletedAt).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
 

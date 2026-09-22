@@ -34,4 +34,9 @@ export interface CustomerEventSummary {
   balance: number;
   workerCount: number;
   notes: string | null;
+  // The accepted quotation's total — what the customer actually agreed to — with how many
+  // quotation versions were raised for the event.
+  approvedAmount: number | null;
+  quotationCount: number;
+  completedAt: string | null;
 }

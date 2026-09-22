@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -46,6 +46,13 @@ public class PaymentRepository(AppDbContext context) : IPaymentRepository
 
         return (items, totalCount);
     }
+
+    public Task<List<Payment>> GetForEventAsync(int studioId, int eventId, CancellationToken ct = default) =>
+        context.Payments
+            .AsNoTracking()
+            .Where(p => p.StudioId == studioId && p.EventId == eventId)
+            .OrderBy(p => p.PaymentDate).ThenBy(p => p.PaymentId)
+            .ToListAsync(ct);
 
     public async Task<List<(int EventId, decimal TotalPaid)>> GetCompletedTotalsByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default)
     {
