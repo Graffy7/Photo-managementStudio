@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { SearchInput } from "../../components/SearchInput";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { expensesApi } from "../../api/expensesApi";
@@ -106,13 +107,7 @@ export function ExpenseListScreen({
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by description or reference number"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by description or reference number" />
 
       {categories && categories.length > 0 && (
         <View style={styles.filterRow}>

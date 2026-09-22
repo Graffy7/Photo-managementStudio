@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { leadsApi } from "../../api/leadsApi";
@@ -8,6 +8,7 @@ import type { Lead } from "../../types/lead";
 import { StatusPill } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string | null): string {
@@ -165,13 +166,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by name or mobile number"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by name or mobile number" />
 
       {leadStatuses && leadStatuses.length > 0 && (
         <View style={styles.filterRow}>

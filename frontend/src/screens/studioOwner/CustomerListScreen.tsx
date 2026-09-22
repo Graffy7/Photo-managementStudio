@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customersApi } from "../../api/customersApi";
 import type { Customer } from "../../types/customer";
 import { StatusPill } from "../../components/StatusPill";
+import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (customer: Customer) => void; onView: (customer: Customer) => void }) {
@@ -69,13 +70,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by name or mobile number"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by name or mobile number" />
 
       {isLoading ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />

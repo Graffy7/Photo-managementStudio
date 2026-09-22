@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { servicesApi } from "../../api/servicesApi";
 import type { StudioService } from "../../types/service";
 import { StatusPill } from "../../components/StatusPill";
+import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatCurrency(value: number): string {
@@ -69,13 +70,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by service name"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by service name" />
 
       {isLoading ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />

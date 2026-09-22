@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { StatusPill } from "../../components/StatusPill";
+import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import type { CompletedEventGallery, GalleryState } from "../../types/photoSelection";
 
@@ -85,13 +86,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
         </Pressable>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by customer or venue"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by customer or venue" />
 
       <View style={styles.filterRow}>
         {FILTERS.map((f) => (

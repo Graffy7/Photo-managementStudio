@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { paymentsApi } from "../../api/paymentsApi";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment, type PaymentStatus } from "../../types/payment";
 import { StatusPill } from "../../components/StatusPill";
+import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string): string {
@@ -97,13 +98,7 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by customer or reference number"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by customer or reference number" />
 
       <View style={styles.filterRow}>
         <Pressable style={[styles.filterChip, status === null && styles.filterChipSelected]} onPress={() => setStatus(null)}>

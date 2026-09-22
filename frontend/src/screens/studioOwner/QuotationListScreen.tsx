@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
@@ -10,6 +10,7 @@ import { QUOTATION_STATUSES, type Quotation, type QuotationStatus } from "../../
 // below each row still offer the full QUOTATION_STATUSES list.
 const SEARCH_FILTER_STATUSES: QuotationStatus[] = ["Draft", "Sent"];
 import { StatusPill } from "../../components/StatusPill";
+import { SearchInput } from "../../components/SearchInput";
 import { downloadAndSharePdf } from "../../utils/downloadPdf";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
@@ -129,13 +130,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
         </View>
       </View>
 
-      <TextInput
-        style={styles.search}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by quotation number or customer"
-        placeholderTextColor="#6f83a0"
-      />
+      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by quotation number or customer" />
 
       {downloadError ? <Text style={styles.downloadError}>{downloadError}</Text> : null}
 
