@@ -41,6 +41,7 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
   const [advancePaid, setAdvancePaid] = useState("");
   const [advanceMethod, setAdvanceMethod] = useState<PaymentMethod>("Cash");
   const [eventStatus, setEventStatus] = useState<EventStatus>(event?.eventStatus ?? "Upcoming");
+  const [fileLocation, setFileLocation] = useState(event?.fileLocation ?? "");
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +58,9 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
         budget: budget.trim() ? Number(budget) : undefined,
         ...(!isEdit && advanceAmount > 0 ? { advancePaid: advanceAmount, advancePaymentMethod: advanceMethod } : {}),
         eventStatus,
+        // Only a finished shoot has files to store, so the box is hidden (and anything typed into it
+        // before the status changed is dropped) for every other status.
+        fileLocation: eventStatus === "Completed" ? fileLocation.trim() || undefined : undefined,
         notes: notes.trim() || undefined,
       };
       return isEdit ? eventsApi.update(event!.eventId, payload) : eventsApi.create(payload);
@@ -175,6 +179,21 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
           </Pressable>
         ))}
       </View>
+
+      {eventStatus === "Completed" && (
+        <>
+          <Text style={styles.label}>File stored location</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={fileLocation}
+            onChangeText={setFileLocation}
+            placeholder="Where this event's photos and videos are kept, e.g. G:\Weddings\Rahul"
+            placeholderTextColor="#6f83a0"
+            multiline
+            numberOfLines={2}
+          />
+        </>
+      )}
 
       <Text style={styles.label}>Notes</Text>
       <TextInput

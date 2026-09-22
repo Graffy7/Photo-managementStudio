@@ -87,7 +87,9 @@ export function EventDetailScreen({
         <Text style={styles.sectionLabel}>Budget & Files</Text>
         <View style={styles.grid}>
           <Field label="Budget" value={formatCurrency(event.budget)} />
-          <Field label="File location" value={event.fileLocation ?? "—"} />
+          {/* Only completed events get a stored location, so the field stays out of the way until
+              one has actually been entered. */}
+          {!!event.fileLocation?.trim() && <Field label="File stored location" value={event.fileLocation} />}
         </View>
       </View>
 
