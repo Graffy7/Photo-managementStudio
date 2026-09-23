@@ -12,6 +12,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.Customer)
             .Include(e => e.EventType)
             .Include(e => e.Payments)
+            .Include(e => e.EventWorkers).ThenInclude(ew => ew.Worker).ThenInclude(w => w.WorkerType)
             .FirstOrDefaultAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
     public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default)
@@ -21,6 +22,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.Customer)
             .Include(e => e.EventType)
             .Include(e => e.Payments)
+            .Include(e => e.EventWorkers).ThenInclude(ew => ew.Worker).ThenInclude(w => w.WorkerType)
             .Where(e => e.StudioId == studioId);
 
         if (!string.IsNullOrWhiteSpace(search))

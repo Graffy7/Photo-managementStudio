@@ -37,7 +37,7 @@ export function FolderBrowserModal({
     if (visible) setCurrentPath(null);
   }, [visible]);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["photo-gallery-browse-folders", currentPath],
     queryFn: () => photoSelectionApi.browseFolders(currentPath ?? undefined),
     enabled: visible,
@@ -69,7 +69,7 @@ export function FolderBrowserModal({
           </View>
 
           <View style={styles.listBox}>
-            {isLoading ? (
+            {isPending ? (
               <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 30 }} />
             ) : isError ? (
               <Text style={styles.empty}>Couldn't open that folder.</Text>

@@ -22,6 +22,9 @@ public class EventDto
     public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // The crew already assigned, so a list of events doesn't have to fetch them one row at a time.
+    public List<AssignedWorkerDto> AssignedWorkers { get; set; } = [];
 }
 
 public class CreateEventRequestDto

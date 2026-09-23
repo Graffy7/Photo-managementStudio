@@ -20,7 +20,7 @@ function timeAgo(value: string): string {
 export function ActivityScreen() {
   const navigation = useNavigation<any>();
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["studio-activity"],
     queryFn: () => studioActivityApi.search({ page: 1, pageSize: 50 }),
     refetchInterval: 15000,
@@ -52,7 +52,7 @@ export function ActivityScreen() {
         <Text style={styles.subtitle}>Everything created, edited, or changed in your studio — newest first.</Text>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.empty}>Couldn't load activity.</Text>

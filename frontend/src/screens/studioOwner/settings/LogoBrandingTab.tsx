@@ -11,7 +11,7 @@ const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 
 export function LogoBrandingTab() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["studio-profile"], queryFn: settingsApi.getProfile });
+  const { data, isPending } = useQuery({ queryKey: ["studio-profile"], queryFn: settingsApi.getProfile });
   const [error, setError] = useState<string | null>(null);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
 
@@ -68,7 +68,7 @@ export function LogoBrandingTab() {
     }
   };
 
-  if (isLoading) {
+  if (isPending) {
     return <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />;
   }
 

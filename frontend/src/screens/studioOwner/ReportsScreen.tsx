@@ -31,7 +31,7 @@ export function ReportsScreen() {
   const [customEnd, setCustomEnd] = useState("");
   const customRangeReady = customStart.length > 0 && customEnd.length > 0;
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["profit-report", preset, customStart, customEnd],
     queryFn: () => reportsApi.getProfitReport(preset, customStart, customEnd),
     enabled: preset !== "Custom" || customRangeReady,
@@ -70,7 +70,7 @@ export function ReportsScreen() {
 
       {preset === "Custom" && !customRangeReady ? (
         <Text style={styles.empty}>Enter both dates above to load this range.</Text>
-      ) : isLoading ? (
+      ) : isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the report.</Text>

@@ -6,6 +6,7 @@ import { eventsApi } from "../../api/eventsApi";
 import { workersApi } from "../../api/workersApi";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { EVENT_STATUSES, EVENT_STATUS_LABELS, type EventStatus, type StudioEvent } from "../../types/event";
+import type { AssignedWorker } from "../../types/dayBoard";
 import { StatusPill } from "../../components/StatusPill";
 import { EventQuoteModal } from "../../components/EventQuoteModal";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
@@ -66,14 +67,19 @@ function WorkerPicker({ eventId, assignedWorkerIds, onDone }: { eventId: number;
   );
 }
 
-function EventTeamLine({ eventId }: { eventId: number }) {
+function EventTeamLine({ eventId, assigned }: { eventId: number; assigned: AssignedWorker[] }) {
   const queryClient = useQueryClient();
   const [showPicker, setShowPicker] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
-  const { data: crew, isLoading } = useQuery({
+  // The crew now arrives with the events list itself, so a page of events no longer fires one
+  // request per row. Assigning or removing someone invalidates this key, and only then does the
+  // row go back to the server.
+  const { data: crew, isPending } = useQuery({
     queryKey: ["event-workers", eventId],
     queryFn: () => eventsApi.getAssignedWorkers(eventId),
+    initialData: assigned,
+    staleTime: 30000,
   });
 
   const unassign = useMutation({
@@ -84,7 +90,7 @@ function EventTeamLine({ eventId }: { eventId: number }) {
 
   return (
     <View style={{ gap: 4 }}>
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#7fc0e6" size="small" style={{ alignSelf: "flex-start" }} />
       ) : !crew || crew.length === 0 ? (
         <View style={styles.teamRow}>
@@ -130,7 +136,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [quoteFor, setQuoteFor] = useState<StudioEvent | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["events", search, eventStatus, eventDate],
     queryFn: () => eventsApi.search({
       search: search || undefined,
@@ -158,7 +164,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
       <View style={styles.rowMain}>
         <Text style={styles.eventDate}>{formatDate(item.eventDate)}{item.startTime ? ` · ${item.startTime}` : ""}</Text>
         <Text style={styles.customerName}>{item.customerName}</Text>
-        <EventTeamLine eventId={item.eventId} />
+        <EventTeamLine eventId={item.eventId} assigned={item.assignedWorkers} />
         <Text style={styles.contact}>{item.customerMobileNumber}{item.venue ? ` · ${item.venue}` : ""}</Text>
 
         <View style={styles.pillRow}>
@@ -271,7 +277,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         ))}
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load events.</Text>

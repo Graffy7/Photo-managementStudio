@@ -7,7 +7,7 @@ import type { Studio } from "../../types/studio";
 export function StudioFeaturesScreen({ studio, onBack }: { studio: Studio; onBack: () => void }) {
   const queryClient = useQueryClient();
 
-  const { data: features, isLoading, isError } = useQuery({
+  const { data: features, isPending, isError } = useQuery({
     queryKey: ["studio-features", studio.studioId],
     queryFn: () => featuresApi.getForStudio(studio.studioId),
   });
@@ -30,7 +30,7 @@ export function StudioFeaturesScreen({ studio, onBack }: { studio: Studio; onBac
       <Text style={styles.title}>Modules</Text>
       <Text style={styles.subtitle}>{studio.studioName} — switch modules on or off for this studio.</Text>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load modules.</Text>

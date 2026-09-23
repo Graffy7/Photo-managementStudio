@@ -58,7 +58,7 @@ export function EventDetailScreen({
 
   // The event's permanent record. Everything below is read-only: old quotations and their PDFs are
   // never rewritten, so a customer coming back in two years still sees what they were quoted.
-  const { data: history, isLoading } = useQuery({
+  const { data: history, isPending } = useQuery({
     queryKey: ["event-history", event.eventId],
     queryFn: () => eventsApi.history(event.eventId),
   });
@@ -170,7 +170,7 @@ export function EventDetailScreen({
         </View>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 24 }} />
       ) : (
         <>

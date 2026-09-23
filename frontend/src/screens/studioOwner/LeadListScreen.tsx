@@ -36,7 +36,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
 
   const { data: leadStatuses } = useQuery({ queryKey: ["lookups", "leadStatuses"], queryFn: lookupApis.leadStatuses.getAll });
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["leads", search, leadStatusId, createdFrom, createdTo],
     queryFn: () =>
       leadsApi.search({
@@ -194,7 +194,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         )}
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load enquiries.</Text>

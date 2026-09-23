@@ -13,7 +13,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["customers", search],
     queryFn: () => customersApi.search({ search: search || undefined, page: 1, pageSize: 50 }),
   });
@@ -72,7 +72,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
 
       <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by name or mobile number" />
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load customers.</Text>

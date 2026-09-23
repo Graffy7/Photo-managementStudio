@@ -159,7 +159,7 @@ export function DayBoardScreen() {
   const navigation = useNavigation<any>();
   const [date, setDate] = useState(todayUtc());
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["day-board", date],
     queryFn: () => dayBoardApi.getDayBoard(date),
   });
@@ -192,7 +192,7 @@ export function DayBoardScreen() {
         </Pressable>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the day board.</Text>

@@ -31,7 +31,7 @@ function Field({
 
 export function BusinessSettingsTab() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["business-settings"], queryFn: settingsApi.getBusinessSettings });
+  const { data, isPending } = useQuery({ queryKey: ["business-settings"], queryFn: settingsApi.getBusinessSettings });
 
   const [quotationValidityDays, setQuotationValidityDays] = useState("15");
   const [currency, setCurrency] = useState("INR");
@@ -74,7 +74,7 @@ export function BusinessSettingsTab() {
     onError: (err) => setError(extractErrorMessage(err)),
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />;
   }
 

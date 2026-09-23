@@ -43,7 +43,7 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
   // Opens the event's gallery (creating it the first time). While photos are importing it polls
   // quickly for the progress bar; otherwise it refreshes now and then so the counts follow the
   // customer live.
-  const { data: gallery, isLoading, isError, error } = useQuery({
+  const { data: gallery, isPending, isError, error } = useQuery({
     queryKey: ["photo-gallery", eventId],
     queryFn: () => photoSelectionApi.openForEvent(eventId),
     refetchInterval: (query) => {
@@ -55,7 +55,7 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["photo-gallery", eventId] });
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <View style={styles.screen}>
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 60 }} />
@@ -420,7 +420,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
   const [preview, setPreview] = useState<OwnerPhoto | null>(null);
   const c = gallery.counts;
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     // total in the key: when an import finishes the list reloads with the new photos.
     queryKey: ["photo-gallery-photos", gallery.galleryId, filter, search, c.total, c.selected],
     queryFn: ({ pageParam }) => photoSelectionApi.photos(gallery.galleryId, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE }),
@@ -472,7 +472,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
         autoCapitalize="none"
       />
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 24 }} />
       ) : photos.length === 0 ? (
         <Text style={styles.hint}>{filter === "All" && !search ? "No photos." : "Nothing matches."}</Text>

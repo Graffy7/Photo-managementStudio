@@ -21,7 +21,7 @@ function ActionDot({ action }: { action: string }) {
 }
 
 export function AuditLogScreen({ onBack }: { onBack: () => void }) {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["audit-logs"],
     queryFn: () => auditLogsApi.search({ page: 1, pageSize: 50 }),
     refetchInterval: 15000,
@@ -54,7 +54,7 @@ export function AuditLogScreen({ onBack }: { onBack: () => void }) {
         <Text style={styles.subtitle}>Every create, edit, activate, deactivate, block and unblock — newest first.</Text>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.empty}>Couldn't load activity.</Text>

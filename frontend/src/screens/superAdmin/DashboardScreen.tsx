@@ -18,7 +18,7 @@ function StatTile({ label, value, tone }: { label: string; value: string | numbe
 }
 
 export function DashboardScreen({ onViewStudios }: { onViewStudios: () => void }) {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: dashboardApi.getSummary,
   });
@@ -36,7 +36,7 @@ export function DashboardScreen({ onViewStudios }: { onViewStudios: () => void }
         </Pressable>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the dashboard.</Text>

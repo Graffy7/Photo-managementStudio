@@ -77,7 +77,7 @@ function CrewSection({ eventId }: { eventId: number }) {
   const [showPicker, setShowPicker] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
-  const { data: crew, isLoading } = useQuery({
+  const { data: crew, isPending } = useQuery({
     queryKey: ["event-workers", eventId],
     queryFn: () => eventsApi.getAssignedWorkers(eventId),
   });
@@ -91,7 +91,7 @@ function CrewSection({ eventId }: { eventId: number }) {
   return (
     <View>
       <Text style={styles.fieldLabel}>Team assigned</Text>
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#7fc0e6" size="small" style={{ marginTop: 6, alignSelf: "flex-start" }} />
       ) : !crew || crew.length === 0 ? (
         !showPicker && <Text style={styles.hint}>No one assigned yet.</Text>
@@ -233,12 +233,12 @@ export function CustomerEventsList({ customerId }: { customerId: number }) {
   const navigation = useNavigation<any>();
   const openEvent = (eventId: number) => navigation.navigate("Events", { eventId });
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["customer-events", customerId],
     queryFn: () => customersApi.getEvents(customerId),
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <ActivityIndicator color="#7fc0e6" style={{ marginVertical: 10 }} />;
   }
 

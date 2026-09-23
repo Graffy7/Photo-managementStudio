@@ -21,7 +21,7 @@ function formatDateTime(value: string | null): string {
 // the controls to change them. The owner's current password is deliberately absent — it is stored only
 // as a one-way hash, so nobody (including this screen) can read it back. Set a new one instead.
 export function StudioDetailScreen({ studio, onBack, onEdit }: { studio: Studio; onBack: () => void; onEdit: (studio: Studio) => void }) {
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isPending, refetch } = useQuery({
     queryKey: ["studio", studio.studioId],
     queryFn: () => studiosApi.getById(studio.studioId),
     initialData: studio,
@@ -50,7 +50,7 @@ export function StudioDetailScreen({ studio, onBack, onEdit }: { studio: Studio;
         </View>
       </View>
 
-      {isLoading && <ActivityIndicator color="#7fc0e6" />}
+      {isPending && <ActivityIndicator color="#7fc0e6" />}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Studio</Text>

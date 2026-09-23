@@ -23,7 +23,7 @@ export function NotificationsScreen() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["notifications", filter],
     queryFn: () => notificationsApi.search({ isRead: filter === "unread" ? false : undefined, page: 1, pageSize: 50 }),
   });
@@ -87,7 +87,7 @@ export function NotificationsScreen() {
         </Pressable>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load notifications.</Text>

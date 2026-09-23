@@ -18,7 +18,7 @@ export function SelectedPhotosModal({ gallery, visible, onClose }: { gallery: Ow
   const [preview, setPreview] = useState<OwnerPhoto | null>(null);
   const c = gallery.counts;
 
-  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     // The counts are in the key: if the customer changes something the list reloads.
     queryKey: ["photo-gallery-selected", gallery.galleryId, c.selected, c.normal, c.big],
     queryFn: ({ pageParam }) => photoSelectionApi.photos(gallery.galleryId, { filter: "Selected", page: pageParam, pageSize: PAGE_SIZE }),
@@ -52,7 +52,7 @@ export function SelectedPhotosModal({ gallery, visible, onClose }: { gallery: Ow
           <Total label="Big Size" value={c.big} color={BIG_COLOR} />
         </View>
 
-        {isLoading ? (
+        {isPending ? (
           <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
         ) : isError ? (
           <View style={styles.center}>

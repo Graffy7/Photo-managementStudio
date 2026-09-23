@@ -35,7 +35,7 @@ export function ExpenseListScreen({
 
   const { data: categories } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["expenses", search, categoryId],
     queryFn: () => expensesApi.search({ search: search || undefined, expenseCategoryId: categoryId ?? undefined, page: 1, pageSize: 50 }),
   });
@@ -122,7 +122,7 @@ export function ExpenseListScreen({
         </View>
       )}
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load expenses.</Text>

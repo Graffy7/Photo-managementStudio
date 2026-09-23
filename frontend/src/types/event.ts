@@ -1,3 +1,5 @@
+import type { AssignedWorker } from "./dayBoard";
+
 export const EVENT_STATUSES = ["Upcoming", "Confirmed", "Completed", "Cancelled"] as const;
 
 export type EventStatus = (typeof EVENT_STATUSES)[number];
@@ -30,6 +32,8 @@ export interface StudioEvent {
   // Stamped the first time the event is marked Completed; null for events completed before this
   // was recorded.
   completedAt: string | null;
+  // The crew assigned to this event, sent with the list so it needs no request per row.
+  assignedWorkers: AssignedWorker[];
   createdAt: string;
   updatedAt: string;
 }

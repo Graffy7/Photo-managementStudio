@@ -17,7 +17,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
 
   const { data: workerTypes } = useQuery({ queryKey: ["lookups", "workerTypes"], queryFn: lookupApis.workerTypes.getAll });
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["workers", search, workerTypeId],
     queryFn: () => workersApi.search({ search: search || undefined, workerTypeId: workerTypeId ?? undefined, page: 1, pageSize: 50 }),
   });
@@ -88,7 +88,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
         </View>
       )}
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load workers.</Text>

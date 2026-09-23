@@ -35,7 +35,7 @@ function Field({
 
 export function StudioProfileTab() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["studio-profile"], queryFn: settingsApi.getProfile });
+  const { data, isPending } = useQuery({ queryKey: ["studio-profile"], queryFn: settingsApi.getProfile });
 
   const [studioName, setStudioName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -89,7 +89,7 @@ export function StudioProfileTab() {
 
   const canSave = studioName.trim().length > 0;
 
-  if (isLoading) {
+  if (isPending) {
     return <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />;
   }
 

@@ -16,7 +16,7 @@ function ToggleRow({ label, value, onValueChange }: { label: string; value: bool
 
 export function QuotationSettingsTab() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["quotation-settings"], queryFn: settingsApi.getQuotationSettings });
+  const { data, isPending } = useQuery({ queryKey: ["quotation-settings"], queryFn: settingsApi.getQuotationSettings });
 
   const [prefix, setPrefix] = useState("Q-");
   const [startingNumber, setStartingNumber] = useState("1");
@@ -62,7 +62,7 @@ export function QuotationSettingsTab() {
     onError: (err) => setError(extractErrorMessage(err)),
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />;
   }
 

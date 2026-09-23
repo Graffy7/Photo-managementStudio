@@ -282,6 +282,18 @@ public class EventService(
             FileLocation = @event.FileLocation,
             Notes = @event.Notes,
             CompletedAt = @event.CompletedAt,
+            AssignedWorkers = @event.EventWorkers
+                .OrderBy(ew => ew.AssignedAt)
+                .Select(ew => new AssignedWorkerDto
+                {
+                    EventWorkerId = ew.EventWorkerId,
+                    WorkerId = ew.WorkerId,
+                    WorkerName = ew.Worker.FullName,
+                    WorkerMobileNumber = ew.Worker.MobileNumber,
+                    WorkerTypeName = ew.Worker.WorkerType?.Name,
+                    Notes = ew.Notes
+                })
+                .ToList(),
             CreatedAt = @event.CreatedAt,
             UpdatedAt = @event.UpdatedAt
         };

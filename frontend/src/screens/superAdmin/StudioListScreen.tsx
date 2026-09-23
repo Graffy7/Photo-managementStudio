@@ -40,7 +40,7 @@ export function StudioListScreen({
   const queryClient = useQueryClient();
   const logout = useAuthStore((s) => s.logout);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["studios", search],
     queryFn: () => studiosApi.search({ search: search || undefined, page: 1, pageSize: 50 }),
   });
@@ -193,7 +193,7 @@ export function StudioListScreen({
         placeholderTextColor="#6f83a0"
       />
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load studios.</Text>

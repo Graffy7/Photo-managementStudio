@@ -31,7 +31,7 @@ function ToggleRow({
 
 export function NotificationSettingsTab() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["notification-settings"], queryFn: settingsApi.getNotificationSettings });
+  const { data, isPending } = useQuery({ queryKey: ["notification-settings"], queryFn: settingsApi.getNotificationSettings });
 
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function NotificationSettingsTab() {
     mutation.mutate(next);
   };
 
-  if (isLoading || !settings) {
+  if (isPending || !settings) {
     return <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />;
   }
 

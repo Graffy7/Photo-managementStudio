@@ -31,7 +31,7 @@ function useDebounced<T>(value: T, delayMs: number): T {
 // The page a customer opens from the studio's link. No login: the private token in the address is
 // the access. Loads the gallery, then hands over to <Gallery> once the counters are known.
 export function PublicPhotoSelectionScreen({ token }: { token: string }) {
-  const { data: gallery, isLoading, error, refetch } = useQuery({
+  const { data: gallery, isPending, error, refetch } = useQuery({
     queryKey: ["public-gallery", token],
     queryFn: () => publicPhotoSelectionApi.get(token),
     retry: (count, err) => toPublicError(err).kind === "offline" && count < 2,
@@ -39,7 +39,7 @@ export function PublicPhotoSelectionScreen({ token }: { token: string }) {
     staleTime: Infinity,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <View style={styles.centerScreen}>
         <ActivityIndicator color="#ff9a4d" size="large" />
@@ -110,7 +110,7 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   });
   const { counts, effective, setSelection, error, dismissError } = saver;
 
-  const { data, isLoading, isFetchingNextPage, isError, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
+  const { data, isPending, isFetchingNextPage, isError, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
     queryKey: ["public-photos", token, filter, search],
     queryFn: ({ pageParam }) => publicPhotoSelectionApi.photos(token, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
@@ -261,7 +261,7 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
           </View>
         )}
 
-        {isLoading ? (
+        {isPending ? (
           <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
         ) : isError ? (
           <View style={styles.center}>

@@ -21,6 +21,12 @@ public class CreateQuotationRequestValidator : AbstractValidator<CreateQuotation
         RuleFor(x => x.CustomerId).GreaterThan(0);
         RuleFor(x => x.QuotationDate).NotEqual(default(DateTime));
         RuleFor(x => x.Discount).GreaterThanOrEqualTo(0);
+        // A discount larger than the line items would hand the customer a negative total, which is
+        // not a quotation anyone can send - stop it here rather than storing a nonsense figure.
+        RuleFor(x => x.Discount)
+            .LessThanOrEqualTo(x => x.Items.Sum(i => i.Quantity * i.UnitPrice))
+            .When(x => x.Items is { Count: > 0 })
+            .WithMessage("Discount can't be more than the total of the line items.");
         RuleFor(x => x.TaxAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Status).NotEmpty().Must(s => QuotationStatuses.All.Contains(s))
             .WithMessage($"Status must be one of: {string.Join(", ", QuotationStatuses.All)}");
@@ -37,6 +43,12 @@ public class UpdateQuotationRequestValidator : AbstractValidator<UpdateQuotation
         RuleFor(x => x.CustomerId).GreaterThan(0);
         RuleFor(x => x.QuotationDate).NotEqual(default(DateTime));
         RuleFor(x => x.Discount).GreaterThanOrEqualTo(0);
+        // A discount larger than the line items would hand the customer a negative total, which is
+        // not a quotation anyone can send - stop it here rather than storing a nonsense figure.
+        RuleFor(x => x.Discount)
+            .LessThanOrEqualTo(x => x.Items.Sum(i => i.Quantity * i.UnitPrice))
+            .When(x => x.Items is { Count: > 0 })
+            .WithMessage("Discount can't be more than the total of the line items.");
         RuleFor(x => x.TaxAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Status).NotEmpty().Must(s => QuotationStatuses.All.Contains(s))
             .WithMessage($"Status must be one of: {string.Join(", ", QuotationStatuses.All)}");

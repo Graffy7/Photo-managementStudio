@@ -17,7 +17,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["services", search],
     queryFn: () => servicesApi.search({ search: search || undefined, page: 1, pageSize: 50 }),
   });
@@ -72,7 +72,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
 
       <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by service name" />
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load services.</Text>

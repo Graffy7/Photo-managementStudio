@@ -21,7 +21,7 @@ export function LookupsScreen() {
   const queryClient = useQueryClient();
   const api = lookupApis[tab];
 
-  const { data, isLoading } = useQuery({ queryKey: ["lookups", tab], queryFn: api.getAll });
+  const { data, isPending } = useQuery({ queryKey: ["lookups", tab], queryFn: api.getAll });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["lookups", tab] });
 
@@ -75,7 +75,7 @@ export function LookupsScreen() {
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 30 }} />
       ) : (
         <View style={styles.list}>

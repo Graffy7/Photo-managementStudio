@@ -9,7 +9,7 @@ import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCreate: () => void; onEdit: (category: ExpenseCategory) => void; onBack: () => void }) {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
   useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
@@ -33,7 +33,7 @@ export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCrea
         </Pressable>
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 30 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load expense categories.</Text>

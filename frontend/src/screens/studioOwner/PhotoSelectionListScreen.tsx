@@ -44,7 +44,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<GalleryState | "All">("All");
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["photo-gallery-events", search],
     queryFn: () => photoSelectionApi.completedEvents({ search: search || undefined, page: 1, pageSize: 100 }),
   });
@@ -96,7 +96,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
         ))}
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load events.</Text>

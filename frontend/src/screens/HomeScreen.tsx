@@ -161,7 +161,7 @@ export function HomeScreen() {
     queryFn: notificationsApi.getUnreadCount,
   });
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["studio-dashboard-summary", preset, customStart, customEnd],
     queryFn: () => studioDashboardApi.getSummary(preset, customStart, customEnd),
     enabled: preset !== "Custom" || customRangeReady,
@@ -262,7 +262,7 @@ export function HomeScreen() {
 
       {preset === "Custom" && !customRangeReady ? (
         <Text style={styles.empty}>Enter both dates above to load this range.</Text>
-      ) : isLoading ? (
+      ) : isPending ? (
         <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the dashboard.</Text>

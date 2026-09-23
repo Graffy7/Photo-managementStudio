@@ -43,7 +43,7 @@ export function EventQuoteModal({
 }) {
   const [selected, setSelected] = useState(0);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["event-quote", customerId],
     queryFn: () => quotationsApi.search({ customerId, page: 1, pageSize: 20 }),
     enabled: visible,
@@ -77,7 +77,7 @@ export function EventQuoteModal({
             </Pressable>
           </View>
 
-          {isLoading ? (
+          {isPending ? (
             <ActivityIndicator color="#7fc0e6" style={{ marginVertical: 30 }} />
           ) : isError ? (
             <Text style={styles.empty}>Couldn't load the quotation.</Text>

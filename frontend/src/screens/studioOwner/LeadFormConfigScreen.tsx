@@ -63,7 +63,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
 export function LeadFormConfigScreen() {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
-  const { data: fields, isLoading } = useQuery({ queryKey: ["form-fields", FORM_CODE], queryFn: () => formConfigApi.getFields(FORM_CODE) });
+  const { data: fields, isPending } = useQuery({ queryKey: ["form-fields", FORM_CODE], queryFn: () => formConfigApi.getFields(FORM_CODE) });
 
   const [showAddField, setShowAddField] = useState(false);
   const [fieldKey, setFieldKey] = useState("");
@@ -118,7 +118,7 @@ export function LeadFormConfigScreen() {
       <Text style={styles.title}>Enquiry form fields</Text>
       <Text style={styles.subtitle}>Control what shows on the enquiry form — hide fields, make them required, or add your own.</Text>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 30 }} />
       ) : (
         (fields ?? [])

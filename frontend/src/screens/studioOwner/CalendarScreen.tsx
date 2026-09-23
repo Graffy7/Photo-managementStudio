@@ -56,7 +56,7 @@ export function CalendarScreen() {
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["calendar-month", viewedYear, viewedMonth],
     queryFn: () => dayBoardApi.getMonth(viewedYear, viewedMonth),
   });
@@ -199,7 +199,7 @@ export function CalendarScreen() {
                 </Pressable>
               </View>
 
-              {isLoading ? (
+              {isPending ? (
                 <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40, marginBottom: 40 }} />
               ) : isError ? (
                 <Text style={styles.error}>Couldn't load the calendar.</Text>

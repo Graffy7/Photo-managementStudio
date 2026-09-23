@@ -27,7 +27,7 @@ export function SelectionReviewModal({ visible, token, counts, locked, effective
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
+  const { data, isPending, isError, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
     queryKey: ["public-photos-review", token],
     queryFn: ({ pageParam }) => publicPhotoSelectionApi.photos(token, { filter: "Selected", page: pageParam, pageSize: 60 }),
     initialPageParam: 1,
@@ -103,7 +103,7 @@ export function SelectionReviewModal({ visible, token, counts, locked, effective
               </Pressable>
             </View>
 
-            {isLoading ? (
+            {isPending ? (
               <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
             ) : isError ? (
               <View style={styles.center}>

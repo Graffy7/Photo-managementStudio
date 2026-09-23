@@ -37,7 +37,7 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<PaymentStatus | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["payments", search, status],
     queryFn: () => paymentsApi.search({ search: search || undefined, paymentStatus: status ?? undefined, page: 1, pageSize: 50 }),
   });
@@ -111,7 +111,7 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
         ))}
       </View>
 
-      {isLoading ? (
+      {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load payments.</Text>
