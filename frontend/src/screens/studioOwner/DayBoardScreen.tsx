@@ -113,9 +113,9 @@ function EventCard({ event }: { event: DayBoardEvent }) {
             <Text style={styles.financeValue}>{formatCurrency(event.amountPaid)}</Text>
           </View>
           <View style={styles.financeItem}>
-            <Text style={styles.financeLabel}>Balance</Text>
-            <Text style={[styles.financeValue, { color: event.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
-              {formatCurrency(event.balance)}
+            <Text style={styles.financeLabel}>{event.balance < 0 ? "Overpaid" : "Balance"}</Text>
+            <Text style={[styles.financeValue, { color: event.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>
+              {formatCurrency(Math.abs(event.balance))}
             </Text>
           </View>
         </View>

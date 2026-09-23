@@ -34,8 +34,21 @@ export interface StudioEvent {
   completedAt: string | null;
   // The crew assigned to this event, sent with the list so it needs no request per row.
   assignedWorkers: AssignedWorker[];
+  // The delivery checklist (Album/Video/Photos plus any the studio added), sent for the same reason.
+  deliveryItems: DeliveryItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+// One line of a completed event's delivery checklist. itemId is 0 for a standard item that has
+// never been ticked - the server writes its row on the first tick.
+export interface DeliveryItem {
+  itemId: number;
+  itemKey: string | null;
+  name: string;
+  isDelivered: boolean;
+  deliveredAt: string | null;
+  isCustom: boolean;
 }
 
 export interface CreateEventRequest {

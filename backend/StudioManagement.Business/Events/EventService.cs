@@ -294,6 +294,7 @@ public class EventService(
                     Notes = ew.Notes
                 })
                 .ToList(),
+            DeliveryItems = EventDeliveryService.Merge(@event.DeliveryItems),
             CreatedAt = @event.CreatedAt,
             UpdatedAt = @event.UpdatedAt
         };

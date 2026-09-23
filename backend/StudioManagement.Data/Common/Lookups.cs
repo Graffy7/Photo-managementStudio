@@ -1,4 +1,4 @@
-namespace StudioManagement.Data.Common;
+﻿namespace StudioManagement.Data.Common;
 
 public static class UserTypes
 {
@@ -140,6 +140,18 @@ public static class WhatsAppReminderTypes
     public const string TomorrowPayment = "TomorrowPayment";
 
     public static readonly string[] All = [TomorrowEvent, TomorrowPayment];
+}
+
+// The delivery checklist every completed event starts with. Studios can add their own items on
+// top (a pendrive, a frame, a photo book); those are stored with no key so they can be removed
+// again without disturbing these three.
+public static class DeliveryItems
+{
+    public const string Album = "Album";
+    public const string Video = "Video";
+    public const string Photos = "Photos";
+
+    public static readonly string[] Defaults = [Album, Video, Photos];
 }
 
 public static class WhatsAppRecipientTypes

@@ -6,6 +6,7 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment,
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { Ionicons } from "@expo/vector-icons";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -76,6 +77,13 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
 
   const canSave = customer !== null && Number(amount) > 0 && paymentDate.trim().length > 0;
 
+  // Paying more than the event still owes is allowed (extra services, a tip, a deliberate
+  // overpayment), but it is worth saying out loud before it turns the balance negative. Only for
+  // new money on an event whose figures we have — a refund or an edit has a different baseline.
+  const overpayBy = !isEdit && mode === "add" && eventSummary
+    ? Math.round((signedAmount - eventSummary.balance) * 100) / 100
+    : 0;
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{isEdit ? "Edit payment" : "New payment"}</Text>
@@ -129,6 +137,16 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
       </View>
       {mode === "minus" && (
         <Text style={styles.minusHint}>This subtracts from what's been paid so far (e.g. a refund or correction).</Text>
+      )}
+      {overpayBy > 0 && (
+        <View style={styles.warning}>
+          <Ionicons name="alert-circle-outline" size={15} color="#f2bd5c" />
+          <Text style={styles.warningText}>
+            This is {formatCurrency(overpayBy)} more than the balance on this event
+            ({formatCurrency(eventSummary!.balance)}). You can still save it — the event's balance
+            will show as overpaid.
+          </Text>
+        </View>
       )}
 
       <Text style={styles.label}>Payment date</Text>
@@ -208,6 +226,11 @@ const styles = StyleSheet.create({
   signButtonText: { color: "#a7b7cb", fontSize: 13, fontWeight: "700" },
   signButtonTextActive: { color: "#e8edf3" },
   minusHint: { color: "#ff7a72", fontSize: 11, marginTop: 6 },
+  warning: {
+    flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 10, padding: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: "rgba(242, 189, 92, 0.45)", backgroundColor: "rgba(242, 189, 92, 0.08)",
+  },
+  warningText: { color: "#a7b7cb", fontSize: 12, lineHeight: 18, flex: 1 },
   textArea: { minHeight: 72, textAlignVertical: "top" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },

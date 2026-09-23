@@ -205,17 +205,16 @@ function EventRow({ event, customerId, onViewEvent }: { event: CustomerEventSumm
       <EventNotesSection customerId={customerId} eventId={event.eventId} notes={event.notes} />
 
       <View style={styles.eventFinanceGrid}>
-        {/* Once a quotation is accepted, that agreed total is what matters, not the rough budget. */}
-        <Field
-          label={event.approvedAmount !== null ? "Approved amount" : "Budget"}
-          value={event.approvedAmount !== null
-            ? formatCurrency(event.approvedAmount)
-            : event.budget !== null ? formatCurrency(event.budget) : "—"}
-        />
+        {/* Budget stays on show because the balance beside it is budget minus paid; the accepted
+            quotation's total sits next to it rather than replacing it, so the row adds up. */}
+        <Field label="Budget" value={event.budget !== null ? formatCurrency(event.budget) : "—"} />
+        {event.approvedAmount !== null && (
+          <Field label="Approved amount" value={formatCurrency(event.approvedAmount)} />
+        )}
         <Field label="Advance paid" value={formatCurrency(event.amountPaid)} />
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Balance</Text>
-          <Text style={[styles.fieldValue, { color: event.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>{formatCurrency(event.balance)}</Text>
+          <Text style={styles.fieldLabel}>{event.balance < 0 ? "Overpaid" : "Balance"}</Text>
+          <Text style={[styles.fieldValue, { color: event.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>{formatCurrency(Math.abs(event.balance))}</Text>
         </View>
         {event.quotationCount > 0 && (
           <Field label="Quotations" value={`${event.quotationCount} version${event.quotationCount === 1 ? "" : "s"}`} />

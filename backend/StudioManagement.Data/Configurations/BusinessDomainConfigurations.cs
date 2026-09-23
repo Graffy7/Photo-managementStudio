@@ -119,6 +119,28 @@ public class EventWorkerConfiguration : IEntityTypeConfiguration<EventWorker>
     }
 }
 
+public class EventDeliveryItemConfiguration : IEntityTypeConfiguration<EventDeliveryItem>
+{
+    public void Configure(EntityTypeBuilder<EventDeliveryItem> b)
+    {
+        b.HasKey(x => x.EventDeliveryItemId);
+        b.Property(x => x.ItemKey).HasMaxLength(30);
+        b.Property(x => x.Name).IsRequired().HasMaxLength(100);
+        b.Property(x => x.DeliveredAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
+
+        // One row per standard item per event; custom items (ItemKey null) are not constrained.
+        b.HasIndex(x => new { x.EventId, x.ItemKey }).IsUnique().HasFilter("[ItemKey] IS NOT NULL");
+        b.HasIndex(x => new { x.StudioId, x.EventId });
+
+        b.HasOne(x => x.Event).WithMany(x => x.DeliveryItems)
+            .HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Studio).WithMany()
+            .HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class ServiceConfiguration : IEntityTypeConfiguration<Service>
 {
     public void Configure(EntityTypeBuilder<Service> b)

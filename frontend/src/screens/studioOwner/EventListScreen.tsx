@@ -11,6 +11,7 @@ import { StatusPill } from "../../components/StatusPill";
 import { EventQuoteModal } from "../../components/EventQuoteModal";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { SearchInput } from "../../components/SearchInput";
+import { DeliveryChecklist } from "../../components/DeliveryChecklist";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -164,7 +165,12 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
       <View style={styles.rowMain}>
         <Text style={styles.eventDate}>{formatDate(item.eventDate)}{item.startTime ? ` · ${item.startTime}` : ""}</Text>
         <Text style={styles.customerName}>{item.customerName}</Text>
-        <EventTeamLine eventId={item.eventId} assigned={item.assignedWorkers} />
+        {/* Crew matters while a shoot is still being organised. Once it's done the card is about
+            what the customer is owed and what has been handed over, so the team is left to the
+            event's own page, where it stays on the record. */}
+        {item.eventStatus !== "Completed" && (
+          <EventTeamLine eventId={item.eventId} assigned={item.assignedWorkers} />
+        )}
         <Text style={styles.contact}>{item.customerMobileNumber}{item.venue ? ` · ${item.venue}` : ""}</Text>
 
         <View style={styles.pillRow}>
@@ -183,11 +189,19 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
               <Text style={styles.financeValue}>{formatCurrency(item.amountPaid)}</Text>
             </View>
             <View style={styles.financeItem}>
-              <Text style={styles.financeLabel}>Balance</Text>
-              <Text style={[styles.financeValue, { color: item.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
-                {formatCurrency(item.balance)}
+              {/* More collected than the event is worth reads as "Overpaid", not a bare minus. */}
+              <Text style={styles.financeLabel}>{item.balance < 0 ? "Overpaid" : "Balance"}</Text>
+              <Text style={[styles.financeValue, { color: item.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>
+                {formatCurrency(Math.abs(item.balance))}
               </Text>
             </View>
+          </View>
+        )}
+
+        {/* What has actually reached the customer — only worth showing once the shoot is done. */}
+        {item.eventStatus === "Completed" && (
+          <View style={styles.deliveryRow}>
+            <DeliveryChecklist eventId={item.eventId} items={item.deliveryItems} />
           </View>
         )}
       </View>
@@ -363,6 +377,7 @@ const styles = StyleSheet.create({
   cancelLink: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
   financeRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 4 },
+  deliveryRow: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#1b2c42" },
   financeItem: { gap: 1 },
   financeLabel: { color: "#6f83a0", fontSize: 10 },
   financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },

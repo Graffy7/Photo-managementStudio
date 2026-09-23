@@ -1,6 +1,6 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
-import type { CreateEventRequest, EventHistory, StudioEvent, UpdateEventRequest } from "../types/event";
+import type { CreateEventRequest, DeliveryItem, EventHistory, StudioEvent, UpdateEventRequest } from "../types/event";
 import type { AssignedWorker } from "../types/dayBoard";
 
 export const eventsApi = {
@@ -10,6 +10,18 @@ export const eventsApi = {
   getById: (id: number) => apiClient.get<StudioEvent>(`/api/events/${id}`).then((res) => res.data),
 
   history: (id: number) => apiClient.get<EventHistory>(`/api/events/${id}/history`).then((res) => res.data),
+
+  delivery: (eventId: number) =>
+    apiClient.get<DeliveryItem[]>(`/api/events/${eventId}/delivery`).then((res) => res.data),
+
+  addDeliveryItem: (eventId: number, name: string) =>
+    apiClient.post<DeliveryItem>(`/api/events/${eventId}/delivery`, { name }).then((res) => res.data),
+
+  setDelivery: (eventId: number, body: { itemId: number; itemKey?: string; isDelivered: boolean }) =>
+    apiClient.put<DeliveryItem>(`/api/events/${eventId}/delivery`, body).then((res) => res.data),
+
+  deleteDeliveryItem: (eventId: number, itemId: number) =>
+    apiClient.delete(`/api/events/${eventId}/delivery/${itemId}`).then(() => undefined),
 
   create: (request: CreateEventRequest) => apiClient.post<StudioEvent>("/api/events", request).then((res) => res.data),
 

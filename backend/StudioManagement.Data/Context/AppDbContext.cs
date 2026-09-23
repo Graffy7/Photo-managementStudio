@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudioManagement.Data.Entities;
 
@@ -32,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Event> Events => Set<Event>();
     public DbSet<Worker> Workers => Set<Worker>();
     public DbSet<EventWorker> EventWorkers => Set<EventWorker>();
+    public DbSet<EventDeliveryItem> EventDeliveryItems => Set<EventDeliveryItem>();
     public DbSet<Service> Services => Set<Service>();
 
     public DbSet<Quotation> Quotations => Set<Quotation>();

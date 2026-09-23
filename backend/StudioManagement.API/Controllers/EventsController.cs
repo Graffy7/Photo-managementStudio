@@ -13,8 +13,11 @@ namespace StudioManagement.API.Controllers;
 public class EventsController(
     IEventService eventService,
     IEventWorkerService eventWorkerService,
+    IEventDeliveryService eventDeliveryService,
     IValidator<CreateEventRequestDto> createValidator,
     IValidator<UpdateEventRequestDto> updateValidator,
+    IValidator<AddDeliveryItemRequestDto> addDeliveryValidator,
+    IValidator<SetDeliveryStatusRequestDto> setDeliveryValidator,
     ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
@@ -103,6 +106,67 @@ public class EventsController(
     {
         var history = await eventService.GetHistoryAsync(StudioId, id, ct);
         return history is null ? NotFound() : Ok(history);
+    }
+
+    // ---- Delivery checklist (completed events) ------------------------------------------------
+
+    [HttpGet("{id:int}/delivery")]
+    public async Task<IActionResult> GetDelivery(int id, CancellationToken ct)
+    {
+        var items = await eventDeliveryService.GetAsync(StudioId, id, ct);
+        return items is null ? NotFound() : Ok(items);
+    }
+
+    [HttpPost("{id:int}/delivery")]
+    public async Task<IActionResult> AddDeliveryItem(int id, AddDeliveryItemRequestDto request, CancellationToken ct)
+    {
+        var validation = await addDeliveryValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await eventDeliveryService.AddCustomAsync(StudioId, id, request, ct);
+        return DeliveryResponse(result);
+    }
+
+    [HttpPut("{id:int}/delivery")]
+    public async Task<IActionResult> SetDeliveryStatus(int id, SetDeliveryStatusRequestDto request, CancellationToken ct)
+    {
+        var validation = await setDeliveryValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await eventDeliveryService.SetStatusAsync(StudioId, id, request, ct);
+        return DeliveryResponse(result);
+    }
+
+    [HttpDelete("{id:int}/delivery/{itemId:int}")]
+    public async Task<IActionResult> DeleteDeliveryItem(int id, int itemId, CancellationToken ct)
+    {
+        var result = await eventDeliveryService.DeleteCustomAsync(StudioId, id, itemId, ct);
+        return result.Succeeded ? NoContent() : DeliveryResponse(result);
+    }
+
+    private IActionResult DeliveryResponse(DeliveryResult result)
+    {
+        if (result.Succeeded)
+        {
+            return Ok(result.Item);
+        }
+
+        return result.FailureReason switch
+        {
+            DeliveryFailureReason.EventNotFound => NotFound(),
+            DeliveryFailureReason.ItemNotFound => NotFound(new { message = "That delivery item no longer exists." }),
+            DeliveryFailureReason.DuplicateName => Conflict(new { message = "This event already has a delivery item with that name." }),
+            DeliveryFailureReason.StandardItemCannotBeDeleted => BadRequest(new { message = "Album, Video and Photos are standard items and can't be removed." }),
+            _ => BadRequest(new { message = "Invalid request." })
+        };
     }
 
     [HttpGet("{id:int}/workers")]

@@ -342,9 +342,9 @@ export function CalendarScreen() {
                                 <Text style={styles.financeValue}>{formatCurrency(e.amountPaid)}</Text>
                               </View>
                               <View style={styles.financeItem}>
-                                <Text style={styles.financeLabel}>Balance</Text>
-                                <Text style={[styles.financeValue, { color: e.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
-                                  {formatCurrency(e.balance)}
+                                <Text style={styles.financeLabel}>{e.balance < 0 ? "Overpaid" : "Balance"}</Text>
+                                <Text style={[styles.financeValue, { color: e.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>
+                                  {formatCurrency(Math.abs(e.balance))}
                                 </Text>
                               </View>
                             </View>

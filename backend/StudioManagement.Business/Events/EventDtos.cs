@@ -25,6 +25,9 @@ public class EventDto
 
     // The crew already assigned, so a list of events doesn't have to fetch them one row at a time.
     public List<AssignedWorkerDto> AssignedWorkers { get; set; } = [];
+
+    // The delivery checklist, sent with the event for the same reason.
+    public List<EventDeliveryItemDto> DeliveryItems { get; set; } = [];
 }
 
 public class CreateEventRequestDto

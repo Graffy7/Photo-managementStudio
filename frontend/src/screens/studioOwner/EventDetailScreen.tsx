@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { EventStatus, EventHistoryQuotation, StudioEvent } from "../../types/event";
 import { EVENT_STATUS_LABELS } from "../../types/event";
 import { StatusPill } from "../../components/StatusPill";
+import { DeliveryChecklist } from "../../components/DeliveryChecklist";
 import { eventsApi } from "../../api/eventsApi";
 import { quotationsApi } from "../../api/quotationsApi";
 import { downloadAndSharePdf } from "../../utils/downloadPdf";
@@ -36,11 +37,11 @@ function quotationTone(status: string): "good" | "bad" | "warn" | "neutral" {
   return "neutral";
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, tone }: { label: string; value: string; tone?: "warn" }) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value}</Text>
+      <Text style={[styles.fieldValue, tone === "warn" && styles.fieldValueWarn]}>{value}</Text>
     </View>
   );
 }
@@ -166,9 +167,22 @@ export function EventDetailScreen({
             value={history?.approvedQuotation ? formatCurrency(history.approvedQuotation.grandTotal) : "Not quoted"}
           />
           <Field label="Paid" value={formatCurrency(current.amountPaid)} />
-          <Field label="Balance" value={formatCurrency(current.balance)} />
+          {/* A negative balance means more was collected than the event is worth — say so rather
+              than showing a bare minus figure. */}
+          <Field
+            label={current.balance < 0 ? "Overpaid by" : "Balance"}
+            value={formatCurrency(Math.abs(current.balance))}
+            tone={current.balance < 0 ? "warn" : undefined}
+          />
         </View>
       </View>
+
+      {current.eventStatus === "Completed" && (
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Delivery status</Text>
+          <DeliveryChecklist eventId={current.eventId} items={current.deliveryItems} showLabel={false} />
+        </View>
+      )}
 
       {isPending ? (
         <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 24 }} />
@@ -326,6 +340,7 @@ const styles = StyleSheet.create({
   field: { minWidth: 140, gap: 3 },
   fieldLabel: { color: "#6f83a0", fontSize: 11 },
   fieldValue: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
+  fieldValueWarn: { color: "#f2bd5c" },
   notes: { color: "#a7b7cb", fontSize: 14, lineHeight: 20 },
 
   path: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },

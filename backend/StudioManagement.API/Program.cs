@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -105,6 +105,7 @@ builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IProfitReportRepository, ProfitReportRepository>();
 builder.Services.AddScoped<IEventWorkerRepository, EventWorkerRepository>();
+builder.Services.AddScoped<IEventDeliveryRepository, EventDeliveryRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IStudioSettingRepository, StudioSettingRepository>();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
@@ -136,6 +137,7 @@ builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IProfitReportService, ProfitReportService>();
 builder.Services.AddScoped<IEventWorkerService, EventWorkerService>();
+builder.Services.AddScoped<IEventDeliveryService, EventDeliveryService>();
 builder.Services.AddScoped<IDayBoardService, DayBoardService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IEventReminderService, EventReminderService>();
@@ -191,6 +193,8 @@ builder.Services.AddScoped<IValidator<UpdateLeadRequestDto>, UpdateLeadRequestVa
 builder.Services.AddScoped<IValidator<CreateCustomerRequestDto>, CreateCustomerRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateCustomerRequestDto>, UpdateCustomerRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateEventRequestDto>, CreateEventRequestValidator>();
+builder.Services.AddScoped<IValidator<AddDeliveryItemRequestDto>, AddDeliveryItemRequestValidator>();
+builder.Services.AddScoped<IValidator<SetDeliveryStatusRequestDto>, SetDeliveryStatusRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateEventRequestDto>, UpdateEventRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateWorkerRequestDto>, CreateWorkerRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateWorkerRequestDto>, UpdateWorkerRequestValidator>();

@@ -30,4 +30,5 @@ public class Event : ITenantEntity
     public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+    public ICollection<EventDeliveryItem> DeliveryItems { get; set; } = new List<EventDeliveryItem>();
 }
