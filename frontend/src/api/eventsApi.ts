@@ -4,7 +4,8 @@ import type { CreateEventRequest, DeliveryItem, EventHistory, StudioEvent, Updat
 import type { AssignedWorker } from "../types/dayBoard";
 
 export const eventsApi = {
-  search: (params: { search?: string; eventStatus?: string; customerId?: number; eventDate?: string; page?: number; pageSize?: number }) =>
+  // upcomingFrom (yyyy-mm-dd): only Upcoming/Confirmed events on or after that day, soonest first.
+  search: (params: { search?: string; eventStatus?: string; customerId?: number; eventDate?: string; upcomingFrom?: string; page?: number; pageSize?: number }) =>
     apiClient.get<PagedResult<StudioEvent>>("/api/events", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<StudioEvent>(`/api/events/${id}`).then((res) => res.data),

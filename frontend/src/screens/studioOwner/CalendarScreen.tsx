@@ -150,7 +150,6 @@ export function CalendarScreen() {
       <PaymentFormScreen
         initialCustomer={{ customerId: e.customerId, fullName: e.customerName, mobileNumber: e.customerMobileNumber }}
         initialEventId={e.eventId}
-        initialAmount={e.balance > 0 ? e.balance : undefined}
         eventSummary={{ total: e.budget, advancePaid: e.amountPaid, balance: e.balance }}
         onDone={backToCalendar}
         onCancel={() => setView({ name: "calendar" })}

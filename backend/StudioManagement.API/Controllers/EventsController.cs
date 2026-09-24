@@ -30,8 +30,9 @@ public class EventsController(
         [FromQuery] DateTime? eventDate,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] DateTime? upcomingFrom = null,
         CancellationToken ct = default) =>
-        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct));
+        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

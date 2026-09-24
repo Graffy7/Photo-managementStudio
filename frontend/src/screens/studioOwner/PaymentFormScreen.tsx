@@ -26,8 +26,8 @@ interface Props {
   initialCustomer?: PickedCustomer;
   initialEventId?: number;
   initialAmount?: number;
-  // Shows the event's Total/Advance Paid/Balance so far right in this form — so the owner can see
-  // what they're recording against without leaving to check the event first.
+  // Shows the event's Total / Paid so far / this payment / Balance right in this form, the balance
+  // updating as the amount is typed - so the owner sees what will still be due after saving.
   eventSummary?: EventPaymentSummary;
   onDone: () => void;
   onCancel: () => void;
@@ -53,6 +53,8 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
   const [error, setError] = useState<string | null>(null);
 
   const signedAmount = Number(amount || 0) * (mode === "minus" ? -1 : 1);
+  // What will still be due once this payment is saved (negative = overpaid).
+  const balanceAfter = eventSummary ? Math.round((eventSummary.balance - signedAmount) * 100) / 100 : 0;
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -96,16 +98,28 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
               <Text style={styles.summaryValue}>{eventSummary.total !== null ? formatCurrency(eventSummary.total) : "—"}</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Advance paid</Text>
+              <Text style={styles.summaryLabel}>Paid so far</Text>
               <Text style={styles.summaryValue}>{formatCurrency(eventSummary.advancePaid)}</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Balance</Text>
-              <Text style={[styles.summaryValue, { color: eventSummary.balance > 0 ? "#f2bd5c" : "#4cc493" }]}>
-                {formatCurrency(eventSummary.balance)}
+              <Text style={styles.summaryLabel}>This payment</Text>
+              <Text style={[styles.summaryValue, { color: signedAmount < 0 ? "#ff7a72" : signedAmount > 0 ? "#4cc493" : "#6f83a0" }]}>
+                {signedAmount === 0 ? "—" : `${signedAmount < 0 ? "−" : "+"}${formatCurrency(Math.abs(signedAmount))}`}
+              </Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>{balanceAfter < 0 ? "Overpaid" : "Balance"}</Text>
+              <Text style={[styles.summaryValue, { color: balanceAfter > 0 ? "#f2bd5c" : balanceAfter < 0 ? "#ff7a72" : "#4cc493" }]}>
+                {formatCurrency(Math.abs(balanceAfter))}
               </Text>
             </View>
           </View>
+          {/* An overpayment gets the fuller warning under the amount instead. */}
+          {signedAmount !== 0 && balanceAfter >= 0 && (
+            <Text style={styles.summaryNote}>
+              {balanceAfter > 0 ? `After this payment, ${formatCurrency(balanceAfter)} is still due.` : "This payment clears the balance."}
+            </Text>
+          )}
         </View>
       )}
 
@@ -130,7 +144,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
           style={[styles.input, styles.amountInput]}
           value={amount}
           onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ""))}
-          placeholder="Enter amount"
+          placeholder="Add amount"
           placeholderTextColor="#6f83a0"
           keyboardType="numeric"
         />
@@ -211,6 +225,7 @@ const styles = StyleSheet.create({
   summaryItem: { flex: 1, gap: 2 },
   summaryLabel: { color: "#6f83a0", fontSize: 10.5 },
   summaryValue: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
+  summaryNote: { color: "#a7b7cb", fontSize: 12, marginTop: 10 },
   label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
   input: {
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,

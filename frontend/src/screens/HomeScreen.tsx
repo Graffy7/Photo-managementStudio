@@ -8,6 +8,7 @@ import { studioDashboardApi } from "../api/studioDashboardApi";
 import { notificationsApi } from "../api/notificationsApi";
 import { dayBoardApi } from "../api/dayBoardApi";
 import { leadsApi } from "../api/leadsApi";
+import { eventsApi } from "../api/eventsApi";
 import { LineChart } from "../components/LineChart";
 import { DonutChart } from "../components/DonutChart";
 import { MiniDatePicker } from "../components/MiniDatePicker";
@@ -172,6 +173,17 @@ export function HomeScreen() {
     queryFn: () => dayBoardApi.getDayBoard(today),
   });
 
+  // The studio's own calendar day, not UTC's - just after midnight they differ.
+  const localToday = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const { data: upcoming, refetch: refetchUpcoming } = useQuery({
+    queryKey: ["events-upcoming", localToday],
+    queryFn: () => eventsApi.search({ upcomingFrom: localToday, page: 1, pageSize: 5 }),
+  });
+
   const { data: recentLeads, refetch: refetchRecentLeads } = useQuery({
     queryKey: ["leads-recent"],
     queryFn: () => leadsApi.search({ page: 1, pageSize: 4 }),
@@ -181,8 +193,9 @@ export function HomeScreen() {
     refetchUnreadCount();
     refetch();
     refetchDayBoard();
+    refetchUpcoming();
     refetchRecentLeads();
-  }, [refetchUnreadCount, refetch, refetchDayBoard, refetchRecentLeads]);
+  }, [refetchUnreadCount, refetch, refetchDayBoard, refetchUpcoming, refetchRecentLeads]);
   useRefetchOnFocus(refetchAll);
 
   const revenuePoints = (data?.revenueTrend ?? []).map((p) => ({
@@ -395,6 +408,50 @@ export function HomeScreen() {
               </Panel>
 
               <Panel
+                title="Upcoming Events"
+                action={
+                  <Pressable onPress={() => navigation.navigate("Events")}>
+                    <Text style={styles.panelLink}>View All →</Text>
+                  </Pressable>
+                }
+              >
+                {!upcoming || upcoming.items.length === 0 ? (
+                  <Text style={styles.empty}>No upcoming events.</Text>
+                ) : (
+                  <View style={{ gap: 12 }}>
+                    {upcoming.items.map((e) => {
+                      const date = new Date(e.eventDate);
+                      return (
+                        <Pressable
+                          key={e.eventId}
+                          style={styles.upcomingRow}
+                          onPress={() => navigation.navigate("Events", { eventId: e.eventId })}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${e.eventTypeName ?? "Event"} for ${e.customerName} on ${date.toDateString()}`}
+                        >
+                          <View style={styles.dateBadge}>
+                            <Text style={styles.dateBadgeDay}>{date.getDate()}</Text>
+                            <Text style={styles.dateBadgeMonth}>{date.toLocaleDateString("en-IN", { month: "short" })}</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.scheduleTitle} numberOfLines={1}>{e.eventTypeName ?? "Event"} — {e.customerName}</Text>
+                            <Text style={styles.scheduleSubtitle} numberOfLines={1}>
+                              {daysAway(e.eventDate, localToday)}
+                              {e.startTime ? ` · ${e.startTime.slice(0, 5)}` : ""}
+                              {e.venue ? ` · ${e.venue}` : ""}
+                            </Text>
+                          </View>
+                          <View style={styles.statusPill}>
+                            <Text style={styles.statusPillText}>{e.eventStatus}</Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              </Panel>
+
+              <Panel
                 title="Recent Enquiries"
                 action={
                   <Pressable onPress={() => navigation.navigate("Leads")}>
@@ -432,6 +489,14 @@ export function HomeScreen() {
       )}
     </ScrollView>
   );
+}
+
+// "Today", "Tomorrow", "In 5 days" - both dates are plain calendar days (yyyy-mm-dd...).
+function daysAway(eventDate: string, today: string): string {
+  const days = Math.round((Date.parse(eventDate.slice(0, 10)) - Date.parse(today)) / 86400000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
 }
 
 function dayOfYear(): number {
@@ -520,6 +585,13 @@ const styles = StyleSheet.create({
   scheduleTime: { color: "#7fc0e6", fontSize: 12, fontWeight: "700", width: 44 },
   scheduleTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
   scheduleSubtitle: { color: "#6f83a0", fontSize: 11, marginTop: 1 },
+  upcomingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  dateBadge: {
+    width: 40, alignItems: "center", paddingVertical: 4, borderRadius: 8,
+    backgroundColor: "rgba(127, 192, 230, 0.10)", borderWidth: 1, borderColor: "#23405c",
+  },
+  dateBadgeDay: { color: "#e8edf3", fontSize: 14, fontWeight: "700", lineHeight: 16 },
+  dateBadgeMonth: { color: "#7fc0e6", fontSize: 10, fontWeight: "600", textTransform: "uppercase" },
   statusPill: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 3, paddingHorizontal: 8 },
   statusPillText: { color: "#7fc0e6", fontSize: 10, fontWeight: "700" },
 

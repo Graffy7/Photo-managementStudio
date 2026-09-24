@@ -29,7 +29,7 @@ public enum EventDeleteResult
 
 public interface IEventService
 {
-    Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null);
     Task<EventDto?> GetByIdAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<EventHistoryDto?> GetHistoryAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<EventWriteResult> CreateAsync(int studioId, CreateEventRequestDto request, CancellationToken ct = default);

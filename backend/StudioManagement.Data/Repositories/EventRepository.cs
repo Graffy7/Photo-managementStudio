@@ -16,7 +16,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.DeliveryItems)
             .FirstOrDefaultAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
-    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null)
     {
         var query = context.Events
             .AsNoTracking()
@@ -50,9 +50,18 @@ public class EventRepository(AppDbContext context) : IEventRepository
             query = query.Where(e => e.EventDate == day);
         }
 
+        // The dashboard's "Upcoming Events": still to happen (Upcoming or Confirmed) from that day on.
+        if (upcomingFrom is not null)
+        {
+            var from = upcomingFrom.Value.Date;
+            query = query.Where(e => e.EventDate >= from &&
+                                     (e.EventStatus == EventStatuses.Upcoming || e.EventStatus == EventStatuses.Confirmed));
+        }
+
         var totalCount = await query.CountAsync(ct);
         var items = await query
             .OrderBy(e => e.EventDate)
+            .ThenBy(e => e.StartTime)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
