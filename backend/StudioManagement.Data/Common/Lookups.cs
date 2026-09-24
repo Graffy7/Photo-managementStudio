@@ -78,6 +78,13 @@ public static class NotificationTypes
     public const string PhotoSelectionSubmitted = "PhotoSelectionSubmitted";
 }
 
+// How long a customer photo-selection link can stay valid (days). 5 is the default selection period.
+public static class LinkPeriods
+{
+    public const int Default = 5;
+    public static readonly int[] Allowed = [5, 10];
+}
+
 public static class GalleryStatuses
 {
     public const string Open = "Open";

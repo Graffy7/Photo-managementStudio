@@ -56,8 +56,12 @@ public class ImportStartResult
     public ImportFailureReason? FailureReason { get; private init; }
     public ImportJobDto? Job { get; private init; }
 
+    // For NoImages: what the folder held instead of photos.
+    public SkippedFilesDto? Skipped { get; private init; }
+
     public static ImportStartResult Success(ImportJobDto job) => new() { Succeeded = true, Job = job };
-    public static ImportStartResult Fail(ImportFailureReason reason) => new() { Succeeded = false, FailureReason = reason };
+    public static ImportStartResult Fail(ImportFailureReason reason, SkippedFilesDto? skipped = null) =>
+        new() { Succeeded = false, FailureReason = reason, Skipped = skipped };
 }
 
 // The customer link can fail in ways the page words differently: a dead link says nothing more,
@@ -114,6 +118,24 @@ public class SubmitResult
     public static SubmitResult Success(SubmitResultDto result) => new() { Succeeded = true, Result = result };
     public static SubmitResult Fail(SubmitFailureReason reason) => new() { Succeeded = false, FailureReason = reason };
     public static SubmitResult NoAccess(GalleryAccessFailure failure) => new() { Succeeded = false, AccessFailure = failure };
+}
+
+public enum RemoveSourceFailure
+{
+    GalleryNotFound,
+    NotFound,
+    JobRunning
+}
+
+public class RemoveSourceResult
+{
+    public bool Succeeded { get; private init; }
+    public RemoveSourceFailure? Failure { get; private init; }
+    public int RemovedCount { get; private init; }
+    public int SelectedRemovedCount { get; private init; }
+
+    public static RemoveSourceResult Success(int removed, int selected) => new() { Succeeded = true, RemovedCount = removed, SelectedRemovedCount = selected };
+    public static RemoveSourceResult Fail(RemoveSourceFailure reason) => new() { Failure = reason };
 }
 
 public enum CopyFailureReason

@@ -24,6 +24,16 @@ export interface ImportJob {
   errorMessage: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  // Only on the response that starts an import.
+  skipped?: SkippedFiles | null;
+}
+
+// Files an import left out: only JPEG and RAW photos are imported.
+export interface SkippedFiles {
+  videos: number;
+  other: number;
+  rawWithJpeg: number;
+  examples: string[];
 }
 
 export interface OwnerGallery {
@@ -49,13 +59,22 @@ export interface OwnerGallery {
   submittedAt: string | null;
   changedSinceSubmit: boolean;
   previewsPurged: boolean;
+  previewsDeleteAt: string | null;
   counts: GalleryCounts;
   latestImport: ImportJob | null;
+  importedSources: ImportedSource[];
   selectionFolder: string | null;
   selectionCreatedAt: string | null;
   selectionSyncedAt: string | null;
   selectionOutOfSync: boolean;
   latestCopyJob: CopyJob | null;
+}
+
+// A folder photos were imported from (owner-only path).
+export interface ImportedSource {
+  sourceFolder: string;
+  photoCount: number;
+  selectedCount: number;
 }
 
 export interface CompletedEventGallery {
@@ -70,6 +89,8 @@ export interface CompletedEventGallery {
   photoCount: number;
   selectedCount: number;
   submittedAt: string | null;
+  expiresAt: string | null;
+  previewsDeleteAt: string | null;
 }
 
 // A delivery folder. FolderId 0 is the "Other" bucket the server adds for photos that were never

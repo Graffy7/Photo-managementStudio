@@ -78,9 +78,70 @@ public class PhotoGalleriesController(
             ImportFailureReason.GalleryNotFound => NotFound(),
             ImportFailureReason.FolderNotFound => BadRequest(new { message = "That folder wasn't found on this computer." }),
             ImportFailureReason.FolderNotAllowed => BadRequest(new { message = "Photos can't be imported from that folder." }),
-            ImportFailureReason.NoImages => BadRequest(new { message = "No new photos were found in that folder (JPG, PNG, WebP, TIFF or BMP)." }),
+            ImportFailureReason.NoImages => BadRequest(new { message = NoPhotosMessage(result.Skipped) }),
             _ => Conflict(new { message = "An import is already running for this event." })
         };
+    }
+
+    // Removes the photos imported from one folder (picked by mistake). Their previews and any
+    // customer selections go; the original files in that folder are not touched.
+    [HttpPost("{id:int}/imported-folders/remove")]
+    public async Task<IActionResult> RemoveImportedFolder(int id, ImportRequestDto request, CancellationToken ct)
+    {
+        var validation = await importValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await importService.RemoveSourceAsync(StudioId, id, request.SourceFolder, ct);
+        if (result.Succeeded)
+        {
+            return Ok(new { removedCount = result.RemovedCount, selectedRemovedCount = result.SelectedRemovedCount });
+        }
+
+        return result.Failure switch
+        {
+            RemoveSourceFailure.NotFound => NotFound(new { message = "No photos from that folder are in this gallery." }),
+            RemoveSourceFailure.JobRunning => Conflict(new { message = "Photos are being imported or copied right now. Try again when that finishes." }),
+            _ => NotFound()
+        };
+    }
+
+    // After the retention period the previews are deleted; this makes them again from the originals
+    // so the owner can send a new link.
+    [HttpPost("{id:int}/rebuild-previews")]
+    public async Task<IActionResult> RebuildPreviews(int id, CancellationToken ct)
+    {
+        var result = await importService.StartRebuildAsync(StudioId, id, ct);
+        if (result.Succeeded)
+        {
+            return Accepted(result.Job);
+        }
+
+        return result.FailureReason switch
+        {
+            ImportFailureReason.GalleryNotFound => NotFound(),
+            ImportFailureReason.FolderNotFound => BadRequest(new { message = "The original photos folder wasn't found on this computer. Import the photos again from where they are now." }),
+            ImportFailureReason.FolderNotAllowed => BadRequest(new { message = "Photos can't be read from that folder." }),
+            ImportFailureReason.NoImages => BadRequest(new { message = "All previews are already in place." }),
+            _ => Conflict(new { message = "An import is already running for this event." })
+        };
+    }
+
+    private static string NoPhotosMessage(SkippedFilesDto? skipped)
+    {
+        const string basic = "No new photos were found in that folder. Only JPEG and RAW photos can be imported.";
+        if (skipped is null || skipped.Videos + skipped.Other == 0)
+        {
+            return basic;
+        }
+
+        var parts = new List<string>();
+        if (skipped.Videos > 0) parts.Add($"{skipped.Videos} video{(skipped.Videos == 1 ? "" : "s")}");
+        if (skipped.Other > 0) parts.Add($"{skipped.Other} other file{(skipped.Other == 1 ? "" : "s")}");
+        return $"{basic} This folder has {string.Join(" and ", parts)}, which can't be imported.";
     }
 
     [HttpGet("{id:int}/import/{jobId:int}")]
@@ -140,7 +201,7 @@ public class PhotoGalleriesController(
         {
             LinkFailureReason.GalleryNotFound => NotFound(),
             LinkFailureReason.ImportRunning => Conflict(new { message = "Photos are still being prepared. Send the link once the import finishes." }),
-            LinkFailureReason.PreviewsRemoved => BadRequest(new { message = "The previews for this event were removed after its link expired, so it can't be shared again." }),
+            LinkFailureReason.PreviewsRemoved => BadRequest(new { message = "The previews for this event were deleted after 10 days. Rebuild the previews first, then send a new link." }),
             _ => BadRequest(new { message = "Import the photos first — there is nothing for the customer to choose from yet." })
         };
     }

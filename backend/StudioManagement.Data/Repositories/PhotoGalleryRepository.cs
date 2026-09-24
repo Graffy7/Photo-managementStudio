@@ -122,10 +122,12 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
                 selections.FirstOrDefault(s => s.PhotoGalleryId == id && s.SelectionType == SelectionTypes.Big)?.Count ?? 0));
     }
 
-    public Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime expiredBefore, CancellationToken ct = default) =>
+    public Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime now, DateTime sentBefore, CancellationToken ct = default) =>
         context.PhotoGalleries
             .AsNoTracking()
-            .Where(g => g.ExpiresAt != null && g.ExpiresAt < expiredBefore && g.PreviewsPurgedAt == null)
+            .Where(g => g.ExpiresAt != null && g.ExpiresAt < now
+                        && g.LinkGeneratedAt != null && g.LinkGeneratedAt < sentBefore
+                        && g.PreviewsPurgedAt == null)
             .ToListAsync(ct);
 
     public async Task AddAsync(PhotoGallery gallery, CancellationToken ct = default) =>
@@ -171,9 +173,23 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
                         && (g.SubmittedAt == null || (g.LastSelectionAt != null && g.LastSelectionAt > g.SubmittedAt)))
             .ExecuteUpdateAsync(s => s.SetProperty(g => g.SubmittedAt, now).SetProperty(g => g.UpdatedAt, now), ct) > 0;
 
+    public Task SetSourceFolderOrNullAsync(int galleryId, string? sourceFolder, DateTime now, CancellationToken ct = default) =>
+        context.PhotoGalleries.Where(g => g.PhotoGalleryId == galleryId)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.SourceFolder, sourceFolder).SetProperty(g => g.UpdatedAt, now), ct);
+
     public Task MarkPreviewsPurgedAsync(int galleryId, DateTime now, CancellationToken ct = default) =>
         context.PhotoGalleries.Where(g => g.PhotoGalleryId == galleryId)
             .ExecuteUpdateAsync(s => s.SetProperty(g => g.PreviewsPurgedAt, now).SetProperty(g => g.UpdatedAt, now), ct);
+
+    public Task ResetForPreviewRebuildAsync(int galleryId, DateTime now, CancellationToken ct = default) =>
+        context.PhotoGalleries.Where(g => g.PhotoGalleryId == galleryId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(g => g.PreviewsPurgedAt, (DateTime?)null)
+                .SetProperty(g => g.IsLinkActive, false)
+                .SetProperty(g => g.TokenHash, (string?)null)
+                .SetProperty(g => g.TokenProtected, (string?)null)
+                .SetProperty(g => g.ExpiresAt, (DateTime?)null)
+                .SetProperty(g => g.UpdatedAt, now), ct);
 
     public Task MarkSelectionSyncedAsync(int galleryId, DateTime syncedAt, CancellationToken ct = default) =>
         context.PhotoGalleries.Where(g => g.PhotoGalleryId == galleryId)

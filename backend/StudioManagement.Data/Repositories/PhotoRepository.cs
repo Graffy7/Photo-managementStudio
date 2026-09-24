@@ -86,6 +86,45 @@ public class PhotoRepository(AppDbContext context) : IPhotoRepository
     public Task<List<Photo>> GetWithPreviewsAsync(int galleryId, CancellationToken ct = default) =>
         context.Photos.Where(p => p.PhotoGalleryId == galleryId && (p.PreviewPath != null || p.ThumbnailPath != null)).ToListAsync(ct);
 
+    public Task<List<Photo>> GetWithoutPreviewsAsync(int galleryId, CancellationToken ct = default) =>
+        context.Photos.Where(p => p.PhotoGalleryId == galleryId && p.PreviewPath == null).OrderBy(p => p.PhotoNumber).ToListAsync(ct);
+
+    public Task<int> CountWithoutPreviewsAsync(int galleryId, CancellationToken ct = default) =>
+        context.Photos.CountAsync(p => p.PhotoGalleryId == galleryId && p.PreviewPath == null, ct);
+
+    public async Task<List<ImportedSourceCounts>> GetSourceCountsAsync(int galleryId, string? fallbackSource, CancellationToken ct = default)
+    {
+        var rows = await context.Photos.AsNoTracking()
+            .Where(p => p.PhotoGalleryId == galleryId)
+            .GroupBy(p => p.SourceFolder)
+            .Select(g => new { Source = g.Key, Total = g.Count(), Selected = g.Count(p => p.Selection != null), First = g.Min(p => p.PhotoNumber) })
+            .ToListAsync(ct);
+
+        // Merge the unrecorded ones into the gallery's folder; list in import order.
+        return rows
+            .Select(r => new { Source = r.Source ?? fallbackSource, r.Total, r.Selected, r.First })
+            .Where(r => !string.IsNullOrWhiteSpace(r.Source))
+            .GroupBy(r => r.Source!, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Min(r => r.First))
+            .Select(g => new ImportedSourceCounts(g.Key, g.Sum(r => r.Total), g.Sum(r => r.Selected)))
+            .ToList();
+    }
+
+    public Task<List<Photo>> GetBySourceAsync(int galleryId, string sourceFolder, bool includeUnrecorded, CancellationToken ct = default) =>
+        context.Photos
+            .Where(p => p.PhotoGalleryId == galleryId
+                        && (p.SourceFolder == sourceFolder || (includeUnrecorded && p.SourceFolder == null)))
+            .ToListAsync(ct);
+
+    public void RemoveRange(IEnumerable<Photo> photos) => context.Photos.RemoveRange(photos);
+
+    public Task<string?> GetLatestSourceAsync(int galleryId, CancellationToken ct = default) =>
+        context.Photos.AsNoTracking()
+            .Where(p => p.PhotoGalleryId == galleryId && p.SourceFolder != null)
+            .OrderByDescending(p => p.PhotoNumber)
+            .Select(p => p.SourceFolder)
+            .FirstOrDefaultAsync(ct);
+
     public void UpdateRange(IEnumerable<Photo> photos) => context.Photos.UpdateRange(photos);
 
     public async Task SetSelectionAsync(int galleryId, int photoId, int selectionType, DateTime now, CancellationToken ct = default)

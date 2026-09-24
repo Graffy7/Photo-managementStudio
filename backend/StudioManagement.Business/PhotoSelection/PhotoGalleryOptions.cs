@@ -7,17 +7,18 @@ public class PhotoGalleryOptions
     // which matches today's single-machine deployment (the backend runs on the studio's own PC).
     public string[] AllowedImportRoots { get; set; } = [];
 
-    // Size/quality of the small copies the customer looks at (WebP). Measured on real photos, these
-    // defaults store roughly 40% less than 1600px/q75 with no visible difference at normal viewing
-    // size. Raise them for sharper zooming, lower them to save more disk; applies to newly imported
-    // photos only.
-    public int PreviewMaxDimension { get; set; } = 1280;
+    // Size/quality of the small copies the customer looks at (WebP). The 1600px preview is what the
+    // customer zooms, pans and selects on; the original is never sent. Applies to newly imported
+    // (or rebuilt) photos only.
+    public int PreviewMaxDimension { get; set; } = 1600;
     public int PreviewQuality { get; set; } = 70;
     public int ThumbnailMaxDimension { get; set; } = 360;
     public int ThumbnailQuality { get; set; } = 65;
 
-    // How long after a gallery's link expires its preview files are kept before cleanup deletes them.
-    public int PreviewPurgeGraceDays { get; set; } = 30;
+    // How many days after a link is sent the preview files are kept. Once this has passed (and the
+    // link has expired) cleanup deletes them; the owner rebuilds them from the originals to send a
+    // new link.
+    public int PreviewRetentionDays { get; set; } = 10;
 
     // Country calling code (digits only, e.g. "91") added to 10-digit customer mobile numbers when
     // building WhatsApp links. Empty = numbers are used exactly as stored.

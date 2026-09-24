@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, TextInput, Pressable, ScrollView, Image, Modal, StyleSheet, ActivityIndicator, Platform, Share, Linking,
 } from "react-native";
@@ -11,9 +11,10 @@ import { DeliveryFolders } from "../../components/DeliveryFolders";
 import { SelectionCopyPanel } from "./SelectionCopyPanel";
 import { downloadBytes } from "../../utils/downloadFile";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
-import type { OwnerGallery, OwnerPhoto, PhotoFilter } from "../../types/photoSelection";
+import type { OwnerGallery, OwnerPhoto, PhotoFilter, SkippedFiles } from "../../types/photoSelection";
 
-const EXPIRY_PRESETS = [7, 15, 30, 60];
+// Customer selection period: 5 days by default, or 10. Previews are deleted 10 days after sending.
+const EXPIRY_PRESETS = [5, 10];
 const PAGE_SIZE = 60;
 
 function formatDate(value: string | null): string {
@@ -36,6 +37,31 @@ function daysLeft(value: string | null): number | null {
   if (!value) return null;
   const ms = new Date(value.endsWith("Z") ? value : `${value}Z`).getTime() - Date.now();
   return Math.ceil(ms / 86_400_000);
+}
+
+// Clipboard API where available; the textarea fallback covers pages opened over plain http on the
+// studio network (e.g. http://192.168.x.x), where navigator.clipboard doesn't exist.
+async function copyText(text: string): Promise<void> {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(area);
+  if (!ok) throw new Error("Couldn't copy the link. Select it above and copy it manually.");
+}
+
+function daysLeftText(value: string | null): string {
+  const n = daysLeft(value);
+  if (n === null) return "";
+  return n > 0 ? `${n} day${n === 1 ? "" : "s"} left` : "today";
 }
 
 export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number; onBack: () => void }) {
@@ -155,6 +181,8 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
   const [browsing, setBrowsing] = useState(false);
   const [starting, setStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [removedNote, setRemovedNote] = useState<string | null>(null);
+  const [skippedNote, setSkippedNote] = useState<string | null>(null);
 
   const job = gallery.latestImport;
   const running = job?.status === "Queued" || job?.status === "Running";
@@ -162,9 +190,12 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
 
   const start = async () => {
     setMessage(null);
+    setRemovedNote(null);
+    setSkippedNote(null);
     setStarting(true);
     try {
-      await photoSelectionApi.startImport(gallery.galleryId, folder.trim());
+      const started = await photoSelectionApi.startImport(gallery.galleryId, folder.trim());
+      setSkippedNote(describeSkipped(started.skipped));
       onChanged();
     } catch (err) {
       setMessage(extractErrorMessage(err, "Couldn't start the import."));
@@ -177,8 +208,9 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Photos</Text>
       <Text style={styles.hint}>
-        Choose the folder on this computer where the finished photos are. Small previews are made for the customer to look at —
-        your original files stay exactly where they are and are never uploaded.
+        Choose the folder on this computer where the finished photos are. Only JPEG and RAW photos are imported — videos and
+        other files are skipped. Small previews are made for the customer to look at; your original files stay exactly where
+        they are and are never uploaded.
       </Text>
 
       <View style={styles.folderRow}>
@@ -205,6 +237,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
       </View>
 
       {!!message && <Text style={styles.error}>{message}</Text>}
+      {!!skippedNote && <Text style={styles.warnText}>{skippedNote}</Text>}
 
       {running && job && (
         <View style={styles.progressBox}>
@@ -225,9 +258,14 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
         </Text>
       )}
 
+      {!running && gallery.importedSources.length > 0 && (
+        <ImportedFolders gallery={gallery} onChanged={onChanged} onRemoved={setRemovedNote} />
+      )}
+      {!!removedNote && <Text style={styles.okText}>{removedNote}</Text>}
+
       {gallery.previewsPurged && (
         <Text style={styles.warnText}>
-          The previews for this event were removed after its link expired. Your original photos are untouched.
+          The previews for this event were deleted 10 days after the link was sent. Your original photos are untouched.
         </Text>
       )}
 
@@ -243,21 +281,112 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
   );
 }
 
+// The folders this gallery's photos came from, each removable in case the wrong one was imported.
+// Removing takes the photos out of the gallery only; the files on disk are never touched.
+function ImportedFolders({ gallery, onChanged, onRemoved }: {
+  gallery: OwnerGallery;
+  onChanged: () => void;
+  onRemoved: (note: string | null) => void;
+}) {
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = async (sourceFolder: string) => {
+    setRemoving(true);
+    setError(null);
+    try {
+      const r = await photoSelectionApi.removeImportedFolder(gallery.galleryId, sourceFolder);
+      setConfirming(null);
+      onRemoved(`Removed ${r.removedCount} photo${r.removedCount === 1 ? "" : "s"} from this gallery. The original files were not deleted.`);
+      onChanged();
+    } catch (err) {
+      setError(extractErrorMessage(err, "Couldn't remove those photos."));
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <View style={styles.sourceList}>
+      <Text style={styles.label}>Imported folders</Text>
+      {gallery.importedSources.map((s) => (
+        <View key={s.sourceFolder} style={styles.sourceRow}>
+          <View style={styles.sourceMain}>
+            <Text style={styles.sourcePath} numberOfLines={1}>{s.sourceFolder}</Text>
+            <Text style={styles.sourceMeta}>
+              {s.photoCount} photo{s.photoCount === 1 ? "" : "s"}{s.selectedCount > 0 ? ` · ${s.selectedCount} selected by the customer` : ""}
+            </Text>
+          </View>
+          {confirming === s.sourceFolder ? (
+            <View style={styles.sourceConfirm}>
+              <Text style={styles.sourceConfirmText}>
+                Remove these {s.photoCount} photos from the gallery?
+                {s.selectedCount > 0 ? ` The customer's ${s.selectedCount} selection${s.selectedCount === 1 ? "" : "s"} on them will be lost.` : ""}
+                {" "}Your original files stay in the folder.
+              </Text>
+              <Pressable onPress={() => setConfirming(null)} disabled={removing}>
+                <Text style={styles.sourceCancel}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={() => remove(s.sourceFolder)} disabled={removing}>
+                {removing ? <ActivityIndicator size="small" color="#ff7a72" /> : <Text style={styles.sourceYes}>Yes, remove</Text>}
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.dangerButton}
+              onPress={() => { setConfirming(s.sourceFolder); setError(null); onRemoved(null); }}
+              accessibilityLabel={`Remove photos imported from ${s.sourceFolder}`}
+            >
+              <Text style={styles.dangerButtonText}>Remove</Text>
+            </Pressable>
+          )}
+        </View>
+      ))}
+      {!!error && <Text style={styles.error}>{error}</Text>}
+    </View>
+  );
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+// "Skipped 2 videos and 1 other file (e.g. clip.mp4, notes.pdf)." - null when nothing was left out.
+function describeSkipped(skipped: SkippedFiles | null | undefined): string | null {
+  if (!skipped) return null;
+  const parts: string[] = [];
+  if (skipped.videos > 0) parts.push(plural(skipped.videos, "video"));
+  if (skipped.other > 0) parts.push(plural(skipped.other, "other file"));
+  const lines: string[] = [];
+  if (parts.length > 0) {
+    const examples = skipped.examples.length > 0 ? ` (e.g. ${skipped.examples.slice(0, 3).join(", ")})` : "";
+    lines.push(`Skipped ${parts.join(" and ")}${examples} — only JPEG and RAW photos are imported.`);
+  }
+  if (skipped.rawWithJpeg > 0) {
+    lines.push(`${plural(skipped.rawWithJpeg, "RAW file")} skipped because the same photo is already there as a JPEG.`);
+  }
+  return lines.length > 0 ? lines.join(" ") : null;
+}
+
 // ---- Link, lock, export ----------------------------------------------------------------------
 
 function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: () => void }) {
-  const [days, setDays] = useState<number | "custom">(30);
-  const [customDays, setCustomDays] = useState("");
+  const [days, setDays] = useState<number>(EXPIRY_PRESETS[0]);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
   const importing = gallery.latestImport?.status === "Queued" || gallery.latestImport?.status === "Running";
   const noPhotos = gallery.counts.total === 0;
   const link = gallery.linkToken ? buildCustomerLink(gallery.linkToken) : null;
   const activeLink = gallery.hasActiveLink && !gallery.isExpired && link;
   const remaining = daysLeft(gallery.expiresAt);
-  const chosenDays = days === "custom" ? parseInt(customDays, 10) : days;
-  const validDays = Number.isFinite(chosenDays) && chosenDays >= 1 && chosenDays <= 365;
+  const previewsNote = gallery.previewsDeleteAt
+    ? `Previews deleted on ${formatDate(gallery.previewsDeleteAt)} (${daysLeftText(gallery.previewsDeleteAt)})`
+    : null;
 
   const run = async (key: string, action: () => Promise<void>, okText?: string) => {
     setBusy(key);
@@ -274,24 +403,34 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
 
   const generate = () =>
     run("generate", async () => {
-      await photoSelectionApi.generateLink(gallery.galleryId, chosenDays as number);
+      await photoSelectionApi.generateLink(gallery.galleryId, days);
       onChanged();
     }, "New link ready. Copy it or send it on WhatsApp.");
 
+  // The button itself turns into "✓ Copied" for a moment, right where the owner clicked.
   const copy = () =>
     run("copy", async () => {
       if (!link) return;
-      if (Platform.OS === "web" && navigator.clipboard) {
-        await navigator.clipboard.writeText(link);
+      if (Platform.OS === "web") {
+        await copyText(link);
+        setCopied(true);
+        if (copiedTimer.current) clearTimeout(copiedTimer.current);
+        copiedTimer.current = setTimeout(() => setCopied(false), 2000);
       } else {
         await Share.share({ message: link });
       }
-    }, Platform.OS === "web" ? "Link copied." : undefined);
+    });
 
   const whatsApp = (reminder: boolean) =>
     run(reminder ? "reminder" : "whatsapp", async () => {
       const share = await photoSelectionApi.shareMessage(gallery.galleryId, reminder);
       await Linking.openURL(share.whatsAppUrl);
+    });
+
+  const rebuild = () =>
+    run("rebuild", async () => {
+      await photoSelectionApi.rebuildPreviews(gallery.galleryId);
+      onChanged();
     });
 
   const revoke = () =>
@@ -317,7 +456,19 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Customer link</Text>
 
-      {noPhotos || importing ? (
+      {gallery.previewsPurged && !importing ? (
+        <>
+          <Text style={styles.warnText}>
+            The previews were deleted 10 days after the link was sent, so this link no longer works. Rebuild the previews from your
+            original photos, then send the customer a new 5 or 10 day link. Their earlier selections are kept.
+          </Text>
+          <View style={styles.actionRow}>
+            <Pressable style={[styles.primaryButton, busy !== null && styles.disabled]} disabled={busy !== null} onPress={rebuild}>
+              <Text style={styles.primaryButtonText}>{busy === "rebuild" ? "Starting…" : "Rebuild previews"}</Text>
+            </Pressable>
+          </View>
+        </>
+      ) : noPhotos || importing ? (
         <Text style={styles.hint}>
           {importing ? "Photos are still being prepared — the link can be sent once the import finishes." : "Import the photos first — then you can send the customer their private link."}
         </Text>
@@ -329,17 +480,21 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
               <Text style={styles.linkMeta}>
                 Expires {formatDate(gallery.expiresAt)}{remaining !== null ? ` · ${remaining > 0 ? `${remaining} day${remaining === 1 ? "" : "s"} left` : "today"}` : ""}
               </Text>
+              {!!previewsNote && <Text style={styles.linkMeta}>{previewsNote}</Text>}
             </View>
           ) : gallery.isExpired ? (
-            <Text style={styles.warnText}>This link expired on {formatDate(gallery.expiresAt)}. Generate a new one to let the customer choose again.</Text>
+            <View>
+              <Text style={styles.warnText}>This link expired on {formatDate(gallery.expiresAt)}. Generate a new 5 or 10 day link to let the customer choose again.</Text>
+              {!!previewsNote && <Text style={styles.hintSmall}>{previewsNote}</Text>}
+            </View>
           ) : (
             <Text style={styles.hint}>No active link yet. Pick how long it should work, then generate it.</Text>
           )}
 
           {activeLink && (
             <View style={styles.actionRow}>
-              <Pressable style={styles.secondaryButton} disabled={busy !== null} onPress={copy}>
-                <Text style={styles.secondaryButtonText}>Copy link</Text>
+              <Pressable style={[styles.secondaryButton, copied && styles.copiedButton]} disabled={busy !== null} onPress={copy}>
+                <Text style={[styles.secondaryButtonText, copied && styles.copiedButtonText]}>{copied ? "✓ Copied" : "Copy link"}</Text>
               </Pressable>
               <Pressable style={styles.whatsButton} disabled={busy !== null} onPress={() => whatsApp(false)}>
                 <Text style={styles.whatsButtonText}>Send on WhatsApp</Text>
@@ -362,28 +517,17 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
                 <Text style={[styles.chipText, days === d && styles.chipTextSelected]}>{d} days</Text>
               </Pressable>
             ))}
-            <Pressable style={[styles.chip, days === "custom" && styles.chipSelected]} onPress={() => setDays("custom")}>
-              <Text style={[styles.chipText, days === "custom" && styles.chipTextSelected]}>Custom</Text>
-            </Pressable>
-            {days === "custom" && (
-              <TextInput
-                style={[styles.input, styles.daysInput]}
-                value={customDays}
-                onChangeText={(t) => setCustomDays(t.replace(/\D/g, ""))}
-                placeholder="days"
-                placeholderTextColor="#6f83a0"
-                keyboardType="number-pad"
-              />
-            )}
             <Pressable
-              style={[styles.primaryButton, (!validDays || busy !== null) && styles.disabled]}
-              disabled={!validDays || busy !== null}
+              style={[styles.primaryButton, busy !== null && styles.disabled]}
+              disabled={busy !== null}
               onPress={generate}
             >
               <Text style={styles.primaryButtonText}>{activeLink ? "Generate new link" : "Generate link"}</Text>
             </Pressable>
           </View>
-          {activeLink && <Text style={styles.hintSmall}>Generating a new link stops the old one from working.</Text>}
+          <Text style={styles.hintSmall}>
+            {activeLink ? "Generating a new link stops the old one from working. " : ""}Previews are deleted 10 days after the link is sent.
+          </Text>
         </>
       )}
 
@@ -583,15 +727,25 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
     color: "#e8edf3", backgroundColor: "#132540", fontSize: 13, minWidth: 200,
   },
-  daysInput: { width: 80, minWidth: 80 },
   primaryButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
   primaryButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
   secondaryButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
   secondaryButtonText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  copiedButton: { borderColor: "#3fbf7f", backgroundColor: "rgba(63,191,127,0.14)" },
+  copiedButtonText: { color: "#6fe0a4" },
   whatsButton: { backgroundColor: "#25a95a", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
   whatsButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 13 },
   dangerButton: { backgroundColor: "rgba(255,122,114,0.12)", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(255,122,114,0.4)", justifyContent: "center" },
   dangerButtonText: { color: "#ff7a72", fontWeight: "600", fontSize: 13 },
+  sourceList: { gap: 8 },
+  sourceRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#132540", borderRadius: 8, borderWidth: 1, borderColor: "#1b2c42", paddingVertical: 8, paddingHorizontal: 12 },
+  sourceMain: { flex: 1, minWidth: 180 },
+  sourcePath: { color: "#e6edf5", fontSize: 13, fontWeight: "600" },
+  sourceMeta: { color: "#a7b7cb", fontSize: 12, marginTop: 2 },
+  sourceConfirm: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12, flexBasis: "100%" },
+  sourceConfirmText: { color: "#a7b7cb", fontSize: 12, flexShrink: 1 },
+  sourceCancel: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
+  sourceYes: { color: "#ff7a72", fontSize: 12, fontWeight: "700" },
 
   progressBox: { gap: 6, marginTop: 4 },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#132540", overflow: "hidden" },

@@ -55,7 +55,9 @@ public partial class PhotoGalleryService(
                 State = ComputeState(gallery, galleryCounts.Total, now),
                 PhotoCount = galleryCounts.Total,
                 SelectedCount = galleryCounts.Selected,
-                SubmittedAt = gallery?.SubmittedAt
+                SubmittedAt = gallery?.SubmittedAt,
+                ExpiresAt = gallery?.IsLinkActive == true ? gallery.ExpiresAt : null,
+                PreviewsDeleteAt = gallery is null ? null : PreviewsDeleteAt(gallery)
             };
         }).ToList();
 
@@ -294,6 +296,7 @@ public partial class PhotoGalleryService(
         var counts = await galleryRepository.GetCountsAsync(gallery.PhotoGalleryId, ct);
         var job = await galleryRepository.GetLatestJobAsync(gallery.PhotoGalleryId, ct);
         var copyJob = await copyRepository.GetLatestJobAsync(gallery.PhotoGalleryId, ct);
+        var sources = await photoRepository.GetSourceCountsAsync(gallery.PhotoGalleryId, gallery.SourceFolder, ct);
         var now = DateTime.UtcNow;
         var hasLink = gallery.IsLinkActive && gallery.TokenHash is not null;
 
@@ -321,7 +324,11 @@ public partial class PhotoGalleryService(
             SubmittedAt = gallery.SubmittedAt,
             ChangedSinceSubmit = ChangedSinceSubmit(gallery),
             PreviewsPurged = gallery.PreviewsPurgedAt is not null,
+            PreviewsDeleteAt = PreviewsDeleteAt(gallery),
             Counts = ToDto(counts),
+            ImportedSources = sources
+                .Select(s => new ImportedSourceDto { SourceFolder = s.SourceFolder, PhotoCount = s.Total, SelectedCount = s.Selected })
+                .ToList(),
             LatestImport = job is null ? null : new ImportJobDto
             {
                 JobId = job.PhotoImportJobId,
@@ -350,6 +357,19 @@ public partial class PhotoGalleryService(
         Big = counts.Big,
         NotSelected = counts.NotSelected
     };
+
+    // When cleanup will delete this gallery's previews: once the link has expired AND the retention
+    // period since it was sent has passed. Null = no link sent yet, or already deleted.
+    private DateTime? PreviewsDeleteAt(PhotoGallery gallery)
+    {
+        if (gallery.PreviewsPurgedAt is not null || gallery.ExpiresAt is not { } expires || gallery.LinkGeneratedAt is not { } sent)
+        {
+            return null;
+        }
+
+        var retainedUntil = sent.AddDays(Math.Max(0, options.PreviewRetentionDays));
+        return expires > retainedUntil ? expires : retainedUntil;
+    }
 
     internal static bool ChangedSinceSubmit(PhotoGallery gallery) =>
         gallery.SubmittedAt is { } submitted && gallery.LastSelectionAt is { } last && last > submitted;

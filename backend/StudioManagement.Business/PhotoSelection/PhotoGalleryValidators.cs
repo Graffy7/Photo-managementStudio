@@ -27,8 +27,8 @@ public class GenerateLinkRequestValidator : AbstractValidator<GenerateLinkReques
 {
     public GenerateLinkRequestValidator()
     {
-        RuleFor(x => x.ExpiresInDays).InclusiveBetween(1, 365)
-            .WithMessage("The link must stay valid for between 1 and 365 days.");
+        RuleFor(x => x.ExpiresInDays).Must(d => LinkPeriods.Allowed.Contains(d))
+            .WithMessage("The link can be valid for 5 or 10 days.");
     }
 }
 

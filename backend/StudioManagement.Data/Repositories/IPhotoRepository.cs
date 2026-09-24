@@ -2,6 +2,8 @@
 
 namespace StudioManagement.Data.Repositories;
 
+public record ImportedSourceCounts(string SourceFolder, int Total, int Selected);
+
 public interface IPhotoRepository
 {
     // folderId: null = the whole gallery, 0 = only unfiled photos, >0 = that delivery folder.
@@ -20,6 +22,21 @@ public interface IPhotoRepository
 
     // Photos that still have preview files on disk, for the post-expiry cleanup.
     Task<List<Photo>> GetWithPreviewsAsync(int galleryId, CancellationToken ct = default);
+
+    // Imported photos whose preview was deleted by cleanup (tracked, so they can be given new ones).
+    Task<List<Photo>> GetWithoutPreviewsAsync(int galleryId, CancellationToken ct = default);
+    Task<int> CountWithoutPreviewsAsync(int galleryId, CancellationToken ct = default);
+
+    // One row per folder the gallery's photos were imported from. Photos without their own
+    // SourceFolder count under the gallery's (fallbackSource).
+    Task<List<ImportedSourceCounts>> GetSourceCountsAsync(int galleryId, string? fallbackSource, CancellationToken ct = default);
+
+    // The photos imported from one folder (tracked, so they can be removed).
+    Task<List<Photo>> GetBySourceAsync(int galleryId, string sourceFolder, bool includeUnrecorded, CancellationToken ct = default);
+    void RemoveRange(IEnumerable<Photo> photos);
+
+    // Newest folder still used by the gallery's photos (null when none recorded).
+    Task<string?> GetLatestSourceAsync(int galleryId, CancellationToken ct = default);
     void UpdateRange(IEnumerable<Photo> photos);
 
     // Selection writes. One row per photo: SetSelectionAsync inserts or updates it, RemoveSelectionAsync

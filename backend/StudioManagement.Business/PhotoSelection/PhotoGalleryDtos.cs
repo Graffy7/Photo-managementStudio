@@ -36,6 +36,20 @@ public class ImportJobDto
     public string? ErrorMessage { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+
+    // Only on the response that starts an import: files in the folder that won't be imported.
+    public SkippedFilesDto? Skipped { get; set; }
+}
+
+// Files an import leaves out: only JPEG and camera RAW photos are imported.
+public class SkippedFilesDto
+{
+    public int Videos { get; set; }
+    public int Other { get; set; }
+
+    // RAW files whose same-named JPEG is imported instead (RAW+JPEG shooting).
+    public int RawWithJpeg { get; set; }
+    public List<string> Examples { get; set; } = [];
 }
 
 public class OwnerGalleryDto
@@ -65,8 +79,14 @@ public class OwnerGalleryDto
     public DateTime? SubmittedAt { get; set; }
     public bool ChangedSinceSubmit { get; set; }
     public bool PreviewsPurged { get; set; }
+
+    // When the previews will be deleted (link expired and the retention period passed).
+    public DateTime? PreviewsDeleteAt { get; set; }
     public GalleryCountsDto Counts { get; set; } = new();
     public ImportJobDto? LatestImport { get; set; }
+
+    // The folders photos were imported from (owner-only paths), so a wrong one can be removed.
+    public List<ImportedSourceDto> ImportedSources { get; set; } = [];
 
     // "Create Selected Photos" state. SelectionFolder is where the copies go (owner-only path).
     public string? SelectionFolder { get; set; }
@@ -76,6 +96,13 @@ public class OwnerGalleryDto
     // True once created and the customer has changed their selection since the last sync.
     public bool SelectionOutOfSync { get; set; }
     public CopyJobDto? LatestCopyJob { get; set; }
+}
+
+public class ImportedSourceDto
+{
+    public string SourceFolder { get; set; } = null!;
+    public int PhotoCount { get; set; }
+    public int SelectedCount { get; set; }
 }
 
 public class CompletedEventGalleryDto
@@ -91,6 +118,10 @@ public class CompletedEventGalleryDto
     public int PhotoCount { get; set; }
     public int SelectedCount { get; set; }
     public DateTime? SubmittedAt { get; set; }
+
+    // For the owner's "days left" hints.
+    public DateTime? ExpiresAt { get; set; }
+    public DateTime? PreviewsDeleteAt { get; set; }
 }
 
 // A delivery folder as both the owner screen and the customer's gallery show it. FolderId 0 is the
@@ -146,7 +177,7 @@ public class ImportRequestDto
 
 public class GenerateLinkRequestDto
 {
-    // Days from now until the link stops working (the owner picks 7/15/30/60 or a custom number).
+    // Days from now until the link stops working: one of LinkPeriods.Allowed (5 or 10).
     public int ExpiresInDays { get; set; }
 }
 

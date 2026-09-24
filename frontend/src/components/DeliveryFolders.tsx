@@ -67,7 +67,9 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
   const total = folders.reduce((sum, f) => sum + f.photoCount, 0);
 
   return (
-    <View style={styles.wrapper}>
+    // While a folder's menu is open, this block sits above what follows it, so the menu isn't hidden
+    // under the filter chips below.
+    <View style={[styles.wrapper, menuFor !== null && styles.raised]}>
       <View style={styles.grid}>
         <Pressable
           style={[styles.card, selectedFolderId === null && styles.cardActive]}
@@ -84,7 +86,9 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
           const active = selectedFolderId === folder.folderId;
           const editable = folder.folderId > 0;   // "Other" is a bucket, not a real folder
           return (
-            <View key={folder.folderId} style={styles.cardWrap}>
+            // The card with the open menu is lifted above the cards after it (on the web each card is
+            // its own layer, so a later card would otherwise paint over the menu).
+            <View key={folder.folderId} style={[styles.cardWrap, menuFor === folder.folderId && styles.raised]}>
               {renaming === folder.folderId ? (
                 <View style={[styles.card, styles.cardEditing]}>
                   <TextInput
@@ -122,17 +126,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                       color={folder.isDelivered ? "#4cc493" : "#f2bd5c"}
                     />
                     <Text style={styles.cardName} numberOfLines={1}>{folder.name}</Text>
-                    {editable && (
-                      <Pressable
-                        style={styles.menuButton}
-                        onPress={() => setMenuFor(menuFor === folder.folderId ? null : folder.folderId)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Actions for ${folder.name}`}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="ellipsis-vertical" size={13} color="#6f83a0" />
-                      </Pressable>
-                    )}
+                    {editable && <View style={styles.menuButtonSpace} />}
                   </View>
                   <View style={styles.cardBottom}>
                     <Text style={styles.cardCount}>{folder.photoCount} photos</Text>
@@ -144,6 +138,19 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                       <Text style={styles.deliveredText}>Delivered</Text>
                     </View>
                   )}
+                </Pressable>
+              )}
+
+              {/* Outside the card's own button: a button inside a button isn't valid on the web. */}
+              {editable && renaming !== folder.folderId && (
+                <Pressable
+                  style={styles.menuButton}
+                  onPress={() => setMenuFor(menuFor === folder.folderId ? null : folder.folderId)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Actions for ${folder.name}`}
+                  hitSlop={6}
+                >
+                  <Ionicons name="ellipsis-vertical" size={13} color="#6f83a0" />
                 </Pressable>
               )}
 
@@ -232,6 +239,7 @@ const styles = StyleSheet.create({
   wrapper: { gap: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   cardWrap: { position: "relative" },
+  raised: { zIndex: 30 },
   card: {
     width: CARD_WIDTH, borderWidth: 1, borderColor: "#23405c", borderRadius: 10,
     backgroundColor: "#0f1e30", paddingVertical: 10, paddingHorizontal: 12, gap: 4,
@@ -245,7 +253,8 @@ const styles = StyleSheet.create({
   cardPicked: { color: "#7fc0e6", fontSize: 11 },
   deliveredRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   deliveredText: { color: "#4cc493", fontSize: 10, fontWeight: "600" },
-  menuButton: { padding: 2 },
+  menuButton: { position: "absolute", top: 10, right: 8, padding: 2 },
+  menuButtonSpace: { width: 17 },
 
   menu: {
     position: "absolute", top: 34, right: 4, zIndex: 20, minWidth: 168,

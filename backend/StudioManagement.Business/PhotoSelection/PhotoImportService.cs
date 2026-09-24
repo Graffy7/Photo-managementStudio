@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Business.Audit;
+using StudioManagement.Business.Storage;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -12,6 +13,8 @@ public class PhotoImportService(
     IPhotoGalleryRepository galleryRepository,
     IPhotoRepository photoRepository,
     IPhotoFolderRepository folderRepository,
+    IPhotoCopyRepository copyRepository,
+    IFileStorage fileStorage,
     IPhotoPreviewGenerator previewGenerator,
     IPhotoImportQueue queue,
     IAuditService auditService,
@@ -22,11 +25,6 @@ public class PhotoImportService(
     private const string Module = "PhotoSelection";
     private const int BatchSize = 24;
 
-    // Formats the image library can decode. (Camera RAW files aren't supported — export JPEGs first.)
-    private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".bmp"
-    };
 
     // ---- Folder browsing -------------------------------------------------------------------
 
@@ -185,11 +183,46 @@ public class PhotoImportService(
         return byName;
     }
 
-    private static IEnumerable<string> EnumerateImages(string folder) =>
-        Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
-            .Where(f => ImageExtensions.Contains(Path.GetExtension(f)))
+    private static IEnumerable<string> EnumerateImages(string folder) => ScanFolder(folder).Photos;
+
+    // Sorts a folder's files into photos to import (JPEG and camera RAW) and everything skipped.
+    // A RAW file with a JPEG of the same name beside it (cameras shooting RAW+JPEG) is the same
+    // photo twice, so only the JPEG is imported.
+    private static (List<string> Photos, SkippedFilesDto Skipped) ScanFolder(string folder)
+    {
+        var skipped = new SkippedFilesDto();
+        var files = Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
             // Our own Customer Selection copies are not new photos.
-            .Where(f => !SelectionFolders.IsInsideGenerated(Path.GetRelativePath(folder, f)));
+            .Where(f => !SelectionFolders.IsInsideGenerated(Path.GetRelativePath(folder, f)))
+            .ToList();
+
+        var jpegStems = files
+            .Where(f => PhotoFileTypes.JpegExtensions.Contains(Path.GetExtension(f)))
+            .Select(f => Path.Combine(Path.GetDirectoryName(f) ?? "", Path.GetFileNameWithoutExtension(f)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var photos = new List<string>();
+        foreach (var file in files)
+        {
+            if (PhotoFileTypes.IsRaw(file) &&
+                jpegStems.Contains(Path.Combine(Path.GetDirectoryName(file) ?? "", Path.GetFileNameWithoutExtension(file))))
+            {
+                skipped.RawWithJpeg++;
+            }
+            else if (PhotoFileTypes.IsPhoto(file))
+            {
+                photos.Add(file);
+            }
+            else
+            {
+                if (PhotoFileTypes.IsVideo(file)) skipped.Videos++;
+                else skipped.Other++;
+                if (skipped.Examples.Count < 5) skipped.Examples.Add(Path.GetFileName(file));
+            }
+        }
+
+        return (photos, skipped);
+    }
 
     // ---- Starting an import ------------------------------------------------------------------
 
@@ -226,14 +259,23 @@ public class PhotoImportService(
             return ImportStartResult.Fail(ImportFailureReason.AlreadyRunning);
         }
 
+        // New files in the folder, plus photos whose previews were deleted after the retention period
+        // (they are rebuilt from their originals in the same job).
         var imported = await photoRepository.GetImportedPathsAsync(galleryId, ct);
-        var pending = ListFiles(full).Count(f => !imported.Contains(f.Relative));
+        var scan = ScanFolder(full);
+        var pending = scan.Photos.Count(f => !imported.Contains(Path.GetRelativePath(full, f)))
+                      + await photoRepository.CountWithoutPreviewsAsync(galleryId, ct);
         if (pending == 0)
         {
-            return ImportStartResult.Fail(ImportFailureReason.NoImages);
+            return ImportStartResult.Fail(ImportFailureReason.NoImages, scan.Skipped);
         }
 
         var now = DateTime.UtcNow;
+        if (gallery.PreviewsPurgedAt is not null)
+        {
+            await galleryRepository.ResetForPreviewRebuildAsync(galleryId, now, ct);
+        }
+
         var job = new PhotoImportJob
         {
             PhotoGalleryId = galleryId,
@@ -249,7 +291,104 @@ public class PhotoImportService(
         await auditService.LogAsync($"Photo import started ({pending} photos)", Module, studioId, ct);
         await queue.EnqueueAsync(job.PhotoImportJobId, ct);
 
-        return ImportStartResult.Success(ToDto(job));
+        var started = ToDto(job);
+        started.Skipped = scan.Skipped;
+        return ImportStartResult.Success(started);
+    }
+
+    public async Task<ImportStartResult> StartRebuildAsync(int studioId, int galleryId, CancellationToken ct = default)
+    {
+        var gallery = await galleryRepository.GetByIdAsync(studioId, galleryId, ct);
+        if (gallery is null)
+        {
+            return ImportStartResult.Fail(ImportFailureReason.GalleryNotFound);
+        }
+        if (string.IsNullOrWhiteSpace(gallery.SourceFolder))
+        {
+            return ImportStartResult.Fail(ImportFailureReason.FolderNotFound);
+        }
+
+        return await StartAsync(studioId, galleryId, gallery.SourceFolder, ct);
+    }
+
+    // ---- Removing a wrongly imported folder -------------------------------------------------
+
+    public async Task<RemoveSourceResult> RemoveSourceAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default)
+    {
+        var gallery = await galleryRepository.GetByIdAsync(studioId, galleryId, ct);
+        if (gallery is null)
+        {
+            return RemoveSourceResult.Fail(RemoveSourceFailure.GalleryNotFound);
+        }
+
+        // Rows being read by a running import or copy job must not vanish under it.
+        var import = await galleryRepository.GetLatestJobAsync(galleryId, ct);
+        var copy = await copyRepository.GetLatestJobAsync(galleryId, ct);
+        if (import?.Status is ImportJobStatuses.Queued or ImportJobStatuses.Running ||
+            copy?.Status is ImportJobStatuses.Queued or ImportJobStatuses.Running)
+        {
+            return RemoveSourceResult.Fail(RemoveSourceFailure.JobRunning);
+        }
+
+        var source = sourceFolder.Trim();
+        var isGallerySource = string.Equals(source, gallery.SourceFolder, StringComparison.OrdinalIgnoreCase);
+        var photos = await photoRepository.GetBySourceAsync(galleryId, source, isGallerySource, ct);
+        if (photos.Count == 0)
+        {
+            return RemoveSourceResult.Fail(RemoveSourceFailure.NotFound);
+        }
+
+        var ids = photos.Select(p => p.PhotoId).ToHashSet();
+        var selected = (await photoRepository.GetSelectedAsync(galleryId, ct)).Count(s => ids.Contains(s.Photo.PhotoId));
+        var files = photos.SelectMany(p => new[] { p.PreviewPath, p.ThumbnailPath }).Where(f => f is not null).ToList();
+        var folderIds = photos.Where(p => p.PhotoFolderId is not null).Select(p => p.PhotoFolderId!.Value).ToHashSet();
+
+        // Selections and "Create Selected Photos" records go with the photo rows (database cascade).
+        photoRepository.RemoveRange(photos);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        // Delivery folders this import created and that are now empty.
+        var counts = (await folderRepository.GetCountsAsync(galleryId, ct))
+            .Where(c => c.FolderId is not null && c.Total > 0).Select(c => c.FolderId!.Value).ToHashSet();
+        foreach (var folder in (await folderRepository.GetByGalleryAsync(galleryId, ct))
+                     .Where(f => folderIds.Contains(f.PhotoFolderId) && !counts.Contains(f.PhotoFolderId)))
+        {
+            folderRepository.Remove(folder);
+        }
+        await unitOfWork.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        if (isGallerySource)
+        {
+            await galleryRepository.SetSourceFolderOrNullAsync(galleryId, await photoRepository.GetLatestSourceAsync(galleryId, ct), now, ct);
+        }
+        if (selected > 0)
+        {
+            // Lets the owner see that the Customer Selection folder needs a sync.
+            await galleryRepository.MarkSelectionChangedAsync(galleryId, now, ct);
+        }
+        if ((await galleryRepository.GetCountsAsync(galleryId, ct)).Total == 0)
+        {
+            // Nothing left to show: a sent link would open an empty gallery.
+            await galleryRepository.RevokeLinkAsync(galleryId, now, ct);
+        }
+
+        // Only our own preview/thumbnail copies - the originals in the studio folder stay as they are.
+        foreach (var file in files)
+        {
+            try
+            {
+                fileStorage.Delete(file!);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Couldn't delete preview {File}", file);
+            }
+        }
+
+        var folderName = Path.GetFileName(source.TrimEnd('\\', '/'));
+        await auditService.LogAsync($"Removed {photos.Count} photos from folder {folderName} (event {gallery.EventId})", Module, studioId, ct);
+        return RemoveSourceResult.Success(photos.Count, selected);
     }
 
     public async Task<ImportJobDto?> GetJobAsync(int studioId, int galleryId, int jobId, CancellationToken ct = default)
@@ -301,7 +440,10 @@ public class PhotoImportService(
 
             var imported = await photoRepository.GetImportedPathsAsync(job.PhotoGalleryId, ct);
             var todo = ListFiles(job.SourceFolder).Where(f => !imported.Contains(f.Relative)).ToList();
-            job.TotalCount = todo.Count;
+            var withoutPreviews = await photoRepository.GetWithoutPreviewsAsync(job.PhotoGalleryId, ct);
+            job.TotalCount = todo.Count + withoutPreviews.Count;
+
+            await RebuildPreviewsAsync(job, withoutPreviews, ct);
 
             var nextNumber = await photoRepository.GetMaxPhotoNumberAsync(job.PhotoGalleryId, ct) + 1;
 
@@ -379,6 +521,43 @@ public class PhotoImportService(
             job.CompletedAt = DateTime.UtcNow;
             galleryRepository.UpdateJob(job);
             await unitOfWork.SaveChangesAsync(CancellationToken.None);
+        }
+    }
+
+    // Photos already in the gallery whose previews were deleted by cleanup get new ones from their
+    // originals. Their numbers, folders and the customer's selections stay exactly as they were.
+    private async Task RebuildPreviewsAsync(PhotoImportJob job, List<Photo> photos, CancellationToken ct)
+    {
+        foreach (var chunk in photos.Chunk(BatchSize))
+        {
+            var rebuilt = 0;
+
+            await Parallel.ForEachAsync(
+                chunk,
+                new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, options.ImportParallelism), CancellationToken = ct },
+                async (photo, token) =>
+                {
+                    var original = Path.Combine(photo.SourceFolder ?? job.SourceFolder, photo.SourceRelativePath);
+                    try
+                    {
+                        var preview = await previewGenerator.GenerateAsync(original, job.PhotoGalleryId, token);
+                        photo.ThumbnailPath = preview.ThumbnailUrl;
+                        photo.PreviewPath = preview.PreviewUrl;
+                        photo.Width = preview.Width;
+                        photo.Height = preview.Height;
+                        Interlocked.Increment(ref rebuilt);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // The original may have been moved or deleted since the import.
+                        logger.LogWarning(ex, "Preview rebuild failed for {File}", original);
+                    }
+                });
+
+            job.ProcessedCount += chunk.Length;
+            job.FailedCount += chunk.Length - rebuilt;
+            galleryRepository.UpdateJob(job);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 

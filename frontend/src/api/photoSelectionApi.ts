@@ -40,6 +40,14 @@ export const photoSelectionApi = {
   startImport: (galleryId: number, sourceFolder: string) =>
     apiClient.post<ImportJob>(`/api/photo-galleries/${galleryId}/import`, { sourceFolder }).then((r) => r.data),
 
+  removeImportedFolder: (galleryId: number, sourceFolder: string) =>
+    apiClient
+      .post<{ removedCount: number; selectedRemovedCount: number }>(`/api/photo-galleries/${galleryId}/imported-folders/remove`, { sourceFolder })
+      .then((r) => r.data),
+
+  rebuildPreviews: (galleryId: number) =>
+    apiClient.post<ImportJob>(`/api/photo-galleries/${galleryId}/rebuild-previews`).then((r) => r.data),
+
   getImportJob: (galleryId: number, jobId: number) =>
     apiClient.get<ImportJob>(`/api/photo-galleries/${galleryId}/import/${jobId}`).then((r) => r.data),
 

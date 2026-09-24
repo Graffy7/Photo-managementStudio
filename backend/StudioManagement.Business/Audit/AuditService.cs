@@ -13,11 +13,15 @@ public class AuditService(
     ITenantContext tenantContext,
     IUnitOfWork unitOfWork) : IAuditService
 {
+    // AuditLogs.Action holds at most this many characters; a longer message (a long customer or
+    // folder name) is shortened rather than failing the operation it records.
+    private const int MaxActionLength = 100;
+
     public async Task LogAsync(string action, string module, int? studioId, CancellationToken ct = default)
     {
         var entry = new AuditLog
         {
-            Action = action,
+            Action = action.Length <= MaxActionLength ? action : action[..(MaxActionLength - 1)] + "…",
             Module = module,
             EntityName = "Studio",
             EntityId = studioId,

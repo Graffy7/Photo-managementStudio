@@ -1,6 +1,7 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
 using StudioManagement.Business.Storage;
 
@@ -10,7 +11,22 @@ public class ImageSharpPhotoPreviewGenerator(IFileStorage fileStorage, PhotoGall
 {
     public async Task<GeneratedPreview> GenerateAsync(string sourcePath, int galleryId, CancellationToken ct = default)
     {
-        await using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+        // RAW files: the preview comes from the JPEG the camera embedded in the RAW.
+        ushort rawOrientation = 1;
+        Stream source;
+        if (PhotoFileTypes.IsRaw(sourcePath))
+        {
+            var embedded = await RawPreviewExtractor.FindAsync(sourcePath, ct)
+                           ?? throw new InvalidDataException("No embedded preview found in the RAW file.");
+            source = RawPreviewExtractor.OpenAt(sourcePath, embedded.Offset);
+            rawOrientation = embedded.Orientation;
+        }
+        else
+        {
+            source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+        }
+
+        await using var _ = source;
 
         // TargetSize lets the JPEG decoder skip work by decoding at a reduced scale — the difference
         // between seconds and a fraction of a second per 24MP original. But it resizes TO the target,
@@ -24,6 +40,15 @@ public class ImageSharpPhotoPreviewGenerator(IFileStorage fileStorage, PhotoGall
             : new DecoderOptions();
 
         using var image = await Image.LoadAsync(decoderOptions, source, ct);
+
+        // The JPEG inside a RAW usually has no orientation of its own; the RAW's metadata says how
+        // the camera was held.
+        if (rawOrientation != 1 &&
+            (image.Metadata.ExifProfile?.TryGetValue(ExifTag.Orientation, out var own) != true || own!.Value <= 1))
+        {
+            image.Metadata.ExifProfile ??= new ExifProfile();
+            image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, rawOrientation);
+        }
 
         image.Mutate(x => x.AutoOrient());
         if (image.Width > options.PreviewMaxDimension || image.Height > options.PreviewMaxDimension)

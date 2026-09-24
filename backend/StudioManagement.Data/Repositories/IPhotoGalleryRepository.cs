@@ -26,7 +26,8 @@ public interface IPhotoGalleryRepository
     Task MarkFoldersBackfilledAsync(int galleryId, DateTime when, CancellationToken ct = default);
 
     Task<GallerySelectionCounts> GetCountsAsync(int galleryId, CancellationToken ct = default);
-    Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime expiredBefore, CancellationToken ct = default);
+    // Galleries whose link has expired and was generated before sentBefore, with previews still on disk.
+    Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime now, DateTime sentBefore, CancellationToken ct = default);
 
     Task AddAsync(PhotoGallery gallery, CancellationToken ct = default);
 
@@ -42,7 +43,12 @@ public interface IPhotoGalleryRepository
     // Atomic "first submit, or first submit since the customer edited": false = nothing changed, so a
     // double-tap or retried request cannot notify the owner twice.
     Task<bool> MarkSubmittedAsync(int galleryId, DateTime now, CancellationToken ct = default);
+    Task SetSourceFolderOrNullAsync(int galleryId, string? sourceFolder, DateTime now, CancellationToken ct = default);
     Task MarkPreviewsPurgedAsync(int galleryId, DateTime now, CancellationToken ct = default);
+
+    // Previews are being rebuilt: clears the purge marker and the old (expired) link, so the owner
+    // sends a fresh one and cleanup doesn't delete the new previews straight away.
+    Task ResetForPreviewRebuildAsync(int galleryId, DateTime now, CancellationToken ct = default);
 
     // Records a finished create/sync: SelectionCreatedAt is set the first time only.
     Task MarkSelectionSyncedAsync(int galleryId, DateTime syncedAt, CancellationToken ct = default);

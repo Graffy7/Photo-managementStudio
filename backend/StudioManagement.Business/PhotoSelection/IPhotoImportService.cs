@@ -7,6 +7,11 @@ public interface IPhotoImportService
     FolderBrowseResultDto? BrowseFolders(string? path);
 
     Task<ImportStartResult> StartAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default);
+    // Rebuilds the previews that cleanup deleted, from the originals in the gallery's own folder.
+    Task<ImportStartResult> StartRebuildAsync(int studioId, int galleryId, CancellationToken ct = default);
+    // Takes the photos imported from one folder back out of the gallery (e.g. the wrong folder was
+    // picked): their rows, selections and preview files go; the original files are never touched.
+    Task<RemoveSourceResult> RemoveSourceAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default);
     Task<ImportJobDto?> GetJobAsync(int studioId, int galleryId, int jobId, CancellationToken ct = default);
 
     // Called by the background worker. Reads originals, writes previews, records progress; the

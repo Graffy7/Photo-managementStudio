@@ -7,8 +7,8 @@ namespace StudioManagement.Business.PhotoSelection;
 
 public interface IGalleryCleanupService
 {
-    // Deletes the preview/thumbnail files of galleries whose link expired more than the grace period
-    // ago. Returns how many galleries were cleaned.
+    // Deletes the preview/thumbnail files of galleries whose link has expired and was sent more than
+    // PreviewRetentionDays ago. Returns how many galleries were cleaned.
     Task<int> CleanupExpiredAsync(DateTime now, CancellationToken ct = default);
 }
 
@@ -25,7 +25,7 @@ public class GalleryCleanupService(
 {
     public async Task<int> CleanupExpiredAsync(DateTime now, CancellationToken ct = default)
     {
-        var expired = await galleryRepository.GetExpiredForCleanupAsync(now.AddDays(-Math.Max(0, options.PreviewPurgeGraceDays)), ct);
+        var expired = await galleryRepository.GetExpiredForCleanupAsync(now, now.AddDays(-Math.Max(0, options.PreviewRetentionDays)), ct);
         var cleaned = 0;
 
         foreach (var gallery in expired)

@@ -37,6 +37,21 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 }
 
+function daysLeft(value: string | null): number | null {
+  if (!value) return null;
+  return Math.ceil((new Date(value.endsWith("Z") ? value : `${value}Z`).getTime() - Date.now()) / 86_400_000);
+}
+
+// "Link: 3 days left" while the customer can still choose; afterwards, when the previews go.
+function countdown(item: CompletedEventGallery): string | null {
+  const plural = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
+  const link = daysLeft(item.expiresAt);
+  if (link !== null && link > 0) return `Link: ${plural(link)} left`;
+  const previews = daysLeft(item.previewsDeleteAt);
+  if (previews !== null) return previews > 0 ? `Previews deleted in ${plural(previews)}` : "Previews deleted today";
+  return null;
+}
+
 // Completed events and where each one stands with its customer photo selection. Tapping one opens
 // (creating, the first time) that event's gallery.
 export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number) => void }) {
@@ -69,6 +84,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
         {item.photoCount > 0 && (
           <Text style={styles.progress}>{item.selectedCount} / {item.photoCount} selected</Text>
         )}
+        {!!countdown(item) && <Text style={styles.countdown}>{countdown(item)}</Text>}
         <Text style={styles.chevron}>›</Text>
       </View>
     </Pressable>
@@ -133,6 +149,7 @@ const styles = StyleSheet.create({
   },
   filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
+  countdown: { color: "#ffb37a", fontSize: 12 },
   chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
   chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   chipTextSelected: { color: "#ff9a4d" },
