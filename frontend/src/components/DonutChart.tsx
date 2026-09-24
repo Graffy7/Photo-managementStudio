@@ -133,7 +133,10 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
               strokeDashoffset: -a.start,
               strokeLinecap: (useGaps ? "round" : "butt") as "round" | "butt",
               rotation: -90,
-              origin: `${center}, ${center}`,
+              // originX/originY rather than the combined `origin` string: on the web that one
+              // reaches the DOM as a hyphenated attribute and React warns about it.
+              originX: center,
+              originY: center,
             };
             return (
               <G key={a.label}>
