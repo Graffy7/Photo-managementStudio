@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Business.Audit;
 using StudioManagement.Data.Common;
@@ -11,6 +11,7 @@ namespace StudioManagement.Business.PhotoSelection;
 public class PhotoImportService(
     IPhotoGalleryRepository galleryRepository,
     IPhotoRepository photoRepository,
+    IPhotoFolderRepository folderRepository,
     IPhotoPreviewGenerator previewGenerator,
     IPhotoImportQueue queue,
     IAuditService auditService,
@@ -121,6 +122,68 @@ public class PhotoImportService(
     }
 
     private bool IsAllowed(string fullPath) => options.IsAllowed(fullPath);
+
+    // Maps a photo's path relative to the source folder to the delivery folder it belongs in:
+    // "Candid Photos\IMG_1.jpg" -> the "Candid Photos" folder, "IMG_1.jpg" -> unfiled.
+    private static string? FolderNameFor(string relativePath)
+    {
+        var segments = relativePath.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
+        return segments.Length < 2 ? null : segments[0];
+    }
+
+    private static int? FolderIdFor(string relativePath, IReadOnlyDictionary<string, int> folders)
+    {
+        var name = FolderNameFor(relativePath);
+        return name is not null && folders.TryGetValue(name, out var id) ? id : null;
+    }
+
+    // Creates any delivery folder this batch of files needs, and returns them all by name.
+    private async Task<Dictionary<string, int>> EnsureFoldersAsync(PhotoImportJob job, IEnumerable<string> relativePaths, CancellationToken ct)
+    {
+        var gallery = await galleryRepository.GetByIdUnscopedAsync(job.PhotoGalleryId, ct);
+        var existing = await folderRepository.GetByGalleryAsync(job.PhotoGalleryId, ct);
+        var byName = existing.ToDictionary(f => f.Name, f => f.PhotoFolderId, StringComparer.OrdinalIgnoreCase);
+        if (gallery is null)
+        {
+            return byName;
+        }
+
+        var needed = relativePaths.Select(FolderNameFor).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase);
+        var sort = existing.Count == 0 ? 0 : existing.Max(f => f.SortOrder);
+        var now = DateTime.UtcNow;
+        var added = false;
+
+        foreach (var name in needed)
+        {
+            if (byName.ContainsKey(name))
+            {
+                continue;
+            }
+
+            var folder = new PhotoFolder
+            {
+                StudioId = gallery.StudioId,
+                PhotoGalleryId = job.PhotoGalleryId,
+                Name = name,
+                SortOrder = ++sort,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            await folderRepository.AddAsync(folder, ct);
+            added = true;
+        }
+
+        if (added)
+        {
+            await unitOfWork.SaveChangesAsync(ct);
+            foreach (var folder in await folderRepository.GetByGalleryAsync(job.PhotoGalleryId, ct))
+            {
+                byName[folder.Name] = folder.PhotoFolderId;
+            }
+        }
+
+        return byName;
+    }
 
     private static IEnumerable<string> EnumerateImages(string folder) =>
         Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
@@ -242,6 +305,10 @@ public class PhotoImportService(
 
             var nextNumber = await photoRepository.GetMaxPhotoNumberAsync(job.PhotoGalleryId, ct) + 1;
 
+            // Each subfolder of the source becomes a delivery folder, so the structure the studio
+            // already keeps on disk is the structure the customer sees.
+            var folders = await EnsureFoldersAsync(job, todo.Select(f => f.Relative), ct);
+
             foreach (var chunk in todo.Chunk(BatchSize))
             {
                 var results = new Photo?[chunk.Length];
@@ -260,6 +327,7 @@ public class PhotoImportService(
                                 FileName = Path.GetFileName(chunk[i].FullPath),
                                 SourceFolder = job.SourceFolder,
                                 SourceRelativePath = chunk[i].Relative,
+                                PhotoFolderId = FolderIdFor(chunk[i].Relative, folders),
                                 ThumbnailPath = preview.ThumbnailUrl,
                                 PreviewPath = preview.PreviewUrl,
                                 Width = preview.Width,

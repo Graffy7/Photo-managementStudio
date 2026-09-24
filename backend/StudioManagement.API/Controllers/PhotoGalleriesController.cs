@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.PhotoSelection;
@@ -17,8 +17,10 @@ public class PhotoGalleriesController(
     IPhotoGalleryService galleryService,
     IPhotoImportService importService,
     IPhotoSelectionCopyService copyService,
+    IPhotoFolderService folderService,
     IValidator<ImportRequestDto> importValidator,
     IValidator<GenerateLinkRequestDto> linkValidator,
+    IValidator<SaveFolderRequestDto> folderValidator,
     ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
@@ -162,11 +164,75 @@ public class PhotoGalleriesController(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 60,
+        // null = the whole gallery, 0 = photos that aren't in a folder, >0 = that delivery folder.
+        [FromQuery] int? folderId = null,
         CancellationToken ct = default)
     {
         var parsed = Enum.TryParse<PhotoFilter>(filter, ignoreCase: true, out var f) ? f : PhotoFilter.All;
-        var result = await galleryService.GetPhotosAsync(StudioId, id, parsed, search, page, pageSize, ct);
+        var result = await galleryService.GetPhotosAsync(StudioId, id, parsed, search, page, pageSize, folderId, ct);
         return result is null ? NotFound() : Ok(result);
+    }
+
+    // ---- Delivery folders ---------------------------------------------------------------------
+
+    [HttpGet("{id:int}/folders")]
+    public async Task<IActionResult> Folders(int id, CancellationToken ct)
+    {
+        var folders = await folderService.GetAsync(StudioId, id, ct);
+        return folders is null ? NotFound() : Ok(folders);
+    }
+
+    [HttpPost("{id:int}/folders")]
+    public async Task<IActionResult> CreateFolder(int id, SaveFolderRequestDto request, CancellationToken ct)
+    {
+        var validation = await folderValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        return FolderResponse(await folderService.CreateAsync(StudioId, id, request, ct));
+    }
+
+    [HttpPut("{id:int}/folders/{folderId:int}")]
+    public async Task<IActionResult> RenameFolder(int id, int folderId, SaveFolderRequestDto request, CancellationToken ct)
+    {
+        var validation = await folderValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        return FolderResponse(await folderService.RenameAsync(StudioId, id, folderId, request, ct));
+    }
+
+    [HttpPost("{id:int}/folders/{folderId:int}/delivered")]
+    public async Task<IActionResult> SetFolderDelivered(int id, int folderId, SetFolderDeliveredRequestDto request, CancellationToken ct) =>
+        FolderResponse(await folderService.SetDeliveredAsync(StudioId, id, folderId, request.IsDelivered, ct));
+
+    [HttpDelete("{id:int}/folders/{folderId:int}")]
+    public async Task<IActionResult> DeleteFolder(int id, int folderId, CancellationToken ct)
+    {
+        var result = await folderService.DeleteAsync(StudioId, id, folderId, ct);
+        return result.Succeeded ? NoContent() : FolderResponse(result);
+    }
+
+    private IActionResult FolderResponse(FolderResult result)
+    {
+        if (result.Succeeded)
+        {
+            return Ok(result.Folder);
+        }
+
+        return result.FailureReason switch
+        {
+            FolderFailureReason.GalleryNotFound => NotFound(),
+            FolderFailureReason.FolderNotFound => NotFound(new { message = "That folder no longer exists." }),
+            FolderFailureReason.DuplicateName => Conflict(new { message = "This event already has a folder with that name." }),
+            _ => BadRequest(new { message = "Invalid request." })
+        };
     }
 
     [HttpGet("{id:int}/export")]

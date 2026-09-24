@@ -1,11 +1,12 @@
-using StudioManagement.Data.Entities;
+﻿using StudioManagement.Data.Entities;
 
 namespace StudioManagement.Data.Repositories;
 
 public interface IPhotoRepository
 {
+    // folderId: null = the whole gallery, 0 = only unfiled photos, >0 = that delivery folder.
     Task<(List<PhotoWithSelection> Items, int TotalCount)> GetPageAsync(
-        int galleryId, PhotoFilter filter, string? search, int page, int pageSize, CancellationToken ct = default);
+        int galleryId, PhotoFilter filter, string? search, int page, int pageSize, int? folderId, CancellationToken ct = default);
 
     Task<Photo?> GetByIdAsync(int galleryId, int photoId, CancellationToken ct = default);
     Task<PhotoWithSelection?> GetWithSelectionAsync(int galleryId, int photoId, CancellationToken ct = default);

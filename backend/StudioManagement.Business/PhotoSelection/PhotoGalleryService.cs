@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -174,7 +174,7 @@ public partial class PhotoGalleryService(
 
     // ---- Photos and export -------------------------------------------------------------------
 
-    public async Task<OwnerPhotosPageDto?> GetPhotosAsync(int studioId, int galleryId, PhotoFilter filter, string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<OwnerPhotosPageDto?> GetPhotosAsync(int studioId, int galleryId, PhotoFilter filter, string? search, int page, int pageSize, int? folderId, CancellationToken ct = default)
     {
         var gallery = await galleryRepository.GetByIdAsync(studioId, galleryId, ct);
         if (gallery is null)
@@ -185,7 +185,7 @@ public partial class PhotoGalleryService(
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 200 ? 60 : pageSize;
 
-        var (items, totalCount) = await photoRepository.GetPageAsync(galleryId, filter, search, page, pageSize, ct);
+        var (items, totalCount) = await photoRepository.GetPageAsync(galleryId, filter, search, page, pageSize, folderId, ct);
         return new OwnerPhotosPageDto
         {
             Items = items.Select(p => new OwnerPhotoDto
@@ -198,7 +198,8 @@ public partial class PhotoGalleryService(
                 Width = p.Photo.Width,
                 Height = p.Photo.Height,
                 SelectionType = p.SelectionType is { } t ? SelectionTypes.Label(t) : null,
-                SelectedAt = p.SelectedAt
+                SelectedAt = p.SelectedAt,
+                FolderId = p.Photo.PhotoFolderId
             }).ToList(),
             TotalCount = totalCount,
             Page = page,

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -28,9 +28,19 @@ public class PhotoRepository(AppDbContext context) : IPhotoRepository
         });
 
     public async Task<(List<PhotoWithSelection> Items, int TotalCount)> GetPageAsync(
-        int galleryId, PhotoFilter filter, string? search, int page, int pageSize, CancellationToken ct = default)
+        int galleryId, PhotoFilter filter, string? search, int page, int pageSize, int? folderId, CancellationToken ct = default)
     {
         var query = ApplyFilter(GalleryPhotos(galleryId).AsNoTracking(), filter);
+
+        // folderId 0 means the "Other" bucket: everything that was never filed into a folder.
+        if (folderId == 0)
+        {
+            query = query.Where(p => p.PhotoFolderId == null);
+        }
+        else if (folderId is > 0)
+        {
+            query = query.Where(p => p.PhotoFolderId == folderId);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {

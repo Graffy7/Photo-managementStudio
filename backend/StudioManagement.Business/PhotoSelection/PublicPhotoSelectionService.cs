@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
@@ -13,6 +13,7 @@ namespace StudioManagement.Business.PhotoSelection;
 public class PublicPhotoSelectionService(
     IPhotoGalleryRepository galleryRepository,
     IPhotoRepository photoRepository,
+    IPhotoFolderService folderService,
     INotificationService notificationService,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IPublicPhotoSelectionService
@@ -51,7 +52,7 @@ public class PublicPhotoSelectionService(
         });
     }
 
-    public async Task<PublicAccess<PublicPhotosPageDto>> GetPhotosAsync(string token, PhotoFilter filter, string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PublicAccess<PublicPhotosPageDto>> GetPhotosAsync(string token, PhotoFilter filter, string? search, int page, int pageSize, int? folderId, CancellationToken ct = default)
     {
         var (gallery, failure) = await ResolveAsync(token, ct);
         if (gallery is null)
@@ -62,7 +63,7 @@ public class PublicPhotoSelectionService(
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 50 : pageSize;
 
-        var (items, totalCount) = await photoRepository.GetPageAsync(gallery.PhotoGalleryId, filter, search, page, pageSize, ct);
+        var (items, totalCount) = await photoRepository.GetPageAsync(gallery.PhotoGalleryId, filter, search, page, pageSize, folderId, ct);
         return PublicAccess<PublicPhotosPageDto>.Ok(new PublicPhotosPageDto
         {
             Items = items.Select(ToPublicPhoto).ToList(),
@@ -71,6 +72,19 @@ public class PublicPhotoSelectionService(
             PageSize = pageSize,
             HasMore = page * pageSize < totalCount
         });
+    }
+
+    public async Task<PublicAccess<List<PhotoFolderDto>>> GetFoldersAsync(string token, CancellationToken ct = default)
+    {
+        var (gallery, failure) = await ResolveAsync(token, ct);
+        if (gallery is null)
+        {
+            return PublicAccess<List<PhotoFolderDto>>.Fail(failure!.Value);
+        }
+
+        var folders = await folderService.GetAsync(gallery.StudioId, gallery.PhotoGalleryId, ct) ?? [];
+        // A folder with nothing in it is noise on the customer's screen.
+        return PublicAccess<List<PhotoFolderDto>>.Ok(folders.Where(f => f.PhotoCount > 0).ToList());
     }
 
     public async Task<PublicAccess<GalleryCountsDto>> GetSummaryAsync(string token, CancellationToken ct = default)
@@ -246,6 +260,7 @@ public class PublicPhotoSelectionService(
         PreviewUrl = p.Photo.PreviewPath,
         Width = p.Photo.Width,
         Height = p.Photo.Height,
-        SelectionType = p.SelectionType
+        SelectionType = p.SelectionType,
+        FolderId = p.Photo.PhotoFolderId
     };
 }

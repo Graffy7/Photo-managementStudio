@@ -7,6 +7,7 @@ import { buildCustomerLink, photoSelectionApi, photoUrl } from "../../api/photoS
 import { extractErrorMessage } from "../../api/errorMessage";
 import { StatusPill } from "../../components/StatusPill";
 import { FolderBrowserModal } from "../../components/FolderBrowserModal";
+import { DeliveryFolders } from "../../components/DeliveryFolders";
 import { SelectionCopyPanel } from "./SelectionCopyPanel";
 import { downloadBytes } from "../../utils/downloadFile";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
@@ -418,12 +419,14 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
   const [view, setView] = useState<"grid" | "table">("grid");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<OwnerPhoto | null>(null);
+  // null = every photo in the gallery; otherwise the delivery folder the owner picked above.
+  const [folderId, setFolderId] = useState<number | null>(null);
   const c = gallery.counts;
 
   const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     // total in the key: when an import finishes the list reloads with the new photos.
-    queryKey: ["photo-gallery-photos", gallery.galleryId, filter, search, c.total, c.selected],
-    queryFn: ({ pageParam }) => photoSelectionApi.photos(gallery.galleryId, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE }),
+    queryKey: ["photo-gallery-photos", gallery.galleryId, filter, search, c.total, c.selected, folderId],
+    queryFn: ({ pageParam }) => photoSelectionApi.photos(gallery.galleryId, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE, folderId: folderId ?? undefined }),
     initialPageParam: 1,
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
     enabled: c.total > 0,
@@ -444,7 +447,10 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
 
   return (
     <View style={styles.section}>
-      <View style={styles.photosHeader}>
+      <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Photo delivery</Text>
+      <DeliveryFolders galleryId={gallery.galleryId} selectedFolderId={folderId} onSelect={setFolderId} />
+
+      <View style={[styles.photosHeader, { marginTop: 18 }]}>
         <Text style={styles.sectionTitle}>Selection</Text>
         <View style={styles.viewToggle}>
           {(["grid", "table"] as const).map((v) => (
@@ -458,7 +464,9 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
       <View style={styles.chipRow}>
         {filters.map((f) => (
           <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipSelected]} onPress={() => setFilter(f.key)}>
-            <Text style={[styles.chipText, filter === f.key && styles.chipTextSelected]}>{f.label} ({f.count})</Text>
+            <Text style={[styles.chipText, filter === f.key && styles.chipTextSelected]}>
+              {f.label}{folderId === null ? ` (${f.count})` : ""}
+            </Text>
           </Pressable>
         ))}
       </View>

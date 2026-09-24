@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -75,6 +75,11 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
             .Include(g => g.Customer)
             .Include(g => g.Event).ThenInclude(e => e.EventType)
             .FirstOrDefaultAsync(g => g.PhotoGalleryId == galleryId, ct);
+
+    public Task MarkFoldersBackfilledAsync(int galleryId, DateTime when, CancellationToken ct = default) =>
+        context.PhotoGalleries
+            .Where(g => g.PhotoGalleryId == galleryId)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.FoldersBackfilledAt, when), ct);
 
     public async Task<GallerySelectionCounts> GetCountsAsync(int galleryId, CancellationToken ct = default)
     {

@@ -1,4 +1,4 @@
-namespace StudioManagement.Data.Entities;
+﻿namespace StudioManagement.Data.Entities;
 
 // One selection gallery per event. Holds only metadata and the customer link's state — the
 // original photos stay in the studio's own folder (SourceFolder) and are never copied or stored.
@@ -27,6 +27,10 @@ public class PhotoGallery : ITenantEntity
     public DateTime? SubmittedAt { get; set; }
     public DateTime? PreviewsPurgedAt { get; set; }
 
+    // Set the first time this gallery's photos were sorted into delivery folders from the paths the
+    // importer recorded. It only ever happens once, so a folder the studio deletes stays deleted.
+    public DateTime? FoldersBackfilledAt { get; set; }
+
     // Customer Selection folders: first created, and the moment of the latest sync (a customer change
     // after this means the folders are out of date).
     public DateTime? SelectionCreatedAt { get; set; }
@@ -38,4 +42,5 @@ public class PhotoGallery : ITenantEntity
     public Customer Customer { get; set; } = null!;
     public Event Event { get; set; } = null!;
     public ICollection<Photo> Photos { get; set; } = new List<Photo>();
+    public ICollection<PhotoFolder> Folders { get; set; } = new List<PhotoFolder>();
 }

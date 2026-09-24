@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -37,10 +37,20 @@ public class PublicPhotoSelectionController(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
+        // Which folder the customer has opened; null shows the whole gallery.
+        [FromQuery] int? folderId = null,
         CancellationToken ct = default)
     {
         var parsed = Enum.TryParse<PhotoFilter>(filter, ignoreCase: true, out var f) ? f : PhotoFilter.All;
-        var result = await selectionService.GetPhotosAsync(token, parsed, search, page, pageSize, ct);
+        var result = await selectionService.GetPhotosAsync(token, parsed, search, page, pageSize, folderId, ct);
+        return result.Value is not null ? Ok(result.Value) : AccessDenied(result.Failure!.Value);
+    }
+
+    // The folders the customer picks from before seeing any photos.
+    [HttpGet("folders")]
+    public async Task<IActionResult> Folders(string token, CancellationToken ct)
+    {
+        var result = await selectionService.GetFoldersAsync(token, ct);
         return result.Value is not null ? Ok(result.Value) : AccessDenied(result.Failure!.Value);
     }
 

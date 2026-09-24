@@ -1,9 +1,14 @@
-namespace StudioManagement.Data.Entities;
+﻿namespace StudioManagement.Data.Entities;
 
 public class Photo
 {
     public int PhotoId { get; set; }
     public int PhotoGalleryId { get; set; }
+
+    // The delivery folder this photo belongs to. Null means unfiled - photos imported before
+    // folders existed, or ones that sat loose in the root of the source folder.
+    public int? PhotoFolderId { get; set; }
+
     public int PhotoNumber { get; set; }
     public string FileName { get; set; } = null!;
 
@@ -23,5 +28,6 @@ public class Photo
     public DateTime CreatedAt { get; set; }
 
     public PhotoGallery Gallery { get; set; } = null!;
+    public PhotoFolder? Folder { get; set; }
     public PhotoSelection? Selection { get; set; }
 }

@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { publicPhotoSelectionApi, toPublicError } from "../../api/photoSelectionApi";
-import type { PhotoFilter, PublicGallery } from "../../types/photoSelection";
+import type { PhotoFilter, PhotoFolder, PublicGallery } from "../../types/photoSelection";
 import { PublicPhotoCard, BIG_COLOR, NORMAL_COLOR } from "./PublicPhotoCard";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { SelectionReviewModal } from "./SelectionReviewModal";
@@ -83,6 +83,8 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   const { width } = useWindowDimensions();
 
   const [filter, setFilter] = useState<PhotoFilter>("All");
+  // The customer picks a folder first; null means they are still on the folder screen.
+  const [folder, setFolder] = useState<PhotoFolder | null>(null);
   const [searchText, setSearchText] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const search = useDebounced(searchText.trim(), 300);
@@ -110,9 +112,16 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   });
   const { counts, effective, setSelection, error, dismissError } = saver;
 
+  const { data: folders = [], isPending: foldersPending } = useQuery({
+    queryKey: ["public-folders", token, counts.selected],
+    queryFn: () => publicPhotoSelectionApi.folders(token),
+    refetchOnWindowFocus: false,
+  });
+
   const { data, isPending, isFetchingNextPage, isError, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
-    queryKey: ["public-photos", token, filter, search],
-    queryFn: ({ pageParam }) => publicPhotoSelectionApi.photos(token, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE }),
+    queryKey: ["public-photos", token, filter, search, folder?.folderId ?? null],
+    queryFn: ({ pageParam }) => publicPhotoSelectionApi.photos(token, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE, folderId: folder?.folderId }),
+    enabled: folder !== null,
     initialPageParam: 1,
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
     refetchOnWindowFocus: false,
@@ -171,18 +180,27 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
       <View style={styles.sticky}>
         <View style={[styles.inner, { maxWidth: MAX_CONTENT_WIDTH }]}>
           <View style={styles.headerRow}>
-            {canGoBack && (
+            {folder !== null ? (
+              <Pressable
+                style={styles.backButton}
+                onPress={() => setFolder(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Back to folders"
+              >
+                <Text style={styles.backText}>‹ Folders</Text>
+              </Pressable>
+            ) : canGoBack ? (
               <Pressable style={styles.backButton} onPress={() => window.history.back()} accessibilityRole="button" accessibilityLabel="Go back">
                 <Text style={styles.backText}>‹ Back</Text>
               </Pressable>
-            )}
+            ) : null}
             <View style={{ flex: 1 }}>
-              <Text style={styles.studio} numberOfLines={1}>{gallery.studioName}</Text>
+              <Text style={styles.studio} numberOfLines={1}>{folder?.name ?? gallery.studioName}</Text>
               <Text style={styles.headline} numberOfLines={1}>
                 {gallery.customerName} · {gallery.title} · {formatDate(gallery.eventDate)}
               </Text>
             </View>
-            <Text style={styles.photoCount}>{counts.total} photos</Text>
+            <Text style={styles.photoCount}>{folder?.photoCount ?? counts.total} photos</Text>
           </View>
 
           <View style={styles.summaryBar}>
@@ -205,20 +223,22 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
             </View>
           </View>
 
-          <View style={styles.filterRow}>
+          {folder !== null && <View style={styles.filterRow}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
               {filters.map((f) => (
                 <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipSelected]} onPress={() => setFilter(f.key)}>
-                  <Text style={[styles.chipText, filter === f.key && styles.chipTextSelected]}>{f.label} ({f.count})</Text>
+                  {/* The counts are gallery-wide; inside a folder they would contradict the
+                      photos on screen, so only the labels are shown there. */}
+                  <Text style={[styles.chipText, filter === f.key && styles.chipTextSelected]}>{f.label}</Text>
                 </Pressable>
               ))}
             </ScrollView>
             <Pressable style={styles.searchToggle} onPress={() => setSearchOpen((o) => !o)} accessibilityLabel="Search photos">
               <Text style={styles.searchToggleText}>{searchOpen ? "✕" : "🔍"}</Text>
             </Pressable>
-          </View>
+          </View>}
 
-          {searchOpen && (
+          {folder !== null && searchOpen && (
             <TextInput
               style={styles.search}
               value={searchText}
@@ -261,7 +281,34 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
           </View>
         )}
 
-        {isPending ? (
+        {folder === null ? (
+          foldersPending ? (
+            <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
+          ) : (
+            <ScrollView contentContainerStyle={styles.folderScroll}>
+              <Text style={styles.folderIntro}>
+                Your event photos have been organised into folders. Tap a folder to see the photos inside it.
+              </Text>
+              <View style={styles.folderGrid}>
+                {folders.map((f) => (
+                  <Pressable
+                    key={f.folderId}
+                    style={styles.folderCard}
+                    onPress={() => { setFolder(f); setFilter("All"); setSearchText(""); setSearchOpen(false); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${f.name}, ${f.photoCount} photos`}
+                  >
+                    <Text style={styles.folderIcon}>📁</Text>
+                    <Text style={styles.folderName} numberOfLines={2}>{f.name}</Text>
+                    <Text style={styles.folderCount}>{f.photoCount} Photos</Text>
+                    {f.selectedCount > 0 && <Text style={styles.folderChosen}>{f.selectedCount} selected</Text>}
+                  </Pressable>
+                ))}
+              </View>
+              {folders.length === 0 && <Text style={styles.emptyText}>No photos here yet.</Text>}
+            </ScrollView>
+          )
+        ) : isPending ? (
           <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
         ) : isError ? (
           <View style={styles.center}>
@@ -384,6 +431,18 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 },
 
   filterRow: { flexDirection: "row", alignItems: "center", paddingLeft: PADDING, paddingBottom: 10 },
+
+  folderScroll: { padding: PADDING, gap: 16 },
+  folderIntro: { color: "#a7b7cb", fontSize: 13, lineHeight: 19 },
+  folderGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  folderCard: {
+    width: 150, minHeight: 120, borderWidth: 1, borderColor: "#23405c", borderRadius: 12,
+    backgroundColor: "#132540", padding: 14, gap: 4, justifyContent: "center",
+  },
+  folderIcon: { fontSize: 22 },
+  folderName: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
+  folderCount: { color: "#a7b7cb", fontSize: 12 },
+  folderChosen: { color: "#7fc0e6", fontSize: 11, fontWeight: "600" },
   chips: { gap: 8, paddingRight: 8 },
   chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
   chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.14)" },

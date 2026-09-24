@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -20,6 +20,7 @@ public class PhotoGalleryConfiguration : IEntityTypeConfiguration<PhotoGallery>
         b.Property(x => x.LastSelectionAt).HasColumnType("datetime2");
         b.Property(x => x.SubmittedAt).HasColumnType("datetime2");
         b.Property(x => x.PreviewsPurgedAt).HasColumnType("datetime2");
+        b.Property(x => x.FoldersBackfilledAt).HasColumnType("datetime2");
         b.Property(x => x.SelectionCreatedAt).HasColumnType("datetime2");
         b.Property(x => x.SelectionSyncedAt).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
@@ -41,6 +42,26 @@ public class PhotoGalleryConfiguration : IEntityTypeConfiguration<PhotoGallery>
     }
 }
 
+public class PhotoFolderConfiguration : IEntityTypeConfiguration<PhotoFolder>
+{
+    public void Configure(EntityTypeBuilder<PhotoFolder> b)
+    {
+        b.HasKey(x => x.PhotoFolderId);
+        b.Property(x => x.Name).IsRequired().HasMaxLength(100);
+        b.Property(x => x.DeliveredAt).HasColumnType("datetime2");
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
+
+        // One folder of a given name per gallery, so an import can look a folder up by name.
+        b.HasIndex(x => new { x.PhotoGalleryId, x.Name }).IsUnique();
+
+        b.HasOne(x => x.Gallery).WithMany(x => x.Folders)
+            .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Studio).WithMany()
+            .HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class PhotoConfiguration : IEntityTypeConfiguration<Photo>
 {
     public void Configure(EntityTypeBuilder<Photo> b)
@@ -58,6 +79,13 @@ public class PhotoConfiguration : IEntityTypeConfiguration<Photo>
 
         b.HasOne(x => x.Gallery).WithMany(x => x.Photos)
             .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);
+
+        // Removing a folder must never remove photos. SQL Server won't allow SET NULL here (the
+        // gallery already cascades into both tables), so the service unfiles the photos itself
+        // before deleting the folder and this FK simply refuses to leave orphans behind.
+        b.HasIndex(x => x.PhotoFolderId);
+        b.HasOne(x => x.Folder).WithMany(x => x.Photos)
+            .HasForeignKey(x => x.PhotoFolderId).OnDelete(DeleteBehavior.NoAction);
     }
 }
 

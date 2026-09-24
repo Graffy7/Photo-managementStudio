@@ -13,6 +13,7 @@ import type {
   OwnerGallery,
   OwnerPhotosPage,
   PhotoFilter,
+  PhotoFolder,
   PublicGallery,
   PublicPhotosPage,
   PublicSelectionResult,
@@ -53,7 +54,22 @@ export const photoSelectionApi = {
   lock: (galleryId: number) => apiClient.post(`/api/photo-galleries/${galleryId}/lock`).then(() => undefined),
   unlock: (galleryId: number) => apiClient.post(`/api/photo-galleries/${galleryId}/unlock`).then(() => undefined),
 
-  photos: (galleryId: number, params: { filter?: PhotoFilter; search?: string; page?: number; pageSize?: number }) =>
+  folders: (galleryId: number) =>
+    apiClient.get<PhotoFolder[]>(`/api/photo-galleries/${galleryId}/folders`).then((r) => r.data),
+
+  createFolder: (galleryId: number, name: string) =>
+    apiClient.post<PhotoFolder>(`/api/photo-galleries/${galleryId}/folders`, { name }).then((r) => r.data),
+
+  renameFolder: (galleryId: number, folderId: number, name: string) =>
+    apiClient.put<PhotoFolder>(`/api/photo-galleries/${galleryId}/folders/${folderId}`, { name }).then((r) => r.data),
+
+  setFolderDelivered: (galleryId: number, folderId: number, isDelivered: boolean) =>
+    apiClient.post<PhotoFolder>(`/api/photo-galleries/${galleryId}/folders/${folderId}/delivered`, { isDelivered }).then((r) => r.data),
+
+  deleteFolder: (galleryId: number, folderId: number) =>
+    apiClient.delete(`/api/photo-galleries/${galleryId}/folders/${folderId}`).then(() => undefined),
+
+  photos: (galleryId: number, params: { filter?: PhotoFilter; search?: string; page?: number; pageSize?: number; folderId?: number }) =>
     apiClient.get<OwnerPhotosPage>(`/api/photo-galleries/${galleryId}/photos`, { params }).then((r) => r.data),
 
   shareMessage: (galleryId: number, reminder: boolean) =>
@@ -113,7 +129,10 @@ export const publicPhotoSelectionApi = {
   get: (token: string) =>
     publicClient.get<PublicGallery>(`/api/public/photo-selection/${token}`).then((r) => r.data),
 
-  photos: (token: string, params: { filter?: PhotoFilter; search?: string; page?: number; pageSize?: number }) =>
+  folders: (token: string) =>
+    publicClient.get<PhotoFolder[]>(`/api/public/photo-selection/${token}/folders`).then((r) => r.data),
+
+  photos: (token: string, params: { filter?: PhotoFilter; search?: string; page?: number; pageSize?: number; folderId?: number }) =>
     publicClient.get<PublicPhotosPage>(`/api/public/photo-selection/${token}/photos`, { params }).then((r) => r.data),
 
   summary: (token: string) =>

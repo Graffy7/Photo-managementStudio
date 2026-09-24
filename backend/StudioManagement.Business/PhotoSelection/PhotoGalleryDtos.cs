@@ -1,4 +1,4 @@
-namespace StudioManagement.Business.PhotoSelection;
+﻿namespace StudioManagement.Business.PhotoSelection;
 
 public class GalleryCountsDto
 {
@@ -93,6 +93,29 @@ public class CompletedEventGalleryDto
     public DateTime? SubmittedAt { get; set; }
 }
 
+// A delivery folder as both the owner screen and the customer's gallery show it. FolderId 0 is the
+// "Other" bucket for photos that were never filed - it exists only in the response.
+public class PhotoFolderDto
+{
+    public int FolderId { get; set; }
+    public string Name { get; set; } = null!;
+    public int SortOrder { get; set; }
+    public int PhotoCount { get; set; }
+    public int SelectedCount { get; set; }
+    public bool IsDelivered { get; set; }
+    public DateTime? DeliveredAt { get; set; }
+}
+
+public class SaveFolderRequestDto
+{
+    public string Name { get; set; } = null!;
+}
+
+public class SetFolderDeliveredRequestDto
+{
+    public bool IsDelivered { get; set; }
+}
+
 public class OwnerPhotoDto
 {
     public int PhotoId { get; set; }
@@ -104,6 +127,7 @@ public class OwnerPhotoDto
     public int Height { get; set; }
     public string? SelectionType { get; set; }
     public DateTime? SelectedAt { get; set; }
+    public int? FolderId { get; set; }
 }
 
 public class OwnerPhotosPageDto
@@ -184,6 +208,7 @@ public class PublicPhotoDto
 
     // 1 = Normal, 2 = Big, null = not selected.
     public int? SelectionType { get; set; }
+    public int? FolderId { get; set; }
 }
 
 public class PublicPhotosPageDto

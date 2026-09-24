@@ -72,6 +72,18 @@ export interface CompletedEventGallery {
   submittedAt: string | null;
 }
 
+// A delivery folder. FolderId 0 is the "Other" bucket the server adds for photos that were never
+// filed into a folder - it can't be renamed or removed.
+export interface PhotoFolder {
+  folderId: number;
+  name: string;
+  sortOrder: number;
+  photoCount: number;
+  selectedCount: number;
+  isDelivered: boolean;
+  deliveredAt: string | null;
+}
+
 export interface OwnerPhoto {
   photoId: number;
   photoNumber: number;
@@ -82,6 +94,7 @@ export interface OwnerPhoto {
   height: number;
   selectionType: "Normal" | "Big" | null;
   selectedAt: string | null;
+  folderId: number | null;
 }
 
 export interface OwnerPhotosPage {
@@ -134,6 +147,7 @@ export interface PublicPhoto {
   width: number;
   height: number;
   selectionType: SelectionType | null;
+  folderId: number | null;
 }
 
 export interface PublicPhotosPage {

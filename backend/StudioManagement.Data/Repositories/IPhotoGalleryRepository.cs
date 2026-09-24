@@ -1,4 +1,4 @@
-using StudioManagement.Data.Entities;
+﻿using StudioManagement.Data.Entities;
 
 namespace StudioManagement.Data.Repositories;
 
@@ -21,6 +21,9 @@ public interface IPhotoGalleryRepository
     // Unscoped by studio, for code paths that already proved access (token resolved, or the owner
     // controller checked the studio) and just need the row itself. Never call from a controller.
     Task<PhotoGallery?> GetByIdUnscopedAsync(int galleryId, CancellationToken ct = default);
+
+    // Records that this gallery's photos have been sorted into folders, so it never happens twice.
+    Task MarkFoldersBackfilledAsync(int galleryId, DateTime when, CancellationToken ct = default);
 
     Task<GallerySelectionCounts> GetCountsAsync(int galleryId, CancellationToken ct = default);
     Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime expiredBefore, CancellationToken ct = default);

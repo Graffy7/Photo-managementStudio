@@ -1,4 +1,4 @@
-using StudioManagement.Business.Common;
+﻿using StudioManagement.Business.Common;
 using StudioManagement.Data.Repositories;
 
 namespace StudioManagement.Business.PhotoSelection;
@@ -16,7 +16,7 @@ public interface IPhotoGalleryService
     Task<bool> RevokeLinkAsync(int studioId, int galleryId, CancellationToken ct = default);
     Task<bool> SetLockedAsync(int studioId, int galleryId, bool locked, CancellationToken ct = default);
 
-    Task<OwnerPhotosPageDto?> GetPhotosAsync(int studioId, int galleryId, PhotoFilter filter, string? search, int page, int pageSize, CancellationToken ct = default);
+    Task<OwnerPhotosPageDto?> GetPhotosAsync(int studioId, int galleryId, PhotoFilter filter, string? search, int page, int pageSize, int? folderId, CancellationToken ct = default);
     Task<GalleryExport?> ExportSelectionAsync(int studioId, int galleryId, CancellationToken ct = default);
 
     // The message (and wa.me link) the owner sends to the customer. baseUrl is the site the owner is
