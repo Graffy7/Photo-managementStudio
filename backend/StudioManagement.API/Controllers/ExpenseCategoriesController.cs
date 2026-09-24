@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/expense-categories")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Expenses)]
 public class ExpenseCategoriesController(
     IExpenseCategoryService expenseCategoryService,
     IValidator<CreateExpenseCategoryRequestDto> createValidator,

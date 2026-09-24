@@ -1,7 +1,8 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
+using StudioManagement.Business.Features;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -16,6 +17,7 @@ public class PublicPhotoSelectionService(
     IPhotoFolderService folderService,
     INotificationService notificationService,
     IAuditService auditService,
+    IFeatureService featureService,
     IUnitOfWork unitOfWork) : IPublicPhotoSelectionService
 {
     private const string Module = "PhotoSelection";
@@ -235,6 +237,14 @@ public class PublicPhotoSelectionService(
         if (gallery.ExpiresAt is { } expiry && expiry < DateTime.UtcNow)
         {
             return (null, GalleryAccessFailure.Expired);
+        }
+
+        // The platform admin can switch the customer gallery (or photo selection as a whole) off
+        // for a studio; its links then stop opening like any revoked link.
+        var features = await featureService.GetMyFeaturesAsync(gallery.StudioId, ct);
+        if (!features.GetValueOrDefault(FeatureCodes.Gallery, true) || !features.GetValueOrDefault(FeatureCodes.PhotoSelection, true))
+        {
+            return (null, GalleryAccessFailure.Invalid);
         }
 
         return (gallery, null);

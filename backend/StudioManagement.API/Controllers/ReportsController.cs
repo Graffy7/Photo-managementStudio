@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Common;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/reports")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Reports)]
 public class ReportsController(IProfitReportService profitReportService, ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;

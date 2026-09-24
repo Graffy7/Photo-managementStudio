@@ -38,6 +38,10 @@ namespace StudioManagement.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Device")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<int?>("EntityId")
                         .HasColumnType("int");
 
@@ -45,6 +49,10 @@ namespace StudioManagement.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Module")
                         .IsRequired()
@@ -605,6 +613,66 @@ namespace StudioManagement.Data.Migrations
                             Description = "In-app reminders and alerts.",
                             FeatureCode = "NOTIFICATIONS",
                             FeatureName = "Notifications",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            FeatureId = 12,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "The studio's home dashboard with figures and charts.",
+                            FeatureCode = "DASHBOARD",
+                            FeatureName = "Dashboard",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            FeatureId = 13,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Import photos and manage customer selection.",
+                            FeatureCode = "PHOTO_SELECTION",
+                            FeatureName = "Photo Selection",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            FeatureId = 14,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delivery folders and copying selected originals.",
+                            FeatureCode = "PHOTO_DELIVERY",
+                            FeatureName = "Photo Delivery",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            FeatureId = 15,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "WhatsApp sharing and automatic reminders.",
+                            FeatureCode = "WHATSAPP",
+                            FeatureName = "WhatsApp",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            FeatureId = 16,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "The customer's online photo gallery link.",
+                            FeatureCode = "GALLERY",
+                            FeatureName = "Gallery",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            FeatureId = 17,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Studio profile, branding and form settings.",
+                            FeatureCode = "SETTINGS",
+                            FeatureName = "Settings",
                             IsActive = true,
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
@@ -1717,6 +1785,28 @@ namespace StudioManagement.Data.Migrations
                     b.ToTable("Studios");
                 });
 
+            modelBuilder.Entity("StudioManagement.Data.Entities.StudioDailyUsage", b =>
+                {
+                    b.Property<int>("StudioId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UsageDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ActiveMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequestCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("StudioId", "UsageDate");
+
+                    b.ToTable("StudioDailyUsages");
+                });
+
             modelBuilder.Entity("StudioManagement.Data.Entities.StudioFeature", b =>
                 {
                     b.Property<int>("StudioFeatureId")
@@ -1800,6 +1890,9 @@ namespace StudioManagement.Data.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsTrial")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -1853,6 +1946,12 @@ namespace StudioManagement.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("PeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PeriodStart")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ReferenceNumber")
                         .HasMaxLength(100)
@@ -2656,6 +2755,17 @@ namespace StudioManagement.Data.Migrations
                         .WithMany()
                         .HasForeignKey("StudioId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Studio");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.StudioDailyUsage", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.Studio", "Studio")
+                        .WithMany()
+                        .HasForeignKey("StudioId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Studio");

@@ -9,6 +9,9 @@ public class StudioSubscription : ITenantEntity
     public DateTime EndDate { get; set; }
     public decimal Amount { get; set; }
     public string Status { get; set; } = null!;
+
+    // A free trial the platform admin started; converting it to a paid plan clears this.
+    public bool IsTrial { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

@@ -44,6 +44,12 @@ public class LocalFileStorage(IWebHostEnvironment environment) : IFileStorage
         return File.Exists(absolutePath) ? await File.ReadAllBytesAsync(absolutePath, ct) : null;
     }
 
+    public long GetSize(string relativeUrl)
+    {
+        var info = new FileInfo(ResolveAbsolutePath(relativeUrl));
+        return info.Exists ? info.Length : 0;
+    }
+
     private string ResolveAbsolutePath(string relativeUrl)
     {
         var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");

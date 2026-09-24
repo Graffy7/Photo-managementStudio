@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Common;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/studio-dashboard")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Dashboard)]
 public class StudioDashboardController(IStudioDashboardService studioDashboardService, ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;

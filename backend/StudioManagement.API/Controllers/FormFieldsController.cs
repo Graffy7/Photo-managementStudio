@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,7 @@ public class FormFieldsController(
         return fields is null ? NotFound(new { message = $"Unknown form '{formCode}'." }) : Ok(fields);
     }
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPut("fields/{formFieldId:int}")]
     public async Task<IActionResult> UpdateField(string formCode, int formFieldId, UpdateFormFieldRequestDto request, CancellationToken ct)
     {
@@ -39,6 +41,7 @@ public class FormFieldsController(
         return field is null ? NotFound() : Ok(field);
     }
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPost("fields")]
     public async Task<IActionResult> AddCustomField(string formCode, CreateCustomFieldRequestDto request, CancellationToken ct)
     {

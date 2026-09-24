@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using StudioManagement.Business.Audit;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -9,9 +10,15 @@ public class FeatureService(
     IRepository<Feature> featureRepository,
     IStudioFeatureRepository studioFeatureRepository,
     IAuditService auditService,
+    IMemoryCache cache,
     IUnitOfWork unitOfWork) : IFeatureService
 {
     private const string Module = "Features";
+
+    // Every module-gated request asks "is this module on?", so the answer is cached briefly; a
+    // switch made by the platform admin clears it straight away.
+    private static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(30);
+    private static string CacheKey(int studioId) => $"studio-features:{studioId}";
 
     public async Task<List<StudioFeatureDto>> GetForStudioAsync(int studioId, CancellationToken ct = default)
     {
@@ -67,6 +74,7 @@ public class FeatureService(
         }
 
         await unitOfWork.SaveChangesAsync(ct);
+        cache.Remove(CacheKey(studioId));
         await auditService.LogAsync($"{feature.FeatureName} {(isEnabled ? "enabled" : "disabled")}", Module, studioId, ct);
 
         return new StudioFeatureDto
@@ -82,8 +90,14 @@ public class FeatureService(
 
     public async Task<Dictionary<string, bool>> GetMyFeaturesAsync(int studioId, CancellationToken ct = default)
     {
-        var features = await GetForStudioAsync(studioId, ct);
-        return features.ToDictionary(f => f.FeatureCode, f => f.IsEnabled);
+        if (cache.TryGetValue(CacheKey(studioId), out Dictionary<string, bool>? cached) && cached is not null)
+        {
+            return cached;
+        }
+
+        var features = (await GetForStudioAsync(studioId, ct)).ToDictionary(f => f.FeatureCode, f => f.IsEnabled);
+        cache.Set(CacheKey(studioId), features, CacheFor);
+        return features;
     }
 
     public async Task<bool> IsEnabledAsync(int studioId, string featureCode, CancellationToken ct = default)

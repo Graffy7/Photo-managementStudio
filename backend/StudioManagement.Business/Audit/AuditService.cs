@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using StudioManagement.Business.Common;
 using StudioManagement.Business.Tenant;
 using StudioManagement.Data.Entities;
@@ -11,6 +12,7 @@ public class AuditService(
     IStudioRepository studioRepository,
     IUserRepository userRepository,
     ITenantContext tenantContext,
+    IHttpContextAccessor httpContextAccessor,
     IUnitOfWork unitOfWork) : IAuditService
 {
     // AuditLogs.Action holds at most this many characters; a longer message (a long customer or
@@ -27,12 +29,17 @@ public class AuditService(
             EntityId = studioId,
             StudioId = studioId,
             UserId = tenantContext.CurrentUserId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IpAddress = Truncate(httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(), 64),
+            Device = Truncate(DeviceDescription.From(httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString()), 120)
         };
 
         await auditLogRepository.AddAsync(entry, ct);
         await unitOfWork.SaveChangesAsync(ct);
     }
+
+    private static string? Truncate(string? value, int max) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Length <= max ? value : value[..max];
 
     public async Task<PagedResult<AuditLogDto>> SearchAsync(int? studioId, int page, int pageSize, CancellationToken ct = default)
     {

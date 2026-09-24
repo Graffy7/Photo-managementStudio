@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using StudioManagement.API.Filters;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.PhotoSelection;
@@ -13,6 +14,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/photo-galleries")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.PhotoSelection)]
 public class PhotoGalleriesController(
     IPhotoGalleryService galleryService,
     IPhotoImportService importService,
@@ -153,6 +155,7 @@ public class PhotoGalleriesController(
 
     // "Create Selected Photos" (first time) / "Sync Selected Photos" (afterwards): copies the customer's
     // chosen ORIGINAL files into <original folder>\Customer Selection\Normal and \Big Size.
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpPost("{id:int}/selection-copy")]
     public async Task<IActionResult> StartSelectionCopy(int id, CancellationToken ct)
     {
@@ -174,6 +177,7 @@ public class PhotoGalleriesController(
         };
     }
 
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpGet("{id:int}/selection-copy/{jobId:int}")]
     public async Task<IActionResult> GetSelectionCopyJob(int id, int jobId, CancellationToken ct)
     {
@@ -236,6 +240,7 @@ public class PhotoGalleriesController(
 
     // ---- Delivery folders ---------------------------------------------------------------------
 
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpGet("{id:int}/folders")]
     public async Task<IActionResult> Folders(int id, CancellationToken ct)
     {
@@ -243,6 +248,7 @@ public class PhotoGalleriesController(
         return folders is null ? NotFound() : Ok(folders);
     }
 
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpPost("{id:int}/folders")]
     public async Task<IActionResult> CreateFolder(int id, SaveFolderRequestDto request, CancellationToken ct)
     {
@@ -256,6 +262,7 @@ public class PhotoGalleriesController(
         return FolderResponse(await folderService.CreateAsync(StudioId, id, request, ct));
     }
 
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpPut("{id:int}/folders/{folderId:int}")]
     public async Task<IActionResult> RenameFolder(int id, int folderId, SaveFolderRequestDto request, CancellationToken ct)
     {
@@ -269,10 +276,12 @@ public class PhotoGalleriesController(
         return FolderResponse(await folderService.RenameAsync(StudioId, id, folderId, request, ct));
     }
 
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpPost("{id:int}/folders/{folderId:int}/delivered")]
     public async Task<IActionResult> SetFolderDelivered(int id, int folderId, SetFolderDeliveredRequestDto request, CancellationToken ct) =>
         FolderResponse(await folderService.SetDeliveredAsync(StudioId, id, folderId, request.IsDelivered, ct));
 
+    [FeatureRequired(FeatureCodes.PhotoDelivery)]
     [HttpDelete("{id:int}/folders/{folderId:int}")]
     public async Task<IActionResult> DeleteFolder(int id, int folderId, CancellationToken ct)
     {
@@ -303,6 +312,7 @@ public class PhotoGalleriesController(
         return export is null ? NotFound() : File(export.Content, "text/csv", export.FileName);
     }
 
+    [FeatureRequired(FeatureCodes.WhatsApp)]
     [HttpGet("{id:int}/share-message")]
     public async Task<IActionResult> ShareMessage(int id, [FromQuery] string baseUrl, [FromQuery] bool reminder = false, CancellationToken ct = default)
     {

@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Notifications;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/notifications")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Notifications)]
 public class NotificationsController(
     INotificationService notificationService,
     IEventReminderService eventReminderService,
@@ -46,6 +48,7 @@ public class NotificationsController(
     // "Test Event Reminder": builds the two day-before WhatsApp messages and shows them separately, marked
     // TEST, with who would receive each. Nothing is sent unless sendToOwner is set — and then only to the
     // owner's own phone. Pass eventId to preview a specific event as if it were tomorrow.
+    [FeatureRequired(FeatureCodes.WhatsApp)]
     [HttpPost("whatsapp-reminders/test")]
     public async Task<IActionResult> TestWhatsAppReminder(TestReminderRequestDto request, CancellationToken ct)
     {
@@ -55,6 +58,7 @@ public class NotificationsController(
 
     // Send today's due WhatsApp reminders now, without waiting for the reminder time. Reminders already
     // sent are never repeated.
+    [FeatureRequired(FeatureCodes.WhatsApp)]
     [HttpPost("whatsapp-reminders/send-now")]
     public async Task<IActionResult> SendWhatsAppRemindersNow(CancellationToken ct) =>
         Ok(await whatsAppReminderService.SendRemindersForStudioAsync(StudioId, DateTime.Now, ignoreTime: true, ct));

@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using StudioManagement.API.Filters;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Events;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/events")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Events)]
 public class EventsController(
     IEventService eventService,
     IEventWorkerService eventWorkerService,

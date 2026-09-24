@@ -27,8 +27,28 @@ import { CalendarScreen } from "../screens/studioOwner/CalendarScreen";
 import { NotificationsScreen } from "../screens/studioOwner/NotificationsScreen";
 import { ActivityScreen } from "../screens/studioOwner/ActivityScreen";
 import { SuperAdminHome } from "./SuperAdminHome";
+import { withModule } from "./ModuleGate";
 
 const Stack = createNativeStackNavigator();
+
+
+// Each module screen is shut off when the platform admin switches that module off for the studio.
+const GatedLeadsHome = withModule("LEADS", LeadsHome);
+const GatedCustomersHome = withModule("CUSTOMERS", CustomersHome);
+const GatedEventsHome = withModule("EVENTS", EventsHome);
+const GatedWorkersHome = withModule("WORKERS", WorkersHome);
+const GatedServicesHome = withModule("SERVICES", ServicesHome);
+const GatedQuotationsHome = withModule("QUOTATIONS", QuotationsHome);
+const GatedPaymentsHome = withModule("PAYMENTS", PaymentsHome);
+const GatedExpensesHome = withModule("EXPENSES", ExpensesHome);
+const GatedPhotoSelectionHome = withModule("PHOTO_SELECTION", PhotoSelectionHome);
+const GatedReportsScreen = withModule("REPORTS", ReportsScreen);
+const GatedDayBoardScreen = withModule("DAY_BOARD", DayBoardScreen);
+const GatedCalendarScreen = withModule("EVENTS", CalendarScreen);
+const GatedNotificationsScreen = withModule("NOTIFICATIONS", NotificationsScreen);
+const GatedSettingsScreen = withModule("SETTINGS", SettingsScreen);
+const GatedLookupsScreen = withModule("SETTINGS", LookupsScreen);
+const GatedLeadFormConfigScreen = withModule("SETTINGS", LeadFormConfigScreen);
 
 export function RootNavigator() {
   const isHydrating = useAuthStore((s) => s.isHydrating);
@@ -64,23 +84,23 @@ export function RootNavigator() {
         <WebAppShell navigationRef={navigationRef} activeRoute={activeRoute}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Leads" component={LeadsHome} />
-            <Stack.Screen name="Customers" component={CustomersHome} />
-            <Stack.Screen name="Events" component={EventsHome} />
-            <Stack.Screen name="Workers" component={WorkersHome} />
-            <Stack.Screen name="Services" component={ServicesHome} />
-            <Stack.Screen name="Quotations" component={QuotationsHome} />
-            <Stack.Screen name="Payments" component={PaymentsHome} />
-            <Stack.Screen name="Expenses" component={ExpensesHome} />
-            <Stack.Screen name="PhotoSelection" component={PhotoSelectionHome} />
-            <Stack.Screen name="Reports" component={ReportsScreen} />
-            <Stack.Screen name="DayBoard" component={DayBoardScreen} />
-            <Stack.Screen name="Calendar" component={CalendarScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="Leads" component={GatedLeadsHome} />
+            <Stack.Screen name="Customers" component={GatedCustomersHome} />
+            <Stack.Screen name="Events" component={GatedEventsHome} />
+            <Stack.Screen name="Workers" component={GatedWorkersHome} />
+            <Stack.Screen name="Services" component={GatedServicesHome} />
+            <Stack.Screen name="Quotations" component={GatedQuotationsHome} />
+            <Stack.Screen name="Payments" component={GatedPaymentsHome} />
+            <Stack.Screen name="Expenses" component={GatedExpensesHome} />
+            <Stack.Screen name="PhotoSelection" component={GatedPhotoSelectionHome} />
+            <Stack.Screen name="Reports" component={GatedReportsScreen} />
+            <Stack.Screen name="DayBoard" component={GatedDayBoardScreen} />
+            <Stack.Screen name="Calendar" component={GatedCalendarScreen} />
+            <Stack.Screen name="Notifications" component={GatedNotificationsScreen} />
             <Stack.Screen name="Activity" component={ActivityScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen name="Lookups" component={LookupsScreen} />
-            <Stack.Screen name="LeadFormConfig" component={LeadFormConfigScreen} />
+            <Stack.Screen name="Settings" component={GatedSettingsScreen} />
+            <Stack.Screen name="Lookups" component={GatedLookupsScreen} />
+            <Stack.Screen name="LeadFormConfig" component={GatedLeadFormConfigScreen} />
             <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
           </Stack.Navigator>
         </WebAppShell>

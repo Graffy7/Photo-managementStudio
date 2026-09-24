@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/quotations")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Quotations)]
 public class QuotationsController(
     IQuotationService quotationService,
     IQuotationPdfService quotationPdfService,

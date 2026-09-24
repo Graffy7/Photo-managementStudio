@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/customers")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.Customers)]
 public class CustomersController(
     ICustomerService customerService,
     IValidator<CreateCustomerRequestDto> createValidator,

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { notificationsApi } from "../api/notificationsApi";
 import { settingsApi } from "../api/settingsApi";
 import { API_BASE_URL } from "../constants/config";
+import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 
 const NAV_ITEMS: { route: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { route: "Home", label: "Dashboard", icon: "grid-outline" },
@@ -33,9 +34,11 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
+  const isOn = useModules();
   const { data: unreadCount } = useQuery({
     queryKey: ["notifications-unread-count"],
     queryFn: notificationsApi.getUnreadCount,
+    enabled: isOn("NOTIFICATIONS"),
   });
 
   const { data: profile } = useQuery({
@@ -63,7 +66,8 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
       </View>
 
       <ScrollView style={styles.navList} contentContainerStyle={{ paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
-        {NAV_ITEMS.map((item) => {
+        {/* Modules the platform admin switched off for this studio are left out. */}
+        {NAV_ITEMS.filter((item) => isOn(ROUTE_MODULES[item.route] ?? "")).map((item) => {
           const isActive = activeRoute === item.route;
           const badge = item.route === "Notifications" ? unreadCount : undefined;
           return (
@@ -86,7 +90,8 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
 
       <Pressable
         style={styles.profile}
-        onPress={() => navigationRef.current?.navigate("Settings" as never)}
+        onPress={() => isOn("SETTINGS") && navigationRef.current?.navigate("Settings" as never)}
+        disabled={!isOn("SETTINGS")}
       >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{(user?.fullName ?? "S").charAt(0).toUpperCase()}</Text>
@@ -95,7 +100,7 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
           <Text style={styles.profileName} numberOfLines={1}>{studioName}</Text>
           <Text style={styles.profileRole}>Studio Owner</Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#6f83a0" />
+        {isOn("SETTINGS") && <Ionicons name="chevron-forward" size={16} color="#6f83a0" />}
       </Pressable>
 
       <Pressable style={styles.signOut} onPress={() => logout()}>

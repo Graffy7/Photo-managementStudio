@@ -108,7 +108,9 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
   return (
     <View style={styles.row}>
       <View style={{ width: size, height: size }}>
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* Rotated as a whole so slices start at 12 o'clock. (Rotating each circle with an SVG
+            origin reaches the DOM as a "transform-origin" attribute on the web, which React rejects.) */}
+        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: [{ rotate: "-90deg" }] }}>
           <Defs>
             {segments.map((s, i) => (
               <LinearGradient key={s.label} id={`seg${i}`} x1="0" y1="0" x2="1" y2="1">
@@ -132,11 +134,6 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
               strokeDasharray: `${a.dash} ${circumference}`,
               strokeDashoffset: -a.start,
               strokeLinecap: (useGaps ? "round" : "butt") as "round" | "butt",
-              rotation: -90,
-              // originX/originY rather than the combined `origin` string: on the web that one
-              // reaches the DOM as a hyphenated attribute and React warns about it.
-              originX: center,
-              originY: center,
             };
             return (
               <G key={a.label}>

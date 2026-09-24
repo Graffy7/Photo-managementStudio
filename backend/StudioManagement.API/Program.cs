@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,6 +10,7 @@ using Serilog;
 using StudioManagement.API.BackgroundServices;
 using StudioManagement.API.Infrastructure;
 using StudioManagement.API.Middleware;
+using StudioManagement.Business.Admin;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
 using StudioManagement.Business.Dashboard;
@@ -36,6 +37,7 @@ using StudioManagement.Business.Storage;
 using StudioManagement.Business.Studios;
 using StudioManagement.Business.Subscriptions;
 using StudioManagement.Business.Tenant;
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -79,6 +81,7 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -86,6 +89,14 @@ builder.Services.AddScoped(typeof(ITenantRepository<>), typeof(TenantRepository<
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudioRepository, StudioRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IStudioUsageRepository, StudioUsageRepository>();
+builder.Services.AddScoped<IAdminConsoleRepository, AdminConsoleRepository>();
+builder.Services.AddScoped<IStorageUsageService, StorageUsageService>();
+builder.Services.AddScoped<IAdminConsoleService, AdminConsoleService>();
+builder.Services.AddScoped<IValidator<TrialDaysRequestDto>, TrialDaysRequestValidator>();
+builder.Services.AddScoped<IValidator<ManualPaymentRequestDto>, ManualPaymentRequestValidator>();
+builder.Services.AddSingleton<UsageTracker>();
+builder.Services.AddHostedService<UsageFlushBackgroundService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
 builder.Services.AddScoped<IStudioFeatureRepository, StudioFeatureRepository>();
@@ -326,6 +337,19 @@ app.UseCors("StudioAppClients");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Counts a studio's active time from its own signed-in requests (see UsageTracker).
+app.Use(async (context, next) =>
+{
+    var user = context.User;
+    if (user.Identity?.IsAuthenticated == true &&
+        user.FindFirst(TenantClaimTypes.UserType)?.Value == UserTypes.StudioOwner &&
+        int.TryParse(user.FindFirst(TenantClaimTypes.StudioId)?.Value, out var usageStudioId))
+    {
+        context.RequestServices.GetRequiredService<UsageTracker>().Record(usageStudioId, DateTime.UtcNow);
+    }
+    await next();
+});
 app.UseRateLimiter();
 
 app.MapControllers();

@@ -14,6 +14,7 @@ import { DonutChart } from "../components/DonutChart";
 import { MiniDatePicker } from "../components/MiniDatePicker";
 import { DATE_RANGE_PRESET_LABELS, type DateRangePreset } from "../types/studioDashboard";
 import { useRefetchOnFocus } from "../hooks/useRefetchOnFocus";
+import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 
 // The full DATE_RANGE_PRESETS list is shared with Reports, which still shows every preset —
 // the Dashboard's chip row only surfaces the longer-range ones plus a manual custom range.
@@ -156,21 +157,26 @@ export function HomeScreen() {
   const tip = useMemo(() => TIPS[dayOfYear() % TIPS.length], []);
 
   const customRangeReady = customStart.length > 0 && customEnd.length > 0;
+  // Modules the platform admin switched off are neither fetched nor shown.
+  const isOn = useModules();
+  const dashboardOn = isOn("DASHBOARD");
 
   const { data: unreadCount, refetch: refetchUnreadCount } = useQuery({
     queryKey: ["notifications-unread-count"],
     queryFn: notificationsApi.getUnreadCount,
+    enabled: isOn("NOTIFICATIONS"),
   });
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["studio-dashboard-summary", preset, customStart, customEnd],
     queryFn: () => studioDashboardApi.getSummary(preset, customStart, customEnd),
-    enabled: preset !== "Custom" || customRangeReady,
+    enabled: dashboardOn && (preset !== "Custom" || customRangeReady),
   });
 
   const { data: dayBoard, refetch: refetchDayBoard } = useQuery({
     queryKey: ["day-board", today],
     queryFn: () => dayBoardApi.getDayBoard(today),
+    enabled: dashboardOn && isOn("DAY_BOARD"),
   });
 
   // The studio's own calendar day, not UTC's - just after midnight they differ.
@@ -182,11 +188,13 @@ export function HomeScreen() {
   const { data: upcoming, refetch: refetchUpcoming } = useQuery({
     queryKey: ["events-upcoming", localToday],
     queryFn: () => eventsApi.search({ upcomingFrom: localToday, page: 1, pageSize: 5 }),
+    enabled: dashboardOn && isOn("EVENTS"),
   });
 
   const { data: recentLeads, refetch: refetchRecentLeads } = useQuery({
     queryKey: ["leads-recent"],
     queryFn: () => leadsApi.search({ page: 1, pageSize: 4 }),
+    enabled: dashboardOn && isOn("LEADS"),
   });
 
   const refetchAll = useCallback(() => {
@@ -231,14 +239,14 @@ export function HomeScreen() {
               <Text style={styles.rangeChipText}>{formatDateRange(data.rangeStart, data.rangeEnd)}</Text>
             </View>
           )}
-          <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
+          {isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
             <Ionicons name="notifications-outline" size={18} color="#a7b7cb" />
             {!!unreadCount && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
               </View>
             )}
-          </Pressable>
+          </Pressable>}
         </View>
       </View>
 
@@ -246,7 +254,7 @@ export function HomeScreen() {
         // Native has no sidebar (that's a web-only layout for now), so it keeps this
         // in-page nav row as its only way to reach every other module.
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nativeNavRow} contentContainerStyle={styles.nativeNavRowContent}>
-          {NATIVE_NAV_ROUTES.map((route) => (
+          {NATIVE_NAV_ROUTES.filter((route) => isOn(ROUTE_MODULES[route] ?? "")).map((route) => (
             <Pressable key={route} style={styles.nativeNavButton} onPress={() => navigation.navigate(route)}>
               <Text style={styles.nativeNavButtonText}>{NATIVE_NAV_LABELS[route] ?? route}</Text>
             </Pressable>
@@ -257,6 +265,13 @@ export function HomeScreen() {
         </ScrollView>
       )}
 
+      {!dashboardOn ? (
+        <View style={styles.welcomeCard}>
+          <Ionicons name="grid-outline" size={22} color="#7fc0e6" />
+          <Text style={styles.welcomeTitle}>Welcome back</Text>
+          <Text style={styles.welcomeText}>Choose where to start from the menu.</Text>
+        </View>
+      ) : (<>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetRow} contentContainerStyle={styles.presetRowContent}>
         {DASHBOARD_PRESETS.map((p) => (
           <Pressable key={p} style={[styles.presetChip, preset === p && styles.presetChipSelected]} onPress={() => setPreset(p)}>
@@ -282,70 +297,93 @@ export function HomeScreen() {
       ) : (
         <>
           <View style={styles.statRow}>
-            <StatCard icon="person-add-outline" iconColor="#7fc0e6" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} />
-            <StatCard icon="people-outline" iconColor="#4cc493" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} />
-            <StatCard icon="calendar-outline" iconColor="#f2bd5c" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} />
-            <StatCard icon="cash-outline" iconColor="#ff9a4d" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} />
+            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#7fc0e6" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} />}
+            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#4cc493" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} />}
+            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#f2bd5c" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} />}
+            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#ff9a4d" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} />}
           </View>
 
           <View style={styles.columns}>
             <View style={styles.mainColumn}>
-              <Panel title="Overview">
+              {isOn("PAYMENTS") && (
+<Panel title="Overview">
                 <LineChart points={revenuePoints} formatValue={formatCurrencyShort} />
                 <View style={styles.overviewStats}>
                   <View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Revenue</Text>
                     <Text style={[styles.overviewStatValue, { color: "#4cc493" }]}>{formatCurrency(data.collectedRevenue)}</Text>
                   </View>
-                  <View style={styles.overviewStat}>
+                  {isOn("EXPENSES") && (
+<View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Expenses</Text>
                     <Text style={[styles.overviewStatValue, { color: "#ff7a72" }]}>{formatCurrency(data.totalExpenses)}</Text>
                   </View>
-                  <View style={styles.overviewStat}>
+)}
+                  {isOn("EXPENSES") && (
+<View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Profit</Text>
                     <Text style={[styles.overviewStatValue, { color: "#4cc493" }]}>{formatCurrency(data.cashProfit)}</Text>
                   </View>
-                  <View style={styles.overviewStat}>
+)}
+                  {isOn("EXPENSES") && (
+<View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Margin</Text>
                     <Text style={styles.overviewStatValue}>
                       {data.collectedRevenue === 0 ? "—" : `${Math.round((data.cashProfit / data.collectedRevenue) * 100)}%`}
                     </Text>
                   </View>
+)}
                 </View>
               </Panel>
+)}
 
-              <Panel title="Financial Summary">
+              {(isOn("QUOTATIONS") || isOn("PAYMENTS") || isOn("EXPENSES")) && (
+<Panel title="Financial Summary">
                 <View style={styles.financeGrid}>
-                  <View style={styles.financeTile}>
+                  {isOn("QUOTATIONS") && (
+<View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Quotation Value</Text>
                     <Text style={styles.financeValue}>{formatCurrency(data.quotationValue)}</Text>
                   </View>
-                  <View style={styles.financeTile}>
+)}
+                  {isOn("PAYMENTS") && (
+<View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Collected Revenue</Text>
                     <Text style={[styles.financeValue, { color: "#4cc493" }]}>{formatCurrency(data.collectedRevenue)}</Text>
                   </View>
-                  <View style={styles.financeTile}>
+)}
+                  {isOn("PAYMENTS") && (
+<View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Outstanding</Text>
                     <Text style={[styles.financeValue, { color: data.outstandingBalance > 0 ? "#f2bd5c" : "#e8edf3" }]}>{formatCurrency(data.outstandingBalance)}</Text>
                   </View>
-                  <View style={styles.financeTile}>
+)}
+                  {isOn("EXPENSES") && (
+<View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Expenses</Text>
                     <Text style={[styles.financeValue, { color: "#ff7a72" }]}>{formatCurrency(data.totalExpenses)}</Text>
                   </View>
-                  <View style={styles.financeTile}>
+)}
+                  {isOn("QUOTATIONS") && isOn("EXPENSES") && (
+<View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Expected Profit</Text>
                     <Text style={[styles.financeValue, { color: data.expectedProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>{formatCurrency(data.expectedProfit)}</Text>
                   </View>
-                  <View style={styles.financeTile}>
+)}
+                  {isOn("PAYMENTS") && isOn("EXPENSES") && (
+<View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Cash Profit</Text>
                     <Text style={[styles.financeValue, { color: data.cashProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>{formatCurrency(data.cashProfit)}</Text>
                   </View>
+)}
                 </View>
               </Panel>
+)}
             </View>
 
             <View style={styles.sideColumn}>
-              <Panel title="Events Summary">
+              {isOn("EVENTS") && (
+<Panel title="Events Summary">
                 <DonutChart
                   centerLabel="Total"
                   centerValue={data.totalEvents}
@@ -356,8 +394,10 @@ export function HomeScreen() {
                   ]}
                 />
               </Panel>
+)}
 
-              <Panel title="Top Services">
+              {isOn("QUOTATIONS") && (
+<Panel title="Top Services">
                 {data.topServices.length === 0 ? (
                   <Text style={styles.empty}>No quotations in this period yet.</Text>
                 ) : (
@@ -376,9 +416,11 @@ export function HomeScreen() {
                   </View>
                 )}
               </Panel>
+)}
             </View>
 
             <View style={styles.sideColumn}>
+              {isOn("DAY_BOARD") && (
               <Panel
                 title="Today's Schedule"
                 action={
@@ -406,7 +448,9 @@ export function HomeScreen() {
                   </View>
                 )}
               </Panel>
+              )}
 
+              {isOn("EVENTS") && (
               <Panel
                 title="Upcoming Events"
                 action={
@@ -450,7 +494,9 @@ export function HomeScreen() {
                   </View>
                 )}
               </Panel>
+              )}
 
+              {isOn("LEADS") && (
               <Panel
                 title="Recent Enquiries"
                 action={
@@ -478,6 +524,7 @@ export function HomeScreen() {
                   </View>
                 )}
               </Panel>
+              )}
             </View>
           </View>
 
@@ -487,6 +534,7 @@ export function HomeScreen() {
           </View>
         </>
       )}
+      </>)}
     </ScrollView>
   );
 }
@@ -602,6 +650,12 @@ const styles = StyleSheet.create({
   leadSubtitle: { color: "#6f83a0", fontSize: 11, marginTop: 1 },
   leadTime: { color: "#6f83a0", fontSize: 11 },
 
+  welcomeCard: {
+    alignItems: "center", gap: 6, paddingVertical: 40, paddingHorizontal: 20, borderRadius: 12,
+    borderWidth: 1, borderColor: "#1b2c42", backgroundColor: "#0f1e30",
+  },
+  welcomeTitle: { color: "#e8edf3", fontSize: 17, fontWeight: "700" },
+  welcomeText: { color: "#6f83a0", fontSize: 13 },
   tipBanner: {
     flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#132540", borderWidth: 1,
     borderColor: "#23405c", borderRadius: 12, padding: 16, marginTop: 16,

@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +31,7 @@ public class StudioProfileController(IStudioService studioService, IValidator<Up
         return studio is null ? NotFound() : Ok(studio);
     }
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPut]
     public async Task<IActionResult> Update(UpdateStudioRequestDto request, CancellationToken ct)
     {
@@ -44,6 +46,7 @@ public class StudioProfileController(IStudioService studioService, IValidator<Up
         return studio is null ? NotFound() : Ok(studio);
     }
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPost("logo")]
     public async Task<IActionResult> UploadLogo(IFormFile file, CancellationToken ct)
     {
@@ -65,6 +68,7 @@ public class StudioProfileController(IStudioService studioService, IValidator<Up
         return studio is null ? NotFound() : Ok(studio);
     }
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpDelete("logo")]
     public async Task<IActionResult> RemoveLogo(CancellationToken ct)
     {

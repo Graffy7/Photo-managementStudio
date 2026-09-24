@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,7 @@ public class StudioSettingsController(
     public async Task<IActionResult> GetBusiness(CancellationToken ct) =>
         Ok(await studioSettingsService.GetBusinessSettingsAsync(StudioId, ct));
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPut("business")]
     public async Task<IActionResult> UpdateBusiness(BusinessSettingsDto request, CancellationToken ct)
     {
@@ -39,6 +41,7 @@ public class StudioSettingsController(
     public async Task<IActionResult> GetNotifications(CancellationToken ct) =>
         Ok(await studioSettingsService.GetNotificationSettingsAsync(StudioId, ct));
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPut("notifications")]
     public async Task<IActionResult> UpdateNotifications(NotificationSettingsDto request, CancellationToken ct) =>
         Ok(await studioSettingsService.UpdateNotificationSettingsAsync(StudioId, request, ct));
@@ -47,6 +50,7 @@ public class StudioSettingsController(
     public async Task<IActionResult> GetQuotation(CancellationToken ct) =>
         Ok(await studioSettingsService.GetQuotationSettingsAsync(StudioId, ct));
 
+    [FeatureRequired(FeatureCodes.Settings)]
     [HttpPut("quotation")]
     public async Task<IActionResult> UpdateQuotation(QuotationSettingsDto request, CancellationToken ct)
     {

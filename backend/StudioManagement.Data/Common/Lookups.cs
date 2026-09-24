@@ -1,4 +1,4 @@
-﻿namespace StudioManagement.Data.Common;
+namespace StudioManagement.Data.Common;
 
 public static class UserTypes
 {
@@ -6,6 +6,28 @@ public static class UserTypes
     public const string StudioOwner = "STUDIO_OWNER";
 
     public static readonly string[] All = [SuperAdmin, StudioOwner];
+}
+
+// Modules the platform admin can switch on/off per studio (Features.FeatureCode).
+public static class FeatureCodes
+{
+    public const string Dashboard = "DASHBOARD";
+    public const string Leads = "LEADS";
+    public const string Customers = "CUSTOMERS";
+    public const string Events = "EVENTS";
+    public const string Workers = "WORKERS";
+    public const string Services = "SERVICES";
+    public const string Quotations = "QUOTATIONS";
+    public const string Payments = "PAYMENTS";
+    public const string Expenses = "EXPENSES";
+    public const string Reports = "REPORTS";
+    public const string DayBoard = "DAY_BOARD";
+    public const string Notifications = "NOTIFICATIONS";
+    public const string PhotoSelection = "PHOTO_SELECTION";
+    public const string PhotoDelivery = "PHOTO_DELIVERY";
+    public const string WhatsApp = "WHATSAPP";
+    public const string Gallery = "GALLERY";
+    public const string Settings = "SETTINGS";
 }
 
 public static class SubscriptionPlanTypes

@@ -10,6 +10,7 @@ import { FolderBrowserModal } from "../../components/FolderBrowserModal";
 import { DeliveryFolders } from "../../components/DeliveryFolders";
 import { SelectionCopyPanel } from "./SelectionCopyPanel";
 import { downloadBytes } from "../../utils/downloadFile";
+import { useModules } from "../../hooks/useModules";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
 import type { OwnerGallery, OwnerPhoto, PhotoFilter, SkippedFiles } from "../../types/photoSelection";
 
@@ -65,6 +66,7 @@ function daysLeftText(value: string | null): string {
 }
 
 export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number; onBack: () => void }) {
+  const isOn = useModules();
   const queryClient = useQueryClient();
 
   // Opens the event's gallery (creating it the first time). While photos are importing it polls
@@ -103,7 +105,8 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header gallery={gallery} onBack={onBack} />
       <Stats gallery={gallery} />
-      <SelectionCopyPanel gallery={gallery} onChanged={refresh} />
+      {/* Delivery (folders, copying selected originals) and WhatsApp can be switched off per studio. */}
+      {isOn("PHOTO_DELIVERY") && <SelectionCopyPanel gallery={gallery} onChanged={refresh} />}
       <ImportPanel gallery={gallery} onChanged={refresh} />
       <LinkPanel gallery={gallery} onChanged={refresh} />
       <PhotosPanel gallery={gallery} />
@@ -372,6 +375,7 @@ function describeSkipped(skipped: SkippedFiles | null | undefined): string | nul
 // ---- Link, lock, export ----------------------------------------------------------------------
 
 function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: () => void }) {
+  const isOn = useModules();
   const [days, setDays] = useState<number>(EXPIRY_PRESETS[0]);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
@@ -455,6 +459,9 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Customer link</Text>
+      {!isOn("GALLERY") && (
+        <Text style={styles.warnText}>The customer gallery is switched off for your studio, so customer links don't open right now.</Text>
+      )}
 
       {gallery.previewsPurged && !importing ? (
         <>
@@ -496,10 +503,12 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
               <Pressable style={[styles.secondaryButton, copied && styles.copiedButton]} disabled={busy !== null} onPress={copy}>
                 <Text style={[styles.secondaryButtonText, copied && styles.copiedButtonText]}>{copied ? "✓ Copied" : "Copy link"}</Text>
               </Pressable>
-              <Pressable style={styles.whatsButton} disabled={busy !== null} onPress={() => whatsApp(false)}>
-                <Text style={styles.whatsButtonText}>Send on WhatsApp</Text>
-              </Pressable>
-              {!gallery.submittedAt && (
+              {isOn("WHATSAPP") && (
+                <Pressable style={styles.whatsButton} disabled={busy !== null} onPress={() => whatsApp(false)}>
+                  <Text style={styles.whatsButtonText}>Send on WhatsApp</Text>
+                </Pressable>
+              )}
+              {isOn("WHATSAPP") && !gallery.submittedAt && (
                 <Pressable style={styles.secondaryButton} disabled={busy !== null} onPress={() => whatsApp(true)}>
                   <Text style={styles.secondaryButtonText}>Send reminder</Text>
                 </Pressable>
@@ -559,6 +568,7 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
 // ---- Photos (grid / table) -------------------------------------------------------------------
 
 function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
+  const isOn = useModules();
   const [filter, setFilter] = useState<PhotoFilter>("All");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [search, setSearch] = useState("");
@@ -591,10 +601,14 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Photo delivery</Text>
-      <DeliveryFolders galleryId={gallery.galleryId} selectedFolderId={folderId} onSelect={setFolderId} />
+      {isOn("PHOTO_DELIVERY") && (
+        <>
+          <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Photo delivery</Text>
+          <DeliveryFolders galleryId={gallery.galleryId} selectedFolderId={folderId} onSelect={setFolderId} />
+        </>
+      )}
 
-      <View style={[styles.photosHeader, { marginTop: 18 }]}>
+      <View style={[styles.photosHeader, isOn("PHOTO_DELIVERY") && { marginTop: 18 }]}>
         <Text style={styles.sectionTitle}>Selection</Text>
         <View style={styles.viewToggle}>
           {(["grid", "table"] as const).map((v) => (

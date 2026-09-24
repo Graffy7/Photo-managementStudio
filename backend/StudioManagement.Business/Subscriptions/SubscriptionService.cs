@@ -32,7 +32,13 @@ public class SubscriptionService(
         }
 
         var now = DateTime.UtcNow;
-        var renewalStart = current.EndDate > now ? current.EndDate : now;
+        // A trial converts to paid from today; a paid plan's new period follows on from its end.
+        var renewalStart = !current.IsTrial && current.EndDate > now ? current.EndDate : now;
+        if (current.IsTrial)
+        {
+            current.IsTrial = false;
+            current.StartDate = now;
+        }
 
         current.SubscriptionPlanId = plan.SubscriptionPlanId;
         current.Amount = plan.Price;
@@ -49,6 +55,8 @@ public class SubscriptionService(
             PaymentMethod = request.PaymentMethod,
             ReferenceNumber = request.ReferenceNumber,
             Notes = request.Notes,
+            PeriodStart = renewalStart,
+            PeriodEnd = current.EndDate,
             CreatedAt = now
         }, ct);
 

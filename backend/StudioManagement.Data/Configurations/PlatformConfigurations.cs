@@ -103,6 +103,8 @@ public class SubscriptionPaymentConfiguration : IEntityTypeConfiguration<Subscri
         b.Property(x => x.PaymentMethod).IsRequired().HasMaxLength(30);
         b.Property(x => x.ReferenceNumber).HasMaxLength(100);
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.PeriodStart).HasColumnType("datetime2");
+        b.Property(x => x.PeriodEnd).HasColumnType("datetime2");
         b.HasOne(x => x.StudioSubscription).WithMany(x => x.Payments)
             .HasForeignKey(x => x.StudioSubscriptionId).OnDelete(DeleteBehavior.Cascade);
     }
@@ -131,7 +133,13 @@ public class FeatureConfiguration : IEntityTypeConfiguration<Feature>
             new Feature { FeatureId = 8, FeatureCode = "EXPENSES", FeatureName = "Expenses", Description = "Studio expense tracking.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
             new Feature { FeatureId = 9, FeatureCode = "REPORTS", FeatureName = "Reports", Description = "Profit and financial reporting.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
             new Feature { FeatureId = 10, FeatureCode = "DAY_BOARD", FeatureName = "Day Board", Description = "Day/week/month schedule view.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
-            new Feature { FeatureId = 11, FeatureCode = "NOTIFICATIONS", FeatureName = "Notifications", Description = "In-app reminders and alerts.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
+            new Feature { FeatureId = 11, FeatureCode = "NOTIFICATIONS", FeatureName = "Notifications", Description = "In-app reminders and alerts.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 12, FeatureCode = "DASHBOARD", FeatureName = "Dashboard", Description = "The studio's home dashboard with figures and charts.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 13, FeatureCode = "PHOTO_SELECTION", FeatureName = "Photo Selection", Description = "Import photos and manage customer selection.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 14, FeatureCode = "PHOTO_DELIVERY", FeatureName = "Photo Delivery", Description = "Delivery folders and copying selected originals.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 15, FeatureCode = "WHATSAPP", FeatureName = "WhatsApp", Description = "WhatsApp sharing and automatic reminders.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 16, FeatureCode = "GALLERY", FeatureName = "Gallery", Description = "The customer's online photo gallery link.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new Feature { FeatureId = 17, FeatureCode = "SETTINGS", FeatureName = "Settings", Description = "Studio profile, branding and form settings.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
         );
     }
 }
@@ -173,9 +181,23 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         b.Property(x => x.Module).IsRequired().HasMaxLength(100);
         b.Property(x => x.EntityName).IsRequired().HasMaxLength(100);
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.IpAddress).HasMaxLength(64);
+        b.Property(x => x.Device).HasMaxLength(120);
         b.HasIndex(x => new { x.StudioId, x.CreatedAt });
         b.HasOne<Studio>().WithMany().HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public class StudioDailyUsageConfiguration : IEntityTypeConfiguration<StudioDailyUsage>
+{
+    public void Configure(EntityTypeBuilder<StudioDailyUsage> b)
+    {
+        b.HasKey(x => new { x.StudioId, x.UsageDate });
+        b.Property(x => x.UsageDate).HasColumnType("date");
+        b.Property(x => x.LastSeenAt).HasColumnType("datetime2");
+        b.HasOne(x => x.Studio).WithMany()
+            .HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

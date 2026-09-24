@@ -12,4 +12,8 @@ public class AuditLog
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Where the action came from (request IP and a short browser/device description), when known.
+    public string? IpAddress { get; set; }
+    public string? Device { get; set; }
 }

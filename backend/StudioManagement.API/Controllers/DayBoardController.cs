@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.DayBoard;
@@ -9,6 +10,7 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/day-board")]
 [Authorize(Roles = UserTypes.StudioOwner)]
+[FeatureRequired(FeatureCodes.DayBoard)]
 public class DayBoardController(IDayBoardService dayBoardService, ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
