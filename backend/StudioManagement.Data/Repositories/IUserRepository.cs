@@ -11,4 +11,8 @@ public interface IUserRepository : IRepository<User>
     // The studio owner's login account, for the super admin's studio detail screen.
     Task<User?> GetStudioOwnerAsync(int studioId, CancellationToken ct = default);
     Task<List<User>> GetStudioOwnersAsync(IEnumerable<int> studioIds, CancellationToken ct = default);
+
+    // Active studio-owner logins whose studio's phone ends with these digits (spaces, dashes,
+    // brackets and "+" ignored). At most two come back - enough to tell "exactly one" from "ambiguous".
+    Task<List<User>> FindActiveOwnersByStudioPhoneAsync(string lastDigits, CancellationToken ct = default);
 }

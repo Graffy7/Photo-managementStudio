@@ -6,7 +6,6 @@ import { useAuthStore } from "../auth/authStore";
 import { WebAppShell } from "./WebAppShell";
 import { LoginScreen } from "../screens/auth/LoginScreen";
 import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
-import { ResetPasswordScreen } from "../screens/auth/ResetPasswordScreen";
 import { ChangePasswordScreen } from "../screens/ChangePasswordScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SettingsScreen } from "../screens/studioOwner/SettingsScreen";
@@ -74,7 +73,8 @@ export function RootNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          {/* old reset-link route: same code-based flow */}
+          <Stack.Screen name="ResetPassword" component={ForgotPasswordScreen} />
         </Stack.Navigator>
       ) : user.userType === "SUPER_ADMIN" ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>

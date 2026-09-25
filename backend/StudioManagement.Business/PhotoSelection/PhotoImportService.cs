@@ -20,6 +20,7 @@ public class PhotoImportService(
     IAuditService auditService,
     IUnitOfWork unitOfWork,
     PhotoGalleryOptions options,
+    IStudioPhotoRootService photoRoots,
     ILogger<PhotoImportService> logger) : IPhotoImportService
 {
     private const string Module = "PhotoSelection";
@@ -28,98 +29,46 @@ public class PhotoImportService(
 
     // ---- Folder browsing -------------------------------------------------------------------
 
-    public FolderBrowseResultDto? BrowseFolders(string? path)
+    // Only ever inside the studio's own photo root: an empty path opens the root itself.
+    public async Task<(PhotoPathProblem Problem, FolderBrowseResultDto? Result)> BrowseFoldersAsync(int studioId, string? path, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        var root = await photoRoots.GetRootAsync(studioId, ct);
+        if (root is null)
         {
-            return new FolderBrowseResultDto { Folders = TopLevelEntries() };
+            return (PhotoPathProblem.NoRoot, null);
         }
 
-        string full;
-        try
+        var problem = StudioPhotoRootService.Check(root, string.IsNullOrWhiteSpace(path) ? root : path, out var full);
+        if (problem != PhotoPathProblem.None)
         {
-            full = Path.GetFullPath(path.Trim());
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            return null;
-        }
-
-        if (!Directory.Exists(full) || !IsAllowed(full))
-        {
-            return null;
+            return (problem, null);
         }
 
         try
         {
-            var folders = Directory.EnumerateDirectories(full, "*", new EnumerationOptions { IgnoreInaccessible = true })
+            var folders = Directory.EnumerateDirectories(full, "*", StudioPhotoRootService.SafeEnumeration(recurse: false))
                 .Select(p => new FolderBrowseEntryDto { Name = Path.GetFileName(p), FullPath = p })
                 .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            var parent = Directory.GetParent(full)?.FullName;
-            // At an allowed root, "up" goes back to the top-level list rather than outside the root.
-            if (parent is not null && !IsAllowed(parent))
-            {
-                parent = null;
-            }
+            // "Up" stops at the studio's root.
+            var parent = StudioPhotoRootService.Check(root, Directory.GetParent(full)?.FullName, out var parentFull) == PhotoPathProblem.None
+                ? parentFull : null;
 
-            return new FolderBrowseResultDto
+            return (PhotoPathProblem.None, new FolderBrowseResultDto
             {
                 CurrentPath = full,
                 ParentPath = parent,
+                RootPath = root,
                 Folders = folders,
                 ImageCount = EnumerateImages(full).Count()
-            };
+            });
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
-            return null;
+            return (PhotoPathProblem.NotFound, null);
         }
     }
-
-    // Mirrors what Windows' "This PC" opens to: the user's library folders first (where photos most
-    // likely live), then the drives — or just the configured roots when imports are restricted.
-    private List<FolderBrowseEntryDto> TopLevelEntries()
-    {
-        if (options.AllowedImportRoots.Length > 0)
-        {
-            return options.AllowedImportRoots
-                .Where(Directory.Exists)
-                .Select(r => new FolderBrowseEntryDto { Name = Path.GetFileName(r.TrimEnd('\\', '/')) is { Length: > 0 } n ? n : r, FullPath = Path.GetFullPath(r) })
-                .ToList();
-        }
-
-        var entries = new List<FolderBrowseEntryDto>();
-        foreach (var (name, folder) in new[]
-        {
-            ("Desktop", Environment.SpecialFolder.DesktopDirectory),
-            ("Documents", Environment.SpecialFolder.MyDocuments),
-            ("Pictures", Environment.SpecialFolder.MyPictures),
-            ("Videos", Environment.SpecialFolder.MyVideos)
-        })
-        {
-            var p = Environment.GetFolderPath(folder);
-            if (!string.IsNullOrEmpty(p) && Directory.Exists(p))
-            {
-                entries.Add(new FolderBrowseEntryDto { Name = name, FullPath = p });
-            }
-        }
-
-        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-        if (Directory.Exists(downloads))
-        {
-            entries.Insert(Math.Min(1, entries.Count), new FolderBrowseEntryDto { Name = "Downloads", FullPath = downloads });
-        }
-
-        entries.AddRange(DriveInfo.GetDrives()
-            .Where(d => d.IsReady)
-            .OrderBy(d => d.Name)
-            .Select(d => new FolderBrowseEntryDto { Name = d.Name, FullPath = d.Name }));
-        return entries;
-    }
-
-    private bool IsAllowed(string fullPath) => options.IsAllowed(fullPath);
 
     // Maps a photo's path relative to the source folder to the delivery folder it belongs in:
     // "Candid Photos\IMG_1.jpg" -> the "Candid Photos" folder, "IMG_1.jpg" -> unfiled.
@@ -191,7 +140,8 @@ public class PhotoImportService(
     private static (List<string> Photos, SkippedFilesDto Skipped) ScanFolder(string folder)
     {
         var skipped = new SkippedFilesDto();
-        var files = Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
+        // Junctions/symlinks inside the folder are never followed (they could lead outside the studio's root).
+        var files = Directory.EnumerateFiles(folder, "*", StudioPhotoRootService.SafeEnumeration(recurse: true))
             // Our own Customer Selection copies are not new photos.
             .Where(f => !SelectionFolders.IsInsideGenerated(Path.GetRelativePath(folder, f)))
             .ToList();
@@ -234,24 +184,15 @@ public class PhotoImportService(
             return ImportStartResult.Fail(ImportFailureReason.GalleryNotFound);
         }
 
-        string full;
-        try
+        var (problem, checkedPath) = await photoRoots.CheckAsync(studioId, sourceFolder, ct);
+        switch (problem)
         {
-            full = Path.GetFullPath(sourceFolder.Trim());
+            case PhotoPathProblem.NoRoot: return ImportStartResult.Fail(ImportFailureReason.NoPhotoRoot);
+            case PhotoPathProblem.Invalid: return ImportStartResult.Fail(ImportFailureReason.FolderInvalid);
+            case PhotoPathProblem.OutsideRoot: return ImportStartResult.Fail(ImportFailureReason.FolderNotAllowed);
+            case PhotoPathProblem.NotFound: return ImportStartResult.Fail(ImportFailureReason.FolderNotFound);
         }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            return ImportStartResult.Fail(ImportFailureReason.FolderNotFound);
-        }
-
-        if (!Directory.Exists(full))
-        {
-            return ImportStartResult.Fail(ImportFailureReason.FolderNotFound);
-        }
-        if (!IsAllowed(full))
-        {
-            return ImportStartResult.Fail(ImportFailureReason.FolderNotAllowed);
-        }
+        var full = checkedPath!;
 
         var latest = await galleryRepository.GetLatestJobAsync(galleryId, ct);
         if (latest is not null && latest.Status is ImportJobStatuses.Queued or ImportJobStatuses.Running)
@@ -437,6 +378,13 @@ public class PhotoImportService(
             job.StartedAt = DateTime.UtcNow;
             galleryRepository.UpdateJob(job);
             await unitOfWork.SaveChangesAsync(ct);
+
+            // Checked again when the job runs (it may have been queued before the studio's root changed).
+            var owner = await galleryRepository.GetByIdUnscopedAsync(job.PhotoGalleryId, ct);
+            if (owner is null || (await photoRoots.CheckAsync(owner.StudioId, job.SourceFolder, ct)).Problem != PhotoPathProblem.None)
+            {
+                throw new InvalidOperationException("The photo folder is outside this studio's photo folder.");
+            }
 
             var imported = await photoRepository.GetImportedPathsAsync(job.PhotoGalleryId, ct);
             var todo = ListFiles(job.SourceFolder).Where(f => !imported.Contains(f.Relative)).ToList();

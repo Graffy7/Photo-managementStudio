@@ -51,6 +51,17 @@ export async function openRazorpayCheckout(
       description: `${checkout.planName} subscription — ${checkout.studioName}`,
       prefill: { email: checkout.email ?? undefined, contact: checkout.phone ?? undefined },
       theme: { color: theme },
+      // UPI first (QR code, UPI ID, GPay/PhonePe/Paytm), then Razorpay's usual methods - cards,
+      // net banking, wallets - underneath.
+      config: {
+        display: {
+          blocks: {
+            upi: { name: "Pay by UPI", instruments: [{ method: "upi" }] },
+          },
+          sequence: ["block.upi"],
+          preferences: { show_default_blocks: true },
+        },
+      },
       handler: (r: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) =>
         done({ kind: "paid", orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature }),
       modal: {

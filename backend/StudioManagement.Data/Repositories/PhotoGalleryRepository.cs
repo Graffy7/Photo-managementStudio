@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -129,6 +129,20 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
                         && g.LinkGeneratedAt != null && g.LinkGeneratedAt < sentBefore
                         && g.PreviewsPurgedAt == null)
             .ToListAsync(ct);
+
+    public Task<List<PhotoGallery>> GetLinksLongerThanAsync(int? studioId, int maxDays, DateTime now, CancellationToken ct = default) =>
+        context.PhotoGalleries
+            .AsNoTracking()
+            .Where(g => (studioId == null || g.StudioId == studioId)
+                        && g.IsLinkActive && g.ExpiresAt != null && g.ExpiresAt > now && g.LinkGeneratedAt != null
+                        && g.ExpiresAt > g.LinkGeneratedAt.Value.AddDays(maxDays))
+            .OrderBy(g => g.StudioId).ThenBy(g => g.PhotoGalleryId)
+            .ToListAsync(ct);
+
+    public async Task<bool> ShortenLinkExpiryAsync(int galleryId, DateTime newExpiresAt, DateTime now, CancellationToken ct = default) =>
+        await context.PhotoGalleries
+            .Where(g => g.PhotoGalleryId == galleryId && g.IsLinkActive && g.ExpiresAt != null && g.ExpiresAt > now && g.ExpiresAt > newExpiresAt)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.ExpiresAt, newExpiresAt).SetProperty(g => g.UpdatedAt, now), ct) == 1;
 
     public async Task AddAsync(PhotoGallery gallery, CancellationToken ct = default) =>
         await context.PhotoGalleries.AddAsync(gallery, ct);

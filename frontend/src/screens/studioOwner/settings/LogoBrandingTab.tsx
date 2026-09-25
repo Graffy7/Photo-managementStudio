@@ -6,7 +6,7 @@ import { settingsApi } from "../../../api/settingsApi";
 import { extractErrorMessage } from "../../../api/errorMessage";
 import { API_BASE_URL } from "../../../constants/config";
 
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 
 export function LogoBrandingTab() {
@@ -20,7 +20,7 @@ export function LogoBrandingTab() {
   const uploadMutation = useMutation({
     mutationFn: async (asset: ImagePicker.ImagePickerAsset) => {
       if (asset.mimeType && !ALLOWED_MIME_TYPES.includes(asset.mimeType)) {
-        throw new Error("Please choose a JPG, PNG, or WEBP image.");
+        throw new Error("Please choose a JPG or PNG image.");
       }
       if (asset.fileSize && asset.fileSize > MAX_SIZE_BYTES) {
         throw new Error("The logo must be 2MB or smaller.");
@@ -76,7 +76,7 @@ export function LogoBrandingTab() {
 
   return (
     <View>
-      <Text style={styles.hint}>Recommended size: 500×500px or similar. JPG, PNG, or WEBP, up to 2MB.</Text>
+      <Text style={styles.hint}>Recommended size: 500×500px or similar. JPG or PNG, up to 2MB.</Text>
 
       <View style={styles.previewCard}>
         {logoUrl ? (

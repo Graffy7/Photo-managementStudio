@@ -10,6 +10,14 @@ public class UserRepository(AppDbContext context) : Repository<User>(context), I
     public Task<User?> FindByEmailAsync(string email, CancellationToken ct = default) =>
         Set.Include(u => u.Studio).FirstOrDefaultAsync(u => u.Email == email, ct);
 
+    public Task<List<User>> FindActiveOwnersByStudioPhoneAsync(string lastDigits, CancellationToken ct = default) =>
+        Set.Include(u => u.Studio)
+            .Where(u => u.UserType == UserTypes.StudioOwner && u.IsActive && u.Studio != null && u.Studio.PhoneNumber != null
+                && u.Studio.PhoneNumber.Replace(" ", "").Replace("-", "").Replace("+", "").Replace("(", "").Replace(")", "")
+                    .EndsWith(lastDigits))
+            .Take(2)
+            .ToListAsync(ct);
+
 
     public Task<User?> GetStudioOwnerAsync(int studioId, CancellationToken ct = default) =>
         Set.Where(u => u.StudioId == studioId && u.UserType == UserTypes.StudioOwner)

@@ -9,6 +9,7 @@ import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
 import type { Expense } from "../../types/expense";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -27,6 +28,7 @@ export function ExpenseListScreen({
   onEdit: (expense: Expense) => void;
   onManageCategories: () => void;
 }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -57,7 +59,7 @@ export function ExpenseListScreen({
     const isBusy = remove.isPending && remove.variables === item.expenseId;
 
     return (
-      <View style={styles.row}>
+      <View style={[styles.row, compact && compactList.row]}>
         <Pressable style={styles.rowMain} onPress={() => onEdit(item)}>
           <Text style={styles.expenseDate}>{formatDate(item.expenseDate)} · {item.expenseCategoryName}</Text>
           {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
@@ -68,7 +70,7 @@ export function ExpenseListScreen({
         </Pressable>
 
         {isPending ? (
-          <View style={styles.actions}>
+          <View style={[styles.actions, compact && compactList.actions]}>
             <Pressable style={styles.actionBtn} onPress={() => { setPendingDeleteId(null); setActionError(null); }} disabled={isBusy}>
               <Text style={styles.actionText}>Cancel</Text>
             </Pressable>
@@ -89,8 +91,8 @@ export function ExpenseListScreen({
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Expenses</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

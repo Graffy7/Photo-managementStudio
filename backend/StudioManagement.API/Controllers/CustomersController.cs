@@ -46,6 +46,11 @@ public class CustomersController(
             return ValidationProblem(ModelState);
         }
 
+        if (await customerService.FindMobileDuplicateAsync(StudioId, request.MobileNumber, null, ct) is { } existing)
+        {
+            return DuplicateMobile(existing);
+        }
+
         var customer = await customerService.CreateAsync(StudioId, request, ct);
         return Ok(customer);
     }
@@ -58,6 +63,16 @@ public class CustomersController(
         {
             foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
             return ValidationProblem(ModelState);
+        }
+
+        // Only when the number is being changed: customers already sharing a number from before this
+        // rule can still have their other details edited.
+        var current = await customerService.GetByIdAsync(StudioId, id, ct);
+        var digits = (string? v) => new string((v ?? "").Where(char.IsDigit).ToArray());
+        if (current is not null && digits(current.MobileNumber) != digits(request.MobileNumber)
+            && await customerService.FindMobileDuplicateAsync(StudioId, request.MobileNumber, id, ct) is { } existing)
+        {
+            return DuplicateMobile(existing);
         }
 
         var customer = await customerService.UpdateAsync(StudioId, id, request, ct);
@@ -89,4 +104,17 @@ public class CustomersController(
 
         return Ok(await customerService.GetEventsAsync(StudioId, id, ct));
     }
+
+    // One mobile number = one customer within a studio (other studios may have the same number).
+    private IActionResult DuplicateMobile(CustomerDto existing) => Conflict(new
+    {
+        code = "DUPLICATE_MOBILE",
+        field = "mobileNumber",
+        message = existing.IsActive
+            ? $"{existing.FullName} already uses this mobile number."
+            : $"{existing.FullName} (deactivated) already uses this mobile number. Activate that customer instead.",
+        existingCustomerId = existing.CustomerId,
+        existingCustomerName = existing.FullName,
+        existingIsActive = existing.IsActive
+    });
 }

@@ -3,24 +3,11 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { photoSelectionApi } from "../api/photoSelectionApi";
+import { extractErrorMessage } from "../api/errorMessage";
 
-const isDrive = (name: string) => /^[A-Za-z]:\\?$/.test(name);
-
-function iconFor(name: string, atTop: boolean): keyof typeof Ionicons.glyphMap {
-  if (!atTop) return "folder";
-  switch (name) {
-    case "Desktop": return "desktop-outline";
-    case "Documents": return "document-text-outline";
-    case "Downloads": return "download-outline";
-    case "Pictures": return "image-outline";
-    case "Videos": return "videocam-outline";
-    default: return isDrive(name) ? "server-outline" : "folder";
-  }
-}
-
-// Picks a folder on the machine the backend runs on (the studio's own PC), so the owner points at
-// where the original photos live instead of typing a path. Only folder names are listed — the
-// photos themselves are never read until the owner presses Import.
+// Picks a folder inside the studio's own photo folder on the server, so the owner points at where
+// the original photos live instead of typing a path. The server never lists anything outside that
+// folder. Only folder names are listed — the photos themselves are never read until Import.
 export function FolderBrowserModal({
   visible,
   onClose,
@@ -37,15 +24,20 @@ export function FolderBrowserModal({
     if (visible) setCurrentPath(null);
   }, [visible]);
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ["photo-gallery-browse-folders", currentPath],
     queryFn: () => photoSelectionApi.browseFolders(currentPath ?? undefined),
     enabled: visible,
     retry: false,
   });
 
-  const atTop = currentPath === null;
+  // At the studio's photo folder itself there's nowhere further up to go.
+  const atRoot = !data?.parentPath;
   const folders = data?.folders ?? [];
+  const shownPath = data?.currentPath ?? currentPath;
+  const relative = shownPath && data?.rootPath && shownPath.length > data.rootPath.length
+    ? shownPath.slice(data.rootPath.length).replace(/^[\\/]/, "")
+    : null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -59,27 +51,30 @@ export function FolderBrowserModal({
           </View>
 
           <View style={styles.pathRow}>
-            {!atTop && (
+            {!atRoot && (
               <Pressable style={styles.upButton} onPress={() => setCurrentPath(data?.parentPath ?? null)}>
                 <Ionicons name="arrow-up-outline" size={14} color="#7fc0e6" />
                 <Text style={styles.upButtonText}>Up</Text>
               </Pressable>
             )}
-            <Text style={styles.pathText} numberOfLines={1}>{currentPath ?? "This PC"}</Text>
+            <Ionicons name="lock-closed-outline" size={12} color="#6f83a0" />
+            <Text style={styles.pathText} numberOfLines={1}>
+              {relative ? `Studio photos › ${relative.split(/[\\/]/).join(" › ")}` : "Studio photos"}
+            </Text>
           </View>
 
           <View style={styles.listBox}>
             {isPending ? (
               <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 30 }} />
             ) : isError ? (
-              <Text style={styles.empty}>Couldn't open that folder.</Text>
+              <Text style={styles.empty}>{extractErrorMessage(error, "Couldn't open that folder.")}</Text>
             ) : folders.length === 0 ? (
               <Text style={styles.empty}>No sub-folders here.</Text>
             ) : (
               <ScrollView style={{ maxHeight: 340 }}>
                 {folders.map((f) => (
                   <Pressable key={f.fullPath} style={styles.item} onPress={() => setCurrentPath(f.fullPath)}>
-                    <Ionicons name={iconFor(f.name, atTop)} size={20} color="#7fc0e6" />
+                    <Ionicons name="folder" size={20} color="#7fc0e6" />
                     <Text style={styles.itemText} numberOfLines={1}>{f.name}</Text>
                     <Ionicons name="chevron-forward" size={14} color="#6f83a0" />
                   </Pressable>
@@ -88,7 +83,7 @@ export function FolderBrowserModal({
             )}
           </View>
 
-          {!atTop && data && (
+          {data && (
             <Text style={styles.count}>
               {data.imageCount === 0
                 ? "No photos in this folder or its sub-folders."
@@ -101,9 +96,9 @@ export function FolderBrowserModal({
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
             <Pressable
-              style={[styles.selectButton, (atTop || !data || data.imageCount === 0) && styles.selectButtonDisabled]}
-              disabled={atTop || !data || data.imageCount === 0}
-              onPress={() => currentPath && onSelect(currentPath)}
+              style={[styles.selectButton, (!data?.currentPath || data.imageCount === 0) && styles.selectButtonDisabled]}
+              disabled={!data?.currentPath || data.imageCount === 0}
+              onPress={() => data?.currentPath && onSelect(data.currentPath)}
             >
               <Text style={styles.selectText}>Use This Folder</Text>
             </Pressable>

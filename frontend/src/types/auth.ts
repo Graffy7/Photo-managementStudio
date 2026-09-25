@@ -23,8 +23,23 @@ export interface LoginResponse {
   user: UserProfile;
 }
 
-export interface ForgotPasswordRequest {
-  email: string;
+export type ResetChannel = "Email" | "Phone";
+
+export interface ForgotPasswordOptions {
+  phoneAvailable: boolean;
+  codeExpirySeconds: number;
+  resendCooldownSeconds: number;
+}
+
+export interface SendResetCodeResponse {
+  message: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export interface VerifyResetCodeResponse {
+  resetToken: string;
+  expiresInSeconds: number;
 }
 
 export interface ResetPasswordRequest {

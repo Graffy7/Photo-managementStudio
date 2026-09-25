@@ -8,9 +8,9 @@ public class CreatePaymentRequestValidator : AbstractValidator<CreatePaymentRequ
     public CreatePaymentRequestValidator()
     {
         RuleFor(x => x.CustomerId).GreaterThan(0);
-        // Negative amounts are deliberate — a "minus" entry (refund/correction) reduces what the
-        // customer has paid so far, same math as an "add" entry increasing it. Only zero is meaningless.
-        RuleFor(x => x.Amount).NotEqual(0);
+        // Positive = a payment received; negative = a deduction/refund (reason required, capped at
+        // what's been paid - checked by PaymentService against the stored figures). Zero means nothing.
+        RuleFor(x => x.Amount).NotEqual(0).WithMessage("Enter an amount more than zero.");
         RuleFor(x => x.PaymentDate).NotEqual(default(DateTime));
         RuleFor(x => x.PaymentMethod).NotEmpty().Must(s => PaymentMethods.All.Contains(s))
             .WithMessage($"PaymentMethod must be one of: {string.Join(", ", PaymentMethods.All)}");
@@ -26,9 +26,9 @@ public class UpdatePaymentRequestValidator : AbstractValidator<UpdatePaymentRequ
     public UpdatePaymentRequestValidator()
     {
         RuleFor(x => x.CustomerId).GreaterThan(0);
-        // Negative amounts are deliberate — a "minus" entry (refund/correction) reduces what the
-        // customer has paid so far, same math as an "add" entry increasing it. Only zero is meaningless.
-        RuleFor(x => x.Amount).NotEqual(0);
+        // Positive = a payment received; negative = a deduction/refund (reason required, capped at
+        // what's been paid - checked by PaymentService against the stored figures). Zero means nothing.
+        RuleFor(x => x.Amount).NotEqual(0).WithMessage("Enter an amount more than zero.");
         RuleFor(x => x.PaymentDate).NotEqual(default(DateTime));
         RuleFor(x => x.PaymentMethod).NotEmpty().Must(s => PaymentMethods.All.Contains(s))
             .WithMessage($"PaymentMethod must be one of: {string.Join(", ", PaymentMethods.All)}");

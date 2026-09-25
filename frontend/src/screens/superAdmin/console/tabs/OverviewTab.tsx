@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { studiosApi } from "../../../../api/studiosApi";
+import { adminConsoleApi } from "../../../../api/adminConsoleApi";
 import { extractErrorMessage } from "../../../../api/errorMessage";
 import { Button, C, Card, DaysLeft, Field, StatCard, StatusBadge, ago, date, dateTime, minutes, money, s } from "../ui";
 import type { AdminStudioDetail } from "../../../../types/adminConsole";
@@ -56,7 +57,58 @@ export function OverviewTab({ detail, onRefresh }: { detail: AdminStudioDetail; 
         </Card>
         <ResetPasswordCard studioId={st.studioId} onDone={onRefresh} />
       </View>
+
+      <View style={styles.row}>
+        <PhotoRootCard studioId={st.studioId} />
+      </View>
     </View>
+  );
+}
+
+// Where this studio's original photos live on the server. The studio can only browse, import and
+// copy photos inside it, and no two studios may share or nest folders.
+function PhotoRootCard({ studioId }: { studioId: number }) {
+  const { data, refetch } = useQuery({ queryKey: ["admin-photo-root", studioId], queryFn: () => adminConsoleApi.getPhotoRoot(studioId) });
+  const [path, setPath] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const value = path ?? (data?.setByAdmin ? data.root ?? "" : "");
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      await adminConsoleApi.setPhotoRoot(studioId, value.trim());
+      setPath(null);
+      setSaved(true);
+      await refetch();
+    } catch (err) {
+      setError(extractErrorMessage(err, "Couldn't save the photo folder."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card title="Photo folder" style={styles.flex}>
+      <Text style={s.faint}>
+        The only folder on the server this studio can pick photos from. Folders outside it, other studios' folders,
+        drive roots and system folders are refused.
+      </Text>
+      <View style={styles.fields}>
+        <Field label="Current folder" value={data?.root ?? "Not set — this studio can't import photos"} />
+      </View>
+      {data?.fromBaseFolder && <Text style={s.faint}>Using the default folder for every studio (PhotoGallery:StudioRootBase).</Text>}
+      <View style={styles.inputRow}>
+        <TextInput style={[s.input, { flex: 1 }]} value={value} onChangeText={(v) => { setPath(v); setSaved(false); }}
+          placeholder={"e.g. D:\\Studios\\Shagul Photography"} placeholderTextColor={C.faint} autoCapitalize="none" autoCorrect={false} />
+        <Button label="Save" kind="primary" onPress={save} busy={saving} disabled={saving || path === null} small />
+      </View>
+      {!!error && <Text style={s.errorText}>{error}</Text>}
+      {saved && <Text style={{ color: C.good, fontSize: 13 }}>Saved.</Text>}
+    </Card>
   );
 }
 

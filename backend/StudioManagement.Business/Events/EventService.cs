@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
 using StudioManagement.Business.Notifications;
@@ -121,6 +121,26 @@ public class EventService(
             {
                 return EventWriteResult.Fail(EventWriteFailureReason.CustomerNotFound);
             }
+        }
+
+        // The total can't drop below what the customer has already paid - that would show a negative
+        // balance. Checked under the same event lock payments use, so a payment saved at the same
+        // moment is counted. To lower it further, record a refund (deduction) first.
+        var totalProblem = await unitOfWork.ExecuteInTransactionAsync(async tx =>
+        {
+            await paymentRepository.LockForPaymentAsync(studioId, @event.CustomerId, eventId, tx);
+            var paid = await paymentRepository.GetCompletedTotalForEventAsync(studioId, eventId, null, tx);
+            if (paid > 0 && (request.Budget is null || request.Budget < paid))
+            {
+                return request.Budget is null
+                    ? $"₹{paid:N0} has already been paid for this event, so it needs a total of at least ₹{paid:N0}."
+                    : $"₹{paid:N0} has already been paid for this event, so the total can't be less than that. To lower it, record a refund (a deduction) first.";
+            }
+            return (string?)null;
+        }, ct);
+        if (totalProblem is not null)
+        {
+            return EventWriteResult.Fail(EventWriteFailureReason.TotalBelowPaid, totalProblem);
         }
 
         @event.CustomerId = request.CustomerId;

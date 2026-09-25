@@ -21,9 +21,15 @@ public class PhotoSelectionCopyService(
     IPhotoCopyQueue queue,
     IAuditService auditService,
     IUnitOfWork unitOfWork,
-    PhotoGalleryOptions options,
+    IStudioPhotoRootService photoRoots,
     ILogger<PhotoSelectionCopyService> logger) : IPhotoSelectionCopyService
 {
+    // The gallery's studio photo folder for the job being run; copies are only read and written inside it.
+    private string? studioRoot;
+
+    private bool InsideStudioRoot(string path) =>
+        studioRoot is not null && StudioPhotoRootService.Check(studioRoot, path, out _) == PhotoPathProblem.None;
+
     private const string Module = "PhotoSelection";
     private const string TempSuffix = ".copying";
     private const int ProgressEvery = 10;
@@ -54,7 +60,8 @@ public class PhotoSelectionCopyService(
         {
             return CopyStartResult.Fail(CopyFailureReason.NoSourceFolder);
         }
-        if (!Directory.Exists(gallery.SourceFolder) || !options.IsAllowed(gallery.SourceFolder))
+        studioRoot = await photoRoots.GetRootAsync(studioId, ct);
+        if (!Directory.Exists(gallery.SourceFolder) || !InsideStudioRoot(gallery.SourceFolder))
         {
             return CopyStartResult.Fail(CopyFailureReason.SourceFolderMissing);
         }
@@ -156,6 +163,7 @@ public class PhotoSelectionCopyService(
 
             var gallery = await galleryRepository.GetByIdUnscopedAsync(job.PhotoGalleryId, ct)
                 ?? throw new InvalidOperationException("Gallery not found.");
+            studioRoot = await photoRoots.GetRootAsync(gallery.StudioId, ct);
 
             // The selection as it is right now (the customer may have changed it since the button was
             // pressed). A change made during the run is picked up by the next sync.
@@ -301,7 +309,7 @@ public class PhotoSelectionCopyService(
         }
 
         var rootFull = Path.GetFullPath(root);
-        if (!options.IsAllowed(rootFull))
+        if (!InsideStudioRoot(rootFull))
         {
             throw new CopyProblemException("that folder isn't allowed");
         }
@@ -448,7 +456,7 @@ public class PhotoSelectionCopyService(
         {
             // Never invent the original folder itself: if it's missing (drive not connected), each photo
             // reports "original not found" instead of a new empty tree appearing.
-            if (!Directory.Exists(root) || !options.IsAllowed(root))
+            if (!Directory.Exists(root) || !InsideStudioRoot(root))
             {
                 continue;
             }

@@ -11,6 +11,7 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 function formatDate(value: string | null): string {
   if (!value) return null as unknown as string;
@@ -26,6 +27,7 @@ function formatCurrency(value: number): string {
 type PendingAction = { leadId: number; kind: "delete" | "convert" } | null;
 
 export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (lead: Lead) => void; onView: (lead: Lead) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -83,7 +85,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
     const isBusy = (convert.isPending && convert.variables === item.leadId) || (remove.isPending && remove.variables === item.leadId);
 
     return (
-      <View style={styles.row}>
+      <View style={[styles.row, compact && compactList.row]}>
         <View style={styles.rowMain}>
           <Text style={styles.leadName}>{item.fullName}</Text>
           <Text style={styles.contact}>{item.mobileNumber}{item.email ? ` · ${item.email}` : ""}</Text>
@@ -107,7 +109,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         </View>
 
         {isPending ? (
-          <View style={styles.actions}>
+          <View style={[styles.actions, compact && compactList.actions]}>
             <Pressable style={styles.actionBtn} onPress={cancelPending} disabled={isBusy}>
               <Text style={styles.actionText}>Cancel</Text>
             </Pressable>
@@ -126,7 +128,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
             </Pressable>
           </View>
         ) : (
-          <View style={styles.actions}>
+          <View style={[styles.actions, compact && compactList.actions]}>
             <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
               <Text style={styles.actionText}>View</Text>
             </Pressable>
@@ -153,8 +155,8 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Enquiry</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

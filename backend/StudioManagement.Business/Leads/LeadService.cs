@@ -10,7 +10,7 @@ namespace StudioManagement.Business.Leads;
 
 public class LeadService(
     ILeadRepository leadRepository,
-    IRepository<Customer> customerRepository,
+    ICustomerRepository customerRepository,
     IAuditService auditService,
     INotificationService notificationService,
     IUnitOfWork unitOfWork) : ILeadService
@@ -125,6 +125,23 @@ public class LeadService(
         }
 
         var now = DateTime.UtcNow;
+
+        // Someone already a customer under this mobile number: the enquiry is linked to them rather
+        // than creating a duplicate customer.
+        var digits = new string(lead.MobileNumber.Where(char.IsDigit).ToArray());
+        var existing = digits.Length == 0 ? null : await customerRepository.FindByMobileDigitsAsync(studioId, digits, null, ct);
+        if (existing is not null)
+        {
+            lead.ConvertedCustomerId = existing.CustomerId;
+            lead.UpdatedAt = now;
+            leadRepository.Update(lead);
+            await unitOfWork.SaveChangesAsync(ct);
+            await auditService.LogAsync("Enquiry linked to existing customer", Module, studioId, ct);
+            await notificationService.NotifyAsync(studioId, "Enquiry converted",
+                $"{lead.FullName} matched existing customer {existing.FullName} (same mobile number).", NotificationTypes.LeadConverted, ct);
+            return LeadConversionResult.Success(MapToDto(lead), existing.CustomerId);
+        }
+
         var customer = new Customer
         {
             StudioId = studioId,

@@ -5,6 +5,10 @@ import { customersApi } from "../../api/customersApi";
 import type { Customer } from "../../types/customer";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerEventsList } from "../../components/CustomerEventsList";
+import { duplicateFrom, emailError, fieldErrorsFrom, mobileError, nameError, type DuplicateCustomer } from "../../utils/customerValidation";
+
+// Dim enough that an example never looks like a filled-in value.
+const PLACEHOLDER = "#4f6280";
 
 interface Props {
   customer?: Customer;
@@ -22,6 +26,10 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
   const [address, setAddress] = useState(customer?.address ?? "");
   const [notes, setNotes] = useState(customer?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
+  // Field errors show once a field has been left (or on pressing Create), not while typing the first time.
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
+  const [duplicate, setDuplicate] = useState<DuplicateCustomer | null>(null);
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -38,10 +46,31 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       onDone();
     },
-    onError: (err) => setError(extractErrorMessage(err)),
+    onError: (err) => {
+      const dup = duplicateFrom(err);
+      const fields = fieldErrorsFrom(err);
+      setDuplicate(dup);
+      setServerErrors(fields);
+      setError(dup || Object.keys(fields).length ? null : extractErrorMessage(err, "Couldn't save the customer. Please try again."));
+    },
   });
 
-  const canSave = fullName.trim().length > 0 && mobileNumber.trim().length > 0;
+  const errors: Record<string, string | null> = {
+    fullName: nameError(fullName) ?? serverErrors.fullName ?? null,
+    mobileNumber: mobileError(mobileNumber) ?? (duplicate ? duplicate.message : serverErrors.mobileNumber ?? null),
+    email: emailError(email) ?? serverErrors.email ?? null,
+  };
+  const valid = !errors.fullName && !mobileError(mobileNumber) && !errors.email;
+  const show = (field: string) => (touched[field] ? errors[field] : null);
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  // Pressing Create with problems marks every field so each shows what's wrong - never a silent no-op.
+  const submit = () => {
+    setTouched({ fullName: true, mobileNumber: true, email: true });
+    if (!valid || mutation.isPending) return;
+    setError(null);
+    mutation.mutate();
+  };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -54,32 +83,46 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
         </View>
       )}
 
-      <Text style={styles.label}>Full name</Text>
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Deepa Nair" placeholderTextColor="#6f83a0" />
-
-      <Text style={styles.label}>Mobile number</Text>
+      <Text style={styles.label}>Full name <Text style={styles.required}>*</Text></Text>
       <TextInput
-        style={styles.input}
-        value={mobileNumber}
-        onChangeText={setMobileNumber}
-        placeholder="9001122334"
-        placeholderTextColor="#6f83a0"
-        keyboardType="phone-pad"
+        style={[styles.input, show("fullName") && styles.inputError]}
+        value={fullName}
+        onChangeText={(v) => { setFullName(v); setServerErrors((e) => ({ ...e, fullName: "" })); }}
+        onBlur={() => touch("fullName")}
+        placeholder="e.g. Deepa Nair"
+        placeholderTextColor={PLACEHOLDER}
+        accessibilityLabel="Full name (required)"
       />
+      {show("fullName") ? <Text style={styles.fieldError}>{show("fullName")}</Text> : null}
+
+      <Text style={styles.label}>Mobile number <Text style={styles.required}>*</Text></Text>
+      <TextInput
+        style={[styles.input, show("mobileNumber") && styles.inputError]}
+        value={mobileNumber}
+        onChangeText={(v) => { setMobileNumber(v); setDuplicate(null); setServerErrors((e) => ({ ...e, mobileNumber: "" })); }}
+        onBlur={() => touch("mobileNumber")}
+        placeholder="e.g. 90011 22334"
+        placeholderTextColor={PLACEHOLDER}
+        keyboardType="phone-pad"
+        accessibilityLabel="Mobile number (required)"
+      />
+      {show("mobileNumber") ? <Text style={styles.fieldError}>{show("mobileNumber")}</Text> : null}
 
       <Text style={styles.label}>Email</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, show("email") && styles.inputError]}
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(v) => { setEmail(v); setServerErrors((e) => ({ ...e, email: "" })); }}
+        onBlur={() => touch("email")}
         placeholder="Optional"
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor={PLACEHOLDER}
         autoCapitalize="none"
         keyboardType="email-address"
       />
+      {show("email") ? <Text style={styles.fieldError}>{show("email")}</Text> : null}
 
       <Text style={styles.label}>Address</Text>
-      <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Optional" placeholderTextColor="#6f83a0" />
+      <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Optional" placeholderTextColor={PLACEHOLDER} />
 
       <Text style={styles.label}>Notes</Text>
       <TextInput
@@ -87,7 +130,7 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
         value={notes}
         onChangeText={setNotes}
         placeholder="Optional"
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor={PLACEHOLDER}
         multiline
         numberOfLines={3}
       />
@@ -98,8 +141,21 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
         <Pressable style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
-        <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create customer"}</Text>}
+        <Pressable
+          style={[styles.saveButton, (!valid || mutation.isPending) && styles.saveButtonDisabled]}
+          onPress={submit}
+          disabled={mutation.isPending}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !valid || mutation.isPending, busy: mutation.isPending }}
+        >
+          {mutation.isPending ? (
+            <View style={styles.savingRow}>
+              <ActivityIndicator color="#0d1826" size="small" />
+              <Text style={styles.saveText}>Saving…</Text>
+            </View>
+          ) : (
+            <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create customer"}</Text>
+          )}
         </Pressable>
       </View>
     </ScrollView>
@@ -123,6 +179,11 @@ const styles = StyleSheet.create({
   },
   textArea: { minHeight: 72, textAlignVertical: "top" },
   error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
+  required: { color: "#ff9a4d" },
+  inputError: { borderColor: "#ff7a72" },
+  fieldError: { color: "#ff7a72", fontSize: 12, marginTop: 5 },
+  saveButtonDisabled: { opacity: 0.55 },
+  savingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
   cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
   cancelText: { color: "#a7b7cb", fontWeight: "600" },

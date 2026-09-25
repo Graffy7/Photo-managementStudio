@@ -1,10 +1,12 @@
-﻿using StudioManagement.Business.Common;
+using StudioManagement.Business.Common;
 
 namespace StudioManagement.Business.Events;
 
 public enum EventWriteFailureReason
 {
-    CustomerNotFound
+    CustomerNotFound,
+    // The new total is below (or clears) what has already been paid for the event.
+    TotalBelowPaid
 }
 
 public class EventWriteResult
@@ -12,9 +14,10 @@ public class EventWriteResult
     public bool Succeeded { get; private init; }
     public EventWriteFailureReason? FailureReason { get; private init; }
     public EventDto? Event { get; private init; }
+    public string? Message { get; private init; }
 
     public static EventWriteResult Success(EventDto dto) => new() { Succeeded = true, Event = dto };
-    public static EventWriteResult Fail(EventWriteFailureReason reason) => new() { Succeeded = false, FailureReason = reason };
+    public static EventWriteResult Fail(EventWriteFailureReason reason, string? message = null) => new() { Succeeded = false, FailureReason = reason, Message = message };
 }
 
 public enum EventDeleteResult

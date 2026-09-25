@@ -9,8 +9,10 @@ import type { Worker } from "../../types/worker";
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (worker: Worker) => void; onView: (worker: Worker) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -30,7 +32,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
   const deactivate = useMutation({ mutationFn: workersApi.deactivate, onSuccess: invalidate });
 
   const renderItem = ({ item }: { item: Worker }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && compactList.row]}>
       <View style={styles.rowMain}>
         <Text style={styles.workerName}>{item.fullName}</Text>
         <Text style={styles.contact}>{[item.mobileNumber, item.email].filter(Boolean).join(" · ")}</Text>
@@ -40,7 +42,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
           {item.workerTypeName && <StatusPill label={item.workerTypeName} tone="neutral" />}
         </View>
       </View>
-      <View style={styles.actions}>
+      <View style={[styles.actions, compact && compactList.actions]}>
         <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
           <Text style={styles.actionText}>View</Text>
         </Pressable>
@@ -60,8 +62,8 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Workers</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

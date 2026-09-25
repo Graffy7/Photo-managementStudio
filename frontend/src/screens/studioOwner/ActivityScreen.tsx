@@ -1,5 +1,5 @@
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { studioActivityApi } from "../../api/studioActivityApi";
 import type { AuditLogEntry } from "../../types/auditLog";
@@ -19,11 +19,13 @@ function timeAgo(value: string): string {
 
 export function ActivityScreen() {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["studio-activity"],
     queryFn: () => studioActivityApi.search({ page: 1, pageSize: 50 }),
-    refetchInterval: 15000,
+    // Live while on screen only - a hidden screen further back in the stack doesn't poll.
+    refetchInterval: isFocused ? 15000 : false,
   });
   useRefetchOnFocus(refetch);
 

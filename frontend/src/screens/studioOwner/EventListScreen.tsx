@@ -15,6 +15,7 @@ import { SearchInput } from "../../components/SearchInput";
 import { DeliveryChecklist } from "../../components/DeliveryChecklist";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Ionicons } from "@expo/vector-icons";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -129,6 +130,7 @@ function EventTeamLine({ eventId, assigned }: { eventId: number; assigned: Assig
 }
 
 export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (event: StudioEvent) => void; onView: (event: StudioEvent) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -162,7 +164,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   });
 
   const renderItem = ({ item }: { item: StudioEvent }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && compactList.row]}>
       <View style={styles.rowMain}>
         <Text style={styles.eventDate}>{formatDate(item.eventDate)}{item.startTime ? ` · ${item.startTime}` : ""}</Text>
         <Text style={styles.customerName}>{item.customerName}</Text>
@@ -210,7 +212,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         <View style={styles.deleteBox}>
           <Text style={styles.deleteText}>Delete this event?</Text>
           {deleteError ? <Text style={styles.rowError}>{deleteError}</Text> : null}
-          <View style={styles.actions}>
+          <View style={[styles.actions, compact && compactList.actions]}>
             <Pressable
               style={styles.actionBtn}
               onPress={() => { setPendingDeleteId(null); setDeleteError(null); }}
@@ -228,7 +230,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
           </View>
         </View>
       ) : (
-        <View style={styles.actions}>
+        <View style={[styles.actions, compact && compactList.actions]}>
           <Pressable style={[styles.actionBtn, styles.quoteBtn]} onPress={() => setQuoteFor(item)}>
             <Ionicons name="document-text-outline" size={12} color="#7fc0e6" />
             <Text style={styles.quoteBtnText}>Quote</Text>
@@ -250,8 +252,8 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Events</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

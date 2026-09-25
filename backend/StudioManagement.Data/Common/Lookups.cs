@@ -8,6 +8,15 @@ public static class UserTypes
     public static readonly string[] All = [SuperAdmin, StudioOwner];
 }
 
+// How a password-reset code is delivered (PasswordResetTokens.Channel).
+public static class PasswordResetChannels
+{
+    public const string Email = "Email";
+    public const string Phone = "Phone";
+
+    public static readonly string[] All = [Email, Phone];
+}
+
 // Modules the platform admin can switch on/off per studio (Features.FeatureCode).
 public static class FeatureCodes
 {

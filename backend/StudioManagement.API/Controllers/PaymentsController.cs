@@ -48,7 +48,7 @@ public class PaymentsController(
         }
 
         var result = await paymentService.CreateAsync(StudioId, request, ct);
-        return result.Succeeded ? Ok(result.Payment) : BadRequest(new { message = ReferenceErrorMessage(result.FailureReason!.Value) });
+        return result.Succeeded ? Ok(result.Payment) : BadRequest(new { message = result.Message ?? ReferenceErrorMessage(result.FailureReason!.Value) });
     }
 
     [HttpPut("{id:int}")]
@@ -66,13 +66,13 @@ public class PaymentsController(
         {
             return NotFound();
         }
-        return result.Succeeded ? Ok(result.Payment) : BadRequest(new { message = ReferenceErrorMessage(result.FailureReason!.Value) });
+        return result.Succeeded ? Ok(result.Payment) : BadRequest(new { message = result.Message ?? ReferenceErrorMessage(result.FailureReason!.Value) });
     }
 
     private static string ReferenceErrorMessage(PaymentWriteFailureReason reason) => reason switch
     {
         PaymentWriteFailureReason.CustomerNotFound => "The selected customer could not be found.",
-        PaymentWriteFailureReason.EventNotFound => "The selected event could not be found.",
+        PaymentWriteFailureReason.EventNotFound => "The selected event could not be found for this customer.",
         _ => "Invalid request."
     };
 }

@@ -6,7 +6,12 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/auth/authStore";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
 
-const queryClient = new QueryClient();
+// Data counts as fresh for 30 seconds, so moving between screens re-uses it instead of re-asking.
+// Window-focus refetching is off: it would reload every screen still mounted in the navigation
+// stacks. useRefetchOnFocus refreshes just the visible screen instead; saves invalidate what they change.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+});
 
 // A customer's private photo-selection link (/photo-selection/<token>) is a standalone page: no
 // login, no studio navigation, its own query cache. It's recognised before the authenticated app

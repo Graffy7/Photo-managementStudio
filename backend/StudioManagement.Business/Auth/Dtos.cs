@@ -46,6 +46,20 @@ public class ForgotPasswordRequestDto
     public string Email { get; set; } = null!;
 }
 
+// channel: "Email" or "Phone"; identifier: the email address or phone number typed.
+public class SendResetCodeRequestDto
+{
+    public string Channel { get; set; } = null!;
+    public string Identifier { get; set; } = null!;
+}
+
+public class VerifyResetCodeRequestDto
+{
+    public string Channel { get; set; } = null!;
+    public string Identifier { get; set; } = null!;
+    public string Code { get; set; } = null!;
+}
+
 public class ResetPasswordRequestDto
 {
     public string Token { get; set; } = null!;

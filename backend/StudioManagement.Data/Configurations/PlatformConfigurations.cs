@@ -280,6 +280,8 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
         b.Property(x => x.ExpiresAt).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UsedAt).HasColumnType("datetime2");
+        b.Property(x => x.Channel).HasMaxLength(10);
+        b.Property(x => x.FailedAttempts).HasDefaultValue(0);
         b.Ignore(x => x.IsActive);
 
         b.HasIndex(x => x.TokenHash);

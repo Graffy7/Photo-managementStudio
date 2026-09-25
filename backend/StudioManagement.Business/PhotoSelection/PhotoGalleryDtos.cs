@@ -206,6 +206,8 @@ public class FolderBrowseResultDto
 {
     public string? CurrentPath { get; set; }
     public string? ParentPath { get; set; }
+    // The studio's photo folder - browsing never goes above it.
+    public string? RootPath { get; set; }
     public List<FolderBrowseEntryDto> Folders { get; set; } = [];
     public int ImageCount { get; set; }
 }
@@ -268,4 +270,10 @@ public class SubmitResultDto
     public DateTime SubmittedAt { get; set; }
     public bool AlreadySubmitted { get; set; }
     public GalleryCountsDto Counts { get; set; } = new();
+}
+
+public class PhotoRootRequestDto
+{
+    // Full folder path on the server; empty clears it (the studio then can't import).
+    public string? Path { get; set; }
 }

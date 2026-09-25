@@ -1,4 +1,4 @@
-﻿using StudioManagement.Business.Audit;
+using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -34,6 +34,17 @@ public class CustomerService(
     {
         var customer = await customerRepository.GetByIdAsync(studioId, customerId, ct);
         return customer is null ? null : MapToDto(customer);
+    }
+
+    public async Task<CustomerDto?> FindMobileDuplicateAsync(int studioId, string mobileNumber, int? excludeCustomerId, CancellationToken ct = default)
+    {
+        var digits = new string(mobileNumber.Where(char.IsDigit).ToArray());
+        if (digits.Length == 0)
+        {
+            return null;
+        }
+        var existing = await customerRepository.FindByMobileDigitsAsync(studioId, digits, excludeCustomerId, ct);
+        return existing is null ? null : MapToDto(existing);
     }
 
     public async Task<CustomerDto> CreateAsync(int studioId, CreateCustomerRequestDto request, CancellationToken ct = default)

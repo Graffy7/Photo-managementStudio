@@ -82,7 +82,13 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
     ? (budgetAmount > 0 ? "Advance can't be more than the budget." : "Enter the budget first.")
     : null;
 
-  const canSave = customer !== null && eventDate.trim().length > 0 && !advanceError;
+  // What's already been paid sets a floor on the total (the server checks this too) - otherwise the
+  // balance would go negative. Lowering it further needs a refund recorded first.
+  const totalError = isEdit && event!.amountPaid > 0 && (budget.trim() === "" || budgetAmount < event!.amountPaid)
+    ? `${formatCurrency(event!.amountPaid)} has already been paid, so the total can't be less than that. To lower it, record a refund first.`
+    : null;
+
+  const canSave = customer !== null && eventDate.trim().length > 0 && !advanceError && !totalError;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -129,6 +135,7 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
         placeholderTextColor="#6f83a0"
         keyboardType="numeric"
       />
+      {totalError ? <Text style={[styles.error, { marginTop: 6 }]}>{totalError}</Text> : null}
 
       {!isEdit && (
         <>

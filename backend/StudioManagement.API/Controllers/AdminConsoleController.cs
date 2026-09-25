@@ -2,6 +2,9 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Admin;
+using StudioManagement.Business.Audit;
+using StudioManagement.Business.PhotoSelection;
+using StudioManagement.Data.Repositories;
 using StudioManagement.Data.Common;
 
 namespace StudioManagement.API.Controllers;
@@ -15,8 +18,56 @@ namespace StudioManagement.API.Controllers;
 public class AdminConsoleController(
     IAdminConsoleService consoleService,
     IValidator<TrialDaysRequestDto> trialValidator,
-    IValidator<ManualPaymentRequestDto> paymentValidator) : ControllerBase
+    IValidator<ManualPaymentRequestDto> paymentValidator,
+    IStudioPhotoRootService photoRoots,
+    IGalleryCleanupService galleryCleanup,
+    IStudioRepository studioRepository,
+    IAuditService auditService) : ControllerBase
 {
+    // The one folder a studio's photos may be browsed, imported and copied in. Only the platform
+    // admin sets it; no two studios' folders may overlap.
+    // Old customer photo links (sent before the 5/10-day rule). GET previews what would change;
+    // POST applies it - for one studio (?studioId=) or all. See GalleryCleanupService.CapLegacyLinksAsync.
+    [HttpGet("photo-links/legacy")]
+    public async Task<IActionResult> PreviewLegacyLinks([FromQuery] int? studioId, CancellationToken ct) =>
+        Ok(await galleryCleanup.CapLegacyLinksAsync(studioId, apply: false, DateTime.UtcNow, ct));
+
+    [HttpPost("photo-links/legacy/apply")]
+    public async Task<IActionResult> ApplyLegacyLinks([FromQuery] int? studioId, CancellationToken ct) =>
+        Ok(await galleryCleanup.CapLegacyLinksAsync(studioId, apply: true, DateTime.UtcNow, ct));
+
+    [HttpGet("studios/{id:int}/photo-root")]
+    public async Task<IActionResult> GetPhotoRoot(int id, CancellationToken ct)
+    {
+        if (await studioRepository.GetByIdAsync(id, ct) is null) return NotFound();
+        var info = await photoRoots.GetInfoAsync(id, ct);
+        return Ok(new { root = info.Root, setByAdmin = info.SetByAdmin, fromBaseFolder = info.FromBaseFolder });
+    }
+
+    [HttpPut("studios/{id:int}/photo-root")]
+    public async Task<IActionResult> SetPhotoRoot(int id, PhotoRootRequestDto request, CancellationToken ct)
+    {
+        if (await studioRepository.GetByIdAsync(id, ct) is null) return NotFound();
+        var problem = await photoRoots.SetRootAsync(id, request.Path, ct);
+        if (problem != SetPhotoRootProblem.None)
+        {
+            return BadRequest(new
+            {
+                message = problem switch
+                {
+                    SetPhotoRootProblem.NotFound => "That folder doesn't exist on the server.",
+                    SetPhotoRootProblem.DriveRoot => "Choose a folder, not a whole drive.",
+                    SetPhotoRootProblem.SystemFolder => "System and application folders can't be used.",
+                    SetPhotoRootProblem.OverlapsAnotherStudio => "That folder is, contains or sits inside another studio's photo folder.",
+                    _ => @"Enter a full folder path, e.g. D:\Studios\Shagul."
+                }
+            });
+        }
+        var info = await photoRoots.GetInfoAsync(id, ct);
+        await auditService.LogAsync(string.IsNullOrWhiteSpace(request.Path) ? "Photo folder cleared" : "Photo folder set", "PhotoSelection", id, ct);
+        return Ok(new { root = info.Root, setByAdmin = info.SetByAdmin, fromBaseFolder = info.FromBaseFolder });
+    }
+
     [HttpGet("overview")]
     public async Task<IActionResult> Overview([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct) =>
         Ok(await consoleService.GetOverviewAsync(from, to, ct));

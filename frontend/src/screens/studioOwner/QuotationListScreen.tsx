@@ -14,6 +14,7 @@ import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { QuotationPdfButton } from "../../components/QuotationPdfButton";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -31,6 +32,7 @@ function statusTone(status: QuotationStatus): "good" | "bad" | "warn" | "neutral
 }
 
 export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (quotation: Quotation) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -54,7 +56,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
   });
 
   const renderItem = ({ item }: { item: Quotation }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && compactList.row]}>
       <View style={styles.rowMain}>
         <Pressable onPress={() => onEdit(item)}>
           <Text style={styles.quotationNumber}>{item.quotationNumber} · {formatDate(item.quotationDate)}</Text>
@@ -94,8 +96,8 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Quotations</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

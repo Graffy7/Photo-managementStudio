@@ -18,6 +18,7 @@ using StudioManagement.API.Controllers;
 using StudioManagement.Business.Auth;
 using StudioManagement.Business.Dashboard;
 using StudioManagement.Business.Email;
+using StudioManagement.Business.Sms;
 using StudioManagement.Business.Features;
 using StudioManagement.Business.Customers;
 using StudioManagement.Business.DayBoard;
@@ -49,6 +50,9 @@ using StudioManagement.Data.UnitOfWork;
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Don't advertise the web server (and its version) on every response.
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
@@ -138,6 +142,7 @@ builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudioService, StudioService>();
 builder.Services.AddScoped<IStudioSettingsService, StudioSettingsService>();
@@ -193,6 +198,7 @@ builder.Services.AddSingleton<IPhotoPreviewGenerator, ImageSharpPhotoPreviewGene
 builder.Services.AddSingleton<IPhotoImportQueue, PhotoImportQueue>();
 builder.Services.AddSingleton<IPhotoCopyQueue, PhotoCopyQueue>();
 builder.Services.AddScoped<IPhotoImportService, PhotoImportService>();
+builder.Services.AddScoped<IStudioPhotoRootService, StudioPhotoRootService>();
 builder.Services.AddScoped<IPhotoSelectionCopyService, PhotoSelectionCopyService>();
 builder.Services.AddScoped<IPhotoGalleryService, PhotoGalleryService>();
 builder.Services.AddScoped<IPhotoFolderService, PhotoFolderService>();
@@ -245,7 +251,21 @@ else
     builder.Services.AddScoped<IEmailSender, LoggingEmailSender>();
 }
 
+// Phone codes for Forgot password. "Log" writes texts to the log (development). A real provider:
+// implement ISmsSender, add a case here, keep its keys in configuration. Unset = phone option hidden.
+switch (builder.Configuration["Sms:Provider"])
+{
+    case "Log":
+    case null or "":
+        builder.Services.AddScoped<ISmsSender, LoggingSmsSender>();
+        break;
+    default:
+        throw new InvalidOperationException($"Unknown Sms:Provider '{builder.Configuration["Sms:Provider"]}'.");
+}
+
 builder.Services.AddScoped<IValidator<LoginRequestDto>, LoginRequestValidator>();
+builder.Services.AddScoped<IValidator<SendResetCodeRequestDto>, SendResetCodeRequestValidator>();
+builder.Services.AddScoped<IValidator<VerifyResetCodeRequestDto>, VerifyResetCodeRequestValidator>();
 builder.Services.AddScoped<IValidator<RefreshRequestDto>, RefreshRequestValidator>();
 builder.Services.AddScoped<IValidator<LogoutRequestDto>, LogoutRequestValidator>();
 builder.Services.AddScoped<IValidator<ForgotPasswordRequestDto>, ForgotPasswordRequestValidator>();
@@ -267,6 +287,16 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    // Sign-in: a burst limit per connection that an office of people can share. Wrong-password
+    // limits per account and per connection are in LoginThrottle.
+    options.AddPolicy("login", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
@@ -326,6 +356,38 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
+// Security headers on every response (API JSON, PDFs, uploaded images, errors). The API never
+// serves pages of its own, so its CSP allows nothing to run or embed it; Swagger's UI (development
+// only) needs its own scripts and styles, so it gets a looser policy.
+var uploadImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp" };
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
+        headers["Content-Security-Policy"] = path.StartsWithSegments("/swagger")
+            ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'"
+            : "default-src 'none'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+        headers.Remove("X-Powered-By");
+        return Task.CompletedTask;
+    });
+
+    // Only images are ever served from /uploads - never a script, page or anything executable,
+    // whatever ended up on disk.
+    if (path.StartsWithSegments("/uploads") && !uploadImageExtensions.Contains(Path.GetExtension(path.Value ?? "")))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -337,6 +399,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+if (!app.Environment.IsDevelopment())
+{
+    // Browsers remember to use HTTPS only (production, where the API is served over TLS).
+    app.UseHsts();
+}
 app.UseHttpsRedirection();
 
 // Serves uploaded logos (wwwroot/uploads/...) as plain public image URLs — logos aren't

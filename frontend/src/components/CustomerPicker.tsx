@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customersApi } from "../api/customersApi";
 import { extractErrorMessage } from "../api/errorMessage";
+import { duplicateFrom, type DuplicateCustomer } from "../utils/customerValidation";
 
 export interface PickedCustomer {
   customerId: number;
@@ -23,6 +24,7 @@ export function CustomerPicker({
   const [newName, setNewName] = useState("");
   const [newMobile, setNewMobile] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
+  const [duplicate, setDuplicate] = useState<DuplicateCustomer | null>(null);
   const queryClient = useQueryClient();
 
   const { data } = useQuery({
@@ -42,7 +44,11 @@ export function CustomerPicker({
       setNewMobile("");
       setCreateError(null);
     },
-    onError: (err) => setCreateError(extractErrorMessage(err)),
+    onError: (err) => {
+      const dup = duplicateFrom(err);
+      setDuplicate(dup);
+      setCreateError(dup ? dup.message : extractErrorMessage(err));
+    },
   });
 
   if (!open && selected) {
@@ -80,6 +86,20 @@ export function CustomerPicker({
           keyboardType="phone-pad"
         />
         {createError ? <Text style={styles.createError}>{createError}</Text> : null}
+        {duplicate?.isActive && (
+          <Pressable
+            onPress={() => {
+              onSelect({ customerId: duplicate.customerId, fullName: duplicate.fullName, mobileNumber: newMobile.trim() });
+              setOpen(false);
+              setCreating(false);
+              setDuplicate(null);
+              setCreateError(null);
+            }}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.changeLink, { marginTop: 6 }]}>Use {duplicate.fullName} instead →</Text>
+          </Pressable>
+        )}
         <View style={styles.createButtonRow}>
           <Pressable
             style={styles.createCancelButton}

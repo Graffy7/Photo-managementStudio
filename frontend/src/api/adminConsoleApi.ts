@@ -6,6 +6,13 @@ import type {
 
 // The platform admin's console (api/admin). Studio edits, block/unblock and module switches keep
 // their own endpoints in studiosApi / featuresApi.
+// The one server folder a studio's photos may be browsed/imported in (set by the platform admin).
+export interface PhotoRoot {
+  root: string | null;
+  setByAdmin: boolean;
+  fromBaseFolder: boolean;
+}
+
 export const adminConsoleApi = {
   overview: (params: { from?: string; to?: string }) =>
     apiClient.get<AdminOverview>("/api/admin/overview", { params }).then((r) => r.data),
@@ -36,6 +43,11 @@ export const adminConsoleApi = {
   extendSubscription: (id: number, days: number) =>
     apiClient.post(`/api/admin/studios/${id}/subscription/extend`, { days }).then(() => undefined),
   expireSubscription: (id: number) => apiClient.post(`/api/admin/studios/${id}/subscription/expire`).then(() => undefined),
+
+  getPhotoRoot: (id: number) =>
+    apiClient.get<PhotoRoot>(`/api/admin/studios/${id}/photo-root`).then((r) => r.data),
+  setPhotoRoot: (id: number, path: string) =>
+    apiClient.put<PhotoRoot>(`/api/admin/studios/${id}/photo-root`, { path }).then((r) => r.data),
 
   setAccess: (id: number, mode: "Auto" | "Full" | "ReadOnly" | "Suspended") =>
     apiClient.put(`/api/admin/studios/${id}/access`, { mode }).then(() => undefined),

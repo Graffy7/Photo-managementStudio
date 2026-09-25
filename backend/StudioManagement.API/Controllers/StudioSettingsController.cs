@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -72,7 +73,6 @@ public class StudioSettingsController(
     // ---- Quotation PDF look (this studio only) ------------------------------------------------
 
     private const long MaxSignatureBytes = 1024 * 1024;
-    private static readonly string[] SignatureTypes = ["image/png", "image/jpeg", "image/webp"];
 
     [HttpGet("pdf")]
     public async Task<IActionResult> GetPdf(CancellationToken ct) =>
@@ -117,11 +117,15 @@ public class StudioSettingsController(
     {
         if (file is null || file.Length == 0) return BadRequest(new { message = "No file was uploaded." });
         if (file.Length > MaxSignatureBytes) return BadRequest(new { message = "The signature image must be 1MB or smaller." });
-        if (!SignatureTypes.Contains(file.ContentType)) return BadRequest(new { message = "The signature must be a PNG, JPG or WEBP image." });
+
+        // The bytes must be a real JPG/PNG; what's stored is our own re-encoded copy (PNG keeps transparency).
+        await using var upload = file.OpenReadStream();
+        var (image, error) = await SafeImage.ReencodeAsync(upload, MaxSignatureBytes, maxDimension: 1200, ct);
+        if (image is null) return BadRequest(new { message = error });
 
         var previous = (await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)).SignatureUrl;
-        await using var stream = file.OpenReadStream();
-        var url = await fileStorage.SaveAsync(stream, file.FileName, $"signatures/{StudioId}", ct);
+        await using var clean = image.Content;
+        var url = await fileStorage.SaveAsync(clean, "signature" + image.Extension, $"signatures/{StudioId}", ct);
         await studioSettingsService.SetPdfSignatureUrlAsync(StudioId, url, ct);
         if (!string.IsNullOrWhiteSpace(previous) && previous.StartsWith($"/uploads/signatures/{StudioId}/", StringComparison.Ordinal))
         {

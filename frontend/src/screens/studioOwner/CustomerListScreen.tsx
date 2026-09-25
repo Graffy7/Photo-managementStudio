@@ -8,8 +8,10 @@ import type { Customer } from "../../types/customer";
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (customer: Customer) => void; onView: (customer: Customer) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -26,7 +28,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
   const deactivate = useMutation({ mutationFn: customersApi.deactivate, onSuccess: invalidate });
 
   const renderItem = ({ item }: { item: Customer }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && compactList.row]}>
       <View style={styles.rowMain}>
         <Text style={styles.customerName}>{item.fullName}</Text>
         <Text style={styles.contact}>{item.mobileNumber}{item.email ? ` · ${item.email}` : ""}</Text>
@@ -37,7 +39,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
           <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
         </View>
       </View>
-      <View style={styles.actions}>
+      <View style={[styles.actions, compact && compactList.actions]}>
         <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
           <Text style={styles.actionText}>View</Text>
         </Pressable>
@@ -57,8 +59,8 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Customers</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

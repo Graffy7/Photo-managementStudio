@@ -32,6 +32,9 @@ export function PlanPicker({ status, highlightRenew }: { status: SubscriptionSta
   const wide = useWindowDimensions().width >= 1000;
   const bestValue = status.plans.reduce<Plan | null>((best, p) => (!best || p.pricePerMonth < best.pricePerMonth ? p : best), null);
   const renewing = status.hasAccess && !status.isTrial;
+  // The plan the owner has picked (orange); starts on the best value one.
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selected = selectedId ?? bestValue?.planId ?? null;
 
   const buy = async (plan: Plan) => {
     setStage({ kind: "busy", planId: plan.planId, text: "Opening secure payment…" });
@@ -73,8 +76,10 @@ export function PlanPicker({ status, highlightRenew }: { status: SubscriptionSta
         {status.plans.map((p) => {
           const isBest = p.planId === bestValue?.planId && status.plans.length > 1;
           const thisBusy = busy && stage.planId === p.planId;
+          const isSelected = p.planId === selected;
           return (
-            <View key={p.planId} style={[styles.plan, isBest && styles.planBest]}>
+            <Pressable key={p.planId} onPress={() => setSelectedId(p.planId)} accessibilityState={{ selected: isSelected }}
+              style={({ hovered }: any) => [styles.plan, hovered && !isSelected && styles.planHover, isSelected && styles.planSelected]}>
               {isBest && <Text style={styles.bestTag}>Best value</Text>}
               <Text style={styles.planName}>{p.name}</Text>
               <Text style={styles.planPrice}>{fmtMoney(p.price)}</Text>
@@ -85,17 +90,22 @@ export function PlanPicker({ status, highlightRenew }: { status: SubscriptionSta
                 {renewing ? "New expiry " : "Active until "}<Text style={{ color: T.text, fontWeight: "700" }}>{fmtDate(p.newExpiry)}</Text>
               </Text>
               <Pressable
-                style={[styles.buy, isBest && styles.buyBest, (busy || !status.onlinePaymentsAvailable) && styles.disabled]}
+                style={({ hovered, pressed }: any) => {
+                  const off = busy || !status.onlinePaymentsAvailable;
+                  return [styles.buy, isSelected && styles.buyBest,
+                    !off && (hovered || pressed) && (isSelected ? styles.buyBestHover : styles.buyHover),
+                    !off && pressed && styles.buyPressed, off && styles.disabled];
+                }}
                 disabled={busy || !status.onlinePaymentsAvailable}
-                onPress={() => buy(p)}
+                onPress={() => { setSelectedId(p.planId); buy(p); }}
                 accessibilityRole="button"
                 accessibilityLabel={`${renewing ? "Renew with" : "Buy"} ${p.name} for ${fmtMoney(p.price)}`}
               >
-                {thisBusy ? <ActivityIndicator size="small" color={isBest ? "#0d1826" : T.text} /> : (
-                  <Text style={[styles.buyText, isBest && styles.buyTextBest]}>{renewing || highlightRenew ? "Renew" : "Buy"}</Text>
+                {thisBusy ? <ActivityIndicator size="small" color={isSelected ? "#0d1826" : T.text} /> : (
+                  <Text style={[styles.buyText, isSelected && styles.buyTextBest]}>{renewing || highlightRenew ? "Renew" : "Buy"}</Text>
                 )}
               </Pressable>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -210,7 +220,8 @@ const styles = StyleSheet.create({
   plans: { gap: 12 },
   plansWide: { flexDirection: "row" },
   plan: { flex: 1, minWidth: 0, backgroundColor: T.raised, borderWidth: 1, borderColor: T.border, borderRadius: 12, padding: 16, gap: 4 },
-  planBest: { borderColor: T.brand },
+  planHover: { borderColor: `${T.brand}99` },
+  planSelected: { borderColor: T.brand, backgroundColor: `${T.brand}14`, boxShadow: `0 0 0 1px ${T.brand}` },
   bestTag: { alignSelf: "flex-start", color: T.brand, fontSize: 10.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
   planName: { color: T.muted, fontSize: 13, fontWeight: "700" },
   planPrice: { color: T.text, fontSize: 26, fontWeight: "800", fontVariant: ["tabular-nums"] },
@@ -218,6 +229,9 @@ const styles = StyleSheet.create({
   planExpiry: { color: T.faint, fontSize: 12, marginTop: 6, marginBottom: 10 },
   buy: { marginTop: "auto", borderRadius: 8, borderWidth: 1, borderColor: T.border, backgroundColor: T.surface, paddingVertical: 10, alignItems: "center" },
   buyBest: { backgroundColor: T.brand, borderColor: T.brand },
+  buyHover: { borderColor: T.brand, backgroundColor: `${T.brand}22` },
+  buyBestHover: { backgroundColor: "#ffb071", borderColor: "#ffb071" },
+  buyPressed: { transform: [{ scale: 0.98 }] },
   buyText: { color: T.text, fontWeight: "700", fontSize: 13.5 },
   buyTextBest: { color: "#0d1826" },
   disabled: { opacity: 0.5 },

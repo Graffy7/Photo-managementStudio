@@ -3,9 +3,10 @@ namespace StudioManagement.Business.PhotoSelection;
 // Bound from the "PhotoGallery" configuration section (all optional).
 public class PhotoGalleryOptions
 {
-    // When set, owners may only import from folders under one of these roots. Empty = unrestricted,
-    // which matches today's single-machine deployment (the backend runs on the studio's own PC).
-    public string[] AllowedImportRoots { get; set; } = [];
+    // Optional: each studio's photo folder defaults to <StudioRootBase>/<StudioId> (created on first
+    // use). The platform admin can instead set a specific folder per studio. A studio with neither
+    // can't browse or import anything (see StudioPhotoRootService).
+    public string? StudioRootBase { get; set; }
 
     // Size/quality of the small copies the customer looks at (WebP). The 1600px preview is what the
     // customer zooms, pans and selects on; the original is never sent. Applies to newly imported
@@ -28,17 +29,4 @@ public class PhotoGalleryOptions
     // 25MB originals into memory at once.
     public int ImportParallelism { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
 
-    // Whether a folder may be read from / written to under the AllowedImportRoots restriction
-    // (everything is allowed when no roots are configured).
-    public bool IsAllowed(string fullPath)
-    {
-        if (AllowedImportRoots.Length == 0)
-        {
-            return true;
-        }
-
-        var candidate = Path.GetFullPath(fullPath).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
-        return AllowedImportRoots.Any(root =>
-            candidate.StartsWith(Path.GetFullPath(root).TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
-    }
 }

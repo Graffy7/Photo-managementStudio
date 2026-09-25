@@ -8,12 +8,14 @@ import type { StudioService } from "../../types/service";
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (service: StudioService) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -30,7 +32,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const deactivate = useMutation({ mutationFn: servicesApi.deactivate, onSuccess: invalidate });
 
   const renderItem = ({ item }: { item: StudioService }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && compactList.row]}>
       <View style={styles.rowMain}>
         <Text style={styles.serviceName}>{item.serviceName}</Text>
         {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
@@ -40,7 +42,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
           <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
         </View>
       </View>
-      <View style={styles.actions}>
+      <View style={[styles.actions, compact && compactList.actions]}>
         <SubscriptionLock compact>
           <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
             <Text style={styles.actionText}>Edit</Text>
@@ -57,8 +59,8 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Services</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

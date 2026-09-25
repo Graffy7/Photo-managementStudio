@@ -8,6 +8,7 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment, type PaymentStat
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { compactList, useCompactLayout } from "../../styles/compactList";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -34,6 +35,7 @@ function displayStatus(item: Payment): PaymentStatus {
 }
 
 export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; onEdit: (payment: Payment) => void }) {
+  const compact = useCompactLayout();
   const navigation = useNavigation<any>();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<PaymentStatus | null>(null);
@@ -45,7 +47,7 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   useRefetchOnFocus(refetch);
 
   const renderItem = ({ item }: { item: Payment }) => (
-    <Pressable style={styles.row} onPress={() => onEdit(item)}>
+    <Pressable style={[styles.row, compact && compactList.row]} onPress={() => onEdit(item)}>
       <View style={styles.rowMain}>
         <Text style={styles.paymentDate}>{formatDate(item.paymentDate)} · {PAYMENT_METHOD_LABELS[item.paymentMethod]}</Text>
         <Text style={styles.customerName}>{item.customerName}</Text>
@@ -83,8 +85,8 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, compact && compactList.screen]}>
+      <View style={[styles.header, compact && compactList.header]}>
         <View>
           <Text style={styles.title}>Payments</Text>
           <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>

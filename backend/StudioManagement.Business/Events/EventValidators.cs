@@ -19,7 +19,8 @@ public class CreateEventRequestValidator : AbstractValidator<CreateEventRequestD
             .WithMessage($"EventStatus must be one of: {string.Join(", ", EventStatuses.All)}");
         RuleFor(x => x.StartTime).Matches(TimeOfDayRule.Pattern).When(x => !string.IsNullOrWhiteSpace(x.StartTime));
         RuleFor(x => x.EndTime).Matches(TimeOfDayRule.Pattern).When(x => !string.IsNullOrWhiteSpace(x.EndTime));
-        RuleFor(x => x.Budget).GreaterThanOrEqualTo(0).When(x => x.Budget.HasValue);
+        RuleFor(x => x.Budget).GreaterThanOrEqualTo(0).LessThanOrEqualTo(100_000_000m)
+            .WithMessage("Enter a total between ₹0 and ₹10,00,00,000.").When(x => x.Budget.HasValue);
         RuleFor(x => x.AdvancePaid).GreaterThanOrEqualTo(0).When(x => x.AdvancePaid.HasValue);
         RuleFor(x => x.AdvancePaid)
             .Must((request, advance) => request.Budget.HasValue && advance <= request.Budget)
@@ -45,7 +46,8 @@ public class UpdateEventRequestValidator : AbstractValidator<UpdateEventRequestD
             .WithMessage($"EventStatus must be one of: {string.Join(", ", EventStatuses.All)}");
         RuleFor(x => x.StartTime).Matches(TimeOfDayRule.Pattern).When(x => !string.IsNullOrWhiteSpace(x.StartTime));
         RuleFor(x => x.EndTime).Matches(TimeOfDayRule.Pattern).When(x => !string.IsNullOrWhiteSpace(x.EndTime));
-        RuleFor(x => x.Budget).GreaterThanOrEqualTo(0).When(x => x.Budget.HasValue);
+        RuleFor(x => x.Budget).GreaterThanOrEqualTo(0).LessThanOrEqualTo(100_000_000m)
+            .WithMessage("Enter a total between ₹0 and ₹10,00,00,000.").When(x => x.Budget.HasValue);
         RuleFor(x => x.Venue).MaximumLength(200);
         RuleFor(x => x.VenueAddress).MaximumLength(500);
         RuleFor(x => x.Notes).MaximumLength(2000);

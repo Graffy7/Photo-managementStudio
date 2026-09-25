@@ -140,6 +140,8 @@ export interface ShareMessage {
 export interface FolderBrowseResult {
   currentPath: string | null;
   parentPath: string | null;
+  // The studio's photo folder; browsing never goes above it.
+  rootPath: string | null;
   folders: { name: string; fullPath: string }[];
   imageCount: number;
 }

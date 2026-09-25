@@ -9,6 +9,11 @@ public class StudioSettingRepository(AppDbContext context) : IStudioSettingRepos
     public Task<List<StudioSetting>> GetAllForStudioAsync(int studioId, CancellationToken ct = default) =>
         context.StudioSettings.AsNoTracking().Where(s => s.StudioId == studioId).ToListAsync(ct);
 
+    public async Task<Dictionary<int, string>> GetValuesForKeyAsync(string key, CancellationToken ct = default) =>
+        await context.StudioSettings.AsNoTracking()
+            .Where(s => s.SettingKey == key && s.SettingValue != null && s.SettingValue != "")
+            .ToDictionaryAsync(s => s.StudioId, s => s.SettingValue!, ct);
+
     public async Task UpsertManyAsync(int studioId, Dictionary<string, string?> values, CancellationToken ct = default)
     {
         var keys = values.Keys.ToList();

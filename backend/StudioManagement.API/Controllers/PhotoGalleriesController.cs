@@ -50,14 +50,31 @@ public class PhotoGalleriesController(
         return gallery is null ? NotFound() : Ok(gallery);
     }
 
-    // Folders on the studio's own machine, so the owner picks the originals' location instead of
-    // typing a path. Restricted to PhotoGallery:AllowedImportRoots when that is configured.
+    // Folders inside this studio's own photo folder (set by Studio OS support), so the owner picks
+    // the originals' location instead of typing a path. Nothing outside it can be listed.
     [HttpGet("browse-folders")]
-    public IActionResult BrowseFolders([FromQuery] string? path)
+    public async Task<IActionResult> BrowseFolders([FromQuery] string? path, CancellationToken ct)
     {
-        var result = importService.BrowseFolders(path);
-        return result is null ? BadRequest(new { message = "That folder can't be opened." }) : Ok(result);
+        var (problem, result) = await importService.BrowseFoldersAsync(StudioId, path, ct);
+        return problem == PhotoPathProblem.None ? Ok(result) : PathProblem(problem);
     }
+
+    // 403 for anything outside the studio's folder (or no folder yet), 400 for a malformed path.
+    private IActionResult PathProblem(PhotoPathProblem problem) => problem switch
+    {
+        PhotoPathProblem.NoRoot => StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            code = "PHOTO_ROOT_NOT_SET",
+            message = "Your studio's photo folder hasn't been set up yet. Please contact Studio OS support."
+        }),
+        PhotoPathProblem.OutsideRoot => StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            code = "OUTSIDE_PHOTO_ROOT",
+            message = "That folder is outside your studio's photo folder."
+        }),
+        PhotoPathProblem.NotFound => BadRequest(new { message = "That folder wasn't found." }),
+        _ => BadRequest(new { message = "That isn't a valid folder path." })
+    };
 
     [HttpPost("{id:int}/import")]
     public async Task<IActionResult> StartImport(int id, ImportRequestDto request, CancellationToken ct)
@@ -79,7 +96,9 @@ public class PhotoGalleriesController(
         {
             ImportFailureReason.GalleryNotFound => NotFound(),
             ImportFailureReason.FolderNotFound => BadRequest(new { message = "That folder wasn't found on this computer." }),
-            ImportFailureReason.FolderNotAllowed => BadRequest(new { message = "Photos can't be imported from that folder." }),
+            ImportFailureReason.FolderNotAllowed => PathProblem(PhotoPathProblem.OutsideRoot),
+            ImportFailureReason.NoPhotoRoot => PathProblem(PhotoPathProblem.NoRoot),
+            ImportFailureReason.FolderInvalid => PathProblem(PhotoPathProblem.Invalid),
             ImportFailureReason.NoImages => BadRequest(new { message = NoPhotosMessage(result.Skipped) }),
             _ => Conflict(new { message = "An import is already running for this event." })
         };
@@ -126,7 +145,9 @@ public class PhotoGalleriesController(
         {
             ImportFailureReason.GalleryNotFound => NotFound(),
             ImportFailureReason.FolderNotFound => BadRequest(new { message = "The original photos folder wasn't found on this computer. Import the photos again from where they are now." }),
-            ImportFailureReason.FolderNotAllowed => BadRequest(new { message = "Photos can't be read from that folder." }),
+            ImportFailureReason.FolderNotAllowed => PathProblem(PhotoPathProblem.OutsideRoot),
+            ImportFailureReason.NoPhotoRoot => PathProblem(PhotoPathProblem.NoRoot),
+            ImportFailureReason.FolderInvalid => PathProblem(PhotoPathProblem.Invalid),
             ImportFailureReason.NoImages => BadRequest(new { message = "All previews are already in place." }),
             _ => Conflict(new { message = "An import is already running for this event." })
         };

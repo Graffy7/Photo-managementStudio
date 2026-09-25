@@ -1,4 +1,4 @@
-﻿using StudioManagement.Data.Entities;
+using StudioManagement.Data.Entities;
 
 namespace StudioManagement.Data.Repositories;
 
@@ -28,6 +28,12 @@ public interface IPhotoGalleryRepository
     Task<GallerySelectionCounts> GetCountsAsync(int galleryId, CancellationToken ct = default);
     // Galleries whose link has expired and was generated before sentBefore, with previews still on disk.
     Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime now, DateTime sentBefore, CancellationToken ct = default);
+
+    // Live customer links that run longer than maxDays after they were sent (made before the 5/10-day
+    // rule), optionally for one studio only.
+    Task<List<PhotoGallery>> GetLinksLongerThanAsync(int? studioId, int maxDays, DateTime now, CancellationToken ct = default);
+    // Only ever moves an expiry earlier (never later), and only while the link is still live.
+    Task<bool> ShortenLinkExpiryAsync(int galleryId, DateTime newExpiresAt, DateTime now, CancellationToken ct = default);
 
     Task AddAsync(PhotoGallery gallery, CancellationToken ct = default);
 

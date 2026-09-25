@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { eventsApi } from "../api/eventsApi";
 import { extractErrorMessage } from "../api/errorMessage";
@@ -24,17 +24,15 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: checklist = items } = useQuery({
-    queryKey: ["event-delivery", eventId],
-    queryFn: () => eventsApi.delivery(eventId),
-    initialData: items,
-    staleTime: 30000,
-  });
+  // No request of its own: the list comes with the event (list, detail or customer page). Changes
+  // show straight away here, and the screens that hold the event re-read it in the background.
+  const [checklist, setChecklist] = useState(items);
+  useEffect(() => setChecklist(items), [items]);
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["event-delivery", eventId] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
     queryClient.invalidateQueries({ queryKey: ["customer-events"] });
+    queryClient.invalidateQueries({ queryKey: ["event-history", eventId] });
   };
 
   const toggle = useMutation({
@@ -44,13 +42,17 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
         itemKey: item.itemKey ?? undefined,
         isDelivered: !item.isDelivered,
       }),
-    onSuccess: refresh,
+    onSuccess: (saved, item) => {
+      setChecklist((list) => list.map((i) => (i.itemKey ?? `custom-${i.itemId}`) === (item.itemKey ?? `custom-${item.itemId}`) ? { ...i, ...saved } : i));
+      refresh();
+    },
     onError: (err) => setError(extractErrorMessage(err)),
   });
 
   const add = useMutation({
     mutationFn: (name: string) => eventsApi.addDeliveryItem(eventId, name),
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      setChecklist((list) => [...list, saved]);
       setNewName("");
       setAdding(false);
       setError(null);
@@ -61,7 +63,8 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
 
   const remove = useMutation({
     mutationFn: (itemId: number) => eventsApi.deleteDeliveryItem(eventId, itemId),
-    onSuccess: () => {
+    onSuccess: (_, itemId) => {
+      setChecklist((list) => list.filter((i) => i.itemId !== itemId));
       setPendingDelete(null);
       refresh();
     },

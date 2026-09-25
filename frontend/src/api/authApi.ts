@@ -1,10 +1,13 @@
 import { apiClient } from "./client";
 import type {
   ChangePasswordRequest,
-  ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
   ResetPasswordRequest,
+  ResetChannel,
+  ForgotPasswordOptions,
+  SendResetCodeResponse,
+  VerifyResetCodeResponse,
   UserProfile,
 } from "../types/auth";
 
@@ -17,8 +20,14 @@ export const authApi = {
 
   logout: (refreshToken: string) => apiClient.post("/api/auth/logout", { refreshToken }),
 
-  forgotPassword: (request: ForgotPasswordRequest) =>
-    apiClient.post<{ message: string }>("/api/auth/forgot-password", request).then((res) => res.data),
+  forgotPasswordOptions: () =>
+    apiClient.get<ForgotPasswordOptions>("/api/auth/forgot-password/options").then((res) => res.data),
+
+  sendResetCode: (channel: ResetChannel, identifier: string) =>
+    apiClient.post<SendResetCodeResponse>("/api/auth/forgot-password/send-code", { channel, identifier }).then((res) => res.data),
+
+  verifyResetCode: (channel: ResetChannel, identifier: string, code: string) =>
+    apiClient.post<VerifyResetCodeResponse>("/api/auth/forgot-password/verify-code", { channel, identifier, code }).then((res) => res.data),
 
   resetPassword: (request: ResetPasswordRequest) =>
     apiClient.post<{ message: string }>("/api/auth/reset-password", request).then((res) => res.data),

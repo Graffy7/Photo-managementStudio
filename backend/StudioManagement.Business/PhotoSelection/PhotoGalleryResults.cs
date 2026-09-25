@@ -46,6 +46,8 @@ public enum ImportFailureReason
     GalleryNotFound,
     FolderNotFound,
     FolderNotAllowed,
+    FolderInvalid,
+    NoPhotoRoot,
     NoImages,
     AlreadyRunning
 }

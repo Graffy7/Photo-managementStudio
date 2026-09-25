@@ -8,6 +8,12 @@ import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPi
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { Ionicons } from "@expo/vector-icons";
 
+// Today's date on this device (not UTC - before 5:30am in India that would still be yesterday).
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
@@ -45,7 +51,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
   // positive magnitude; this toggle controls its sign.
   const [mode, setMode] = useState<"add" | "minus">(payment && payment.amount < 0 ? "minus" : "add");
   const [amount, setAmount] = useState(payment ? String(Math.abs(payment.amount)) : (initialAmount ? String(initialAmount) : ""));
-  const [paymentDate, setPaymentDate] = useState(payment?.paymentDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(payment?.paymentDate?.slice(0, 10) ?? localToday());
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payment?.paymentMethod ?? "Cash");
   const [referenceNumber, setReferenceNumber] = useState(payment?.referenceNumber ?? "");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(payment?.paymentStatus ?? "Completed");
@@ -77,14 +83,25 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
     onError: (err) => setError(extractErrorMessage(err)),
   });
 
-  const canSave = customer !== null && Number(amount) > 0 && paymentDate.trim().length > 0;
-
-  // Paying more than the event still owes is allowed (extra services, a tip, a deliberate
-  // overpayment), but it is worth saying out loud before it turns the balance negative. Only for
-  // new money on an event whose figures we have — a refund or an edit has a different baseline.
-  const overpayBy = !isEdit && mode === "add" && eventSummary
-    ? Math.round((signedAmount - eventSummary.balance) * 100) / 100
+  // The server enforces these too (it checks against the stored figures); showing them here just
+  // saves a round trip. A payment can't be more than what's still due; a deduction needs a reason
+  // and can't be more than what's been paid so far. Edits have a different baseline, so only the
+  // server checks those.
+  const overpayBy = !isEdit && mode === "add" && eventSummary && eventSummary.total !== null && eventSummary.total > 0
+    ? Math.round((signedAmount - Math.max(0, eventSummary.balance)) * 100) / 100
     : 0;
+  const overDeductBy = !isEdit && mode === "minus" && eventSummary
+    ? Math.round((Math.abs(signedAmount) - eventSummary.advancePaid) * 100) / 100
+    : 0;
+  const needsReason = mode === "minus" && notes.trim().length < 3;
+  // Money marked Completed has already been received, so it can't be dated after today. An expected
+  // payment can be saved as Pending instead. (The server enforces the same rule.)
+  const futureDateError = paymentStatus === "Completed" && paymentDate > localToday()
+    ? "A received payment can't be dated in the future. If the money is only expected, choose Pending below."
+    : null;
+
+  const canSave = customer !== null && Number(amount) > 0 && paymentDate.trim().length > 0
+    && overpayBy <= 0 && overDeductBy <= 0 && !needsReason && !futureDateError;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -150,21 +167,31 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
         />
       </View>
       {mode === "minus" && (
-        <Text style={styles.minusHint}>This subtracts from what's been paid so far (e.g. a refund or correction).</Text>
+        <Text style={styles.minusHint}>
+          A deduction subtracts from what's been paid so far (e.g. a refund). Give the reason in Notes below.
+        </Text>
       )}
       {overpayBy > 0 && (
         <View style={styles.warning}>
-          <Ionicons name="alert-circle-outline" size={15} color="#f2bd5c" />
-          <Text style={styles.warningText}>
-            This is {formatCurrency(overpayBy)} more than the balance on this event
-            ({formatCurrency(eventSummary!.balance)}). You can still save it — the event's balance
-            will show as overpaid.
+          <Ionicons name="alert-circle-outline" size={15} color="#ff7a72" />
+          <Text style={[styles.warningText, { color: "#ff7a72" }]}>
+            This is {formatCurrency(overpayBy)} more than the {formatCurrency(Math.max(0, eventSummary!.balance))} still due on
+            this event. If more is owed, update the event's total first.
+          </Text>
+        </View>
+      )}
+      {overDeductBy > 0 && (
+        <View style={styles.warning}>
+          <Ionicons name="alert-circle-outline" size={15} color="#ff7a72" />
+          <Text style={[styles.warningText, { color: "#ff7a72" }]}>
+            A deduction can't be more than what's been paid so far ({formatCurrency(eventSummary!.advancePaid)}).
           </Text>
         </View>
       )}
 
       <Text style={styles.label}>Payment date</Text>
       <MiniDatePicker variant="form" value={paymentDate} onChange={setPaymentDate} placeholder="Select payment date" />
+      {futureDateError ? <Text style={styles.minusHint}>{futureDateError}</Text> : null}
 
       <Text style={styles.label}>Payment method</Text>
       <View style={styles.chipRow}>
@@ -187,12 +214,12 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
         ))}
       </View>
 
-      <Text style={styles.label}>Notes</Text>
+      <Text style={styles.label}>{mode === "minus" ? "Reason for the deduction (required)" : "Notes"}</Text>
       <TextInput
-        style={[styles.input, styles.textArea]}
+        style={[styles.input, styles.textArea, mode === "minus" && needsReason && notes.length > 0 && { borderColor: "#ff7a72" }]}
         value={notes}
         onChangeText={setNotes}
-        placeholder="Optional"
+        placeholder={mode === "minus" ? "e.g. Refund for the cancelled album" : "Optional"}
         placeholderTextColor="#6f83a0"
         multiline
         numberOfLines={3}
@@ -204,7 +231,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
         <Pressable style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
-        <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
+        <Pressable style={[styles.saveButton, !canSave && { opacity: 0.5 }]} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
           {mutation.isPending ? (
             <ActivityIndicator color="#0d1826" />
           ) : (

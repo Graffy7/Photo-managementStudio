@@ -56,7 +56,11 @@ public class EventsController(
         var result = await eventService.CreateAsync(StudioId, request, ct);
         if (!result.Succeeded)
         {
-            return BadRequest(new { message = "The selected customer could not be found." });
+            return BadRequest(new
+            {
+                field = result.FailureReason == EventWriteFailureReason.TotalBelowPaid ? "budget" : "customerId",
+                message = result.Message ?? "The selected customer could not be found."
+            });
         }
         return Ok(result.Event);
     }
@@ -78,7 +82,11 @@ public class EventsController(
         }
         if (!result.Succeeded)
         {
-            return BadRequest(new { message = "The selected customer could not be found." });
+            return BadRequest(new
+            {
+                field = result.FailureReason == EventWriteFailureReason.TotalBelowPaid ? "budget" : "customerId",
+                message = result.Message ?? "The selected customer could not be found."
+            });
         }
         return Ok(result.Event);
     }
