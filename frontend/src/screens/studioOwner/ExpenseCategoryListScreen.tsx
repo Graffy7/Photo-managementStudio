@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
@@ -28,9 +29,11 @@ export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCrea
           <Text style={styles.title}>Expense categories</Text>
           <Text style={styles.subtitle}>{data?.length ?? 0} total</Text>
         </View>
-        <Pressable style={styles.newButton} onPress={onCreate}>
-          <Text style={styles.newButtonText}>+ New Category</Text>
-        </Pressable>
+        <SubscriptionLock>
+          <Pressable style={styles.newButton} onPress={onCreate}>
+            <Text style={styles.newButtonText}>+ New Category</Text>
+          </Pressable>
+        </SubscriptionLock>
       </View>
 
       {isPending ? (
@@ -47,9 +50,11 @@ export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCrea
                 <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
               </View>
               <View style={styles.actions}>
-                <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-                  <Text style={styles.actionText}>Edit</Text>
-                </Pressable>
+                <SubscriptionLock compact>
+                  <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
+                    <Text style={styles.actionText}>Edit</Text>
+                  </Pressable>
+                </SubscriptionLock>
                 <Pressable
                   style={styles.actionBtn}
                   onPress={() => (item.isActive ? deactivate.mutate(item.expenseCategoryId) : activate.mutate(item.expenseCategoryId))}

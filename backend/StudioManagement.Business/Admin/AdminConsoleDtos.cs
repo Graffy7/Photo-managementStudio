@@ -75,6 +75,11 @@ public class AdminStudioRowDto
     public long OriginalStorageBytes { get; set; }
     public DateTime? LastActiveAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // The admin's override (Auto / Full / ReadOnly) and what the studio can actually do now
+    // (Full / ReadOnly / None).
+    public string AccessMode { get; set; } = "Auto";
+    public string AccessLevel { get; set; } = "Full";
 }
 
 public class UsagePeriodDto
@@ -164,7 +169,48 @@ public class AdminSubscriptionDto
     public List<AdminPaymentDto> Payments { get; set; } = [];
 }
 
+// One row of the platform's payment ledger: an online checkout (paid, failed or still pending)
+// or a payment the admin recorded by hand.
+public class AdminLedgerRowDto
+{
+    public DateTime Date { get; set; }
+    public int StudioId { get; set; }
+    public string StudioName { get; set; } = null!;
+    public string Kind { get; set; } = null!;          // Online / Manual
+    public string? PlanName { get; set; }
+    public int Months { get; set; }
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = null!;        // Paid / Failed / Pending
+    public string? Method { get; set; }
+    public string? TransactionId { get; set; }
+    public string? OrderId { get; set; }
+    public string? FailureReason { get; set; }
+}
+
+public class AdminLedgerPageDto
+{
+    public List<AdminLedgerRowDto> Items { get; set; } = [];
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public decimal PaidTotal { get; set; }
+    public int PaidCount { get; set; }
+    public int FailedCount { get; set; }
+    public int PendingCount { get; set; }
+}
+
 // ---- Requests ----------------------------------------------------------------------------------
+
+public class AccessModeRequestDto
+{
+    // Auto / Full / ReadOnly / Suspended
+    public string Mode { get; set; } = null!;
+}
+
+public class ChangePlanRequestDto
+{
+    public int PlanId { get; set; }
+}
 
 public class TrialDaysRequestDto
 {

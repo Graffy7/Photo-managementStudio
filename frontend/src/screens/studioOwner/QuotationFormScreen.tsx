@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
 import { servicesApi } from "../../api/servicesApi";
 import { eventsApi } from "../../api/eventsApi";
-import type { Quotation } from "../../types/quotation";
+import type { PriceDisplay, Quotation } from "../../types/quotation";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
@@ -17,7 +17,8 @@ interface Props {
 
 interface ItemDraft {
   key: string;
-  serviceId: number;
+  // null = a custom line typed in by hand (serviceName is then its editable name)
+  serviceId: number | null;
   serviceName: string;
   quantity: string;
   unitPrice: string;
@@ -65,11 +66,13 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
   // from the list screen instead (not this form), so editing here never alters it.
   const status = quotation?.status ?? "Draft";
   const [termsAndConditions, setTermsAndConditions] = useState(quotation?.termsAndConditions ?? "");
+  const [priceDisplay, setPriceDisplay] = useState<PriceDisplay>(quotation?.priceDisplay ?? "Detailed");
+  const [manualTotal, setManualTotal] = useState(quotation?.manualTotal != null ? String(quotation.manualTotal) : "");
   const [items, setItems] = useState<ItemDraft[]>(
     quotation
       ? quotation.items.map((i) => ({
           key: nextKey(),
-          serviceId: i.serviceId,
+          serviceId: i.isCustom ? null : i.serviceId,
           serviceName: i.serviceName,
           quantity: String(i.quantity),
           unitPrice: String(i.unitPrice),
@@ -93,6 +96,12 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
     setShowServicePicker(false);
   };
 
+  // A line that isn't in the service catalog: its own name and price.
+  const addCustomItem = () => {
+    setItems((prev) => [...prev, { key: nextKey(), serviceId: null, serviceName: "", quantity: "1", unitPrice: "", notes: "" }]);
+    setShowServicePicker(false);
+  };
+
   const updateItem = (key: string, patch: Partial<ItemDraft>) => {
     setItems((prev) => prev.map((i) => (i.key === key ? { ...i, ...patch } : i)));
   };
@@ -105,7 +114,10 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
   const subtotal = items.reduce((sum, i) => sum + lineTotal(i), 0);
   const discountNum = Number(discount) || 0;
   const taxNum = Number(taxAmount) || 0;
-  const grandTotal = subtotal - discountNum + taxNum;
+  const calculatedTotal = subtotal - discountNum + taxNum;
+  // "Total only" can take a total typed by hand; it then becomes the quotation's real total.
+  const manualTotalNum = priceDisplay === "TotalOnly" && manualTotal.trim() !== "" ? Number(manualTotal) : null;
+  const grandTotal = manualTotalNum != null && manualTotalNum > 0 ? manualTotalNum : calculatedTotal;
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -117,8 +129,11 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
         taxAmount: taxNum,
         status,
         termsAndConditions: termsAndConditions.trim() || undefined,
+        priceDisplay,
+        manualTotal: manualTotalNum != null && manualTotalNum > 0 ? manualTotalNum : undefined,
         items: items.map((i) => ({
-          serviceId: i.serviceId,
+          serviceId: i.serviceId ?? undefined,
+          customName: i.serviceId == null ? i.serviceName.trim() : undefined,
           quantity: Number(i.quantity),
           unitPrice: Number(i.unitPrice),
           notes: i.notes.trim() || undefined,
@@ -137,7 +152,8 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
     customer !== null &&
     quotationDate.trim().length > 0 &&
     items.length > 0 &&
-    items.every((i) => Number(i.quantity) > 0 && Number(i.unitPrice) >= 0);
+    items.every((i) => Number(i.quantity) > 0 && Number(i.unitPrice) >= 0 && i.unitPrice.trim() !== "" && (i.serviceId != null || i.serviceName.trim().length > 0)) &&
+    (manualTotalNum == null || manualTotalNum > 0);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -168,7 +184,21 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
       {items.map((item) => (
         <View key={item.key} style={styles.itemCard}>
           <View style={styles.itemHeader}>
-            <Text style={styles.itemServiceName}>{item.serviceName}</Text>
+            {item.serviceId == null ? (
+              <View style={styles.customNameRow}>
+                <Text style={styles.customTag}>Custom</Text>
+                <TextInput
+                  style={[styles.input, styles.customNameInput]}
+                  value={item.serviceName}
+                  onChangeText={(v) => updateItem(item.key, { serviceName: v })}
+                  placeholder="Item name, e.g. Travel & stay"
+                  placeholderTextColor="#6f83a0"
+                  maxLength={200}
+                />
+              </View>
+            ) : (
+              <Text style={styles.itemServiceName}>{item.serviceName}</Text>
+            )}
             <Pressable onPress={() => removeItem(item.key)}>
               <Text style={styles.removeLink}>Remove</Text>
             </Pressable>
@@ -206,8 +236,11 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
 
       {showServicePicker ? (
         <View style={styles.servicePickerCard}>
-          <Text style={styles.smallLabel}>Choose a service</Text>
+          <Text style={styles.smallLabel}>Choose a service, or add your own line</Text>
           <View style={styles.chipRow}>
+            <Pressable style={[styles.chip, styles.customChip]} onPress={addCustomItem}>
+              <Text style={[styles.chipText, { color: "#ff9a4d" }]}>+ Custom item</Text>
+            </Pressable>
             {(services?.items ?? []).map((s) => (
               <Pressable key={s.serviceId} style={styles.chip} onPress={() => addItem(s)}>
                 <Text style={styles.chipText}>{s.serviceName}</Text>
@@ -238,10 +271,46 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
       <Text style={styles.label}>Tax amount</Text>
       <TextInput style={styles.input} value={taxAmount} onChangeText={setTaxAmount} placeholder="0" placeholderTextColor="#6f83a0" keyboardType="numeric" />
 
+      <Text style={styles.label}>Prices on the PDF</Text>
+      <View style={styles.priceDisplayRow}>
+        {([
+          ["Detailed", "Detailed prices", "Each service with its price"],
+          ["TotalOnly", "Total only", "Services listed, one total amount"],
+        ] as const).map(([key, title, text]) => (
+          <Pressable key={key} style={[styles.priceOption, priceDisplay === key && styles.priceOptionOn]} onPress={() => setPriceDisplay(key)}
+            accessibilityRole="radio" accessibilityState={{ checked: priceDisplay === key }}>
+            <Text style={[styles.priceOptionTitle, priceDisplay === key && { color: "#ff9a4d" }]}>{title}</Text>
+            <Text style={styles.priceOptionText}>{text}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.priceNote}>Every line and price is still saved — this only changes what the PDF shows.</Text>
+
+      {priceDisplay === "TotalOnly" && (
+        <>
+          <Text style={styles.label}>Total amount</Text>
+          <TextInput
+            style={styles.input}
+            value={manualTotal}
+            onChangeText={(v) => setManualTotal(v.replace(/[^0-9.]/g, ""))}
+            placeholder={`Leave empty to use ${formatCurrency(calculatedTotal)}`}
+            placeholderTextColor="#6f83a0"
+            keyboardType="numeric"
+          />
+          <Text style={styles.priceNote}>
+            Type the amount to quote the customer. It becomes this quotation's total everywhere — the approved amount, the event's
+            balance and reports.
+          </Text>
+        </>
+      )}
+
       <View style={styles.grandTotalRow}>
-        <Text style={styles.grandTotalLabel}>Grand total</Text>
+        <Text style={styles.grandTotalLabel}>{manualTotalNum != null && manualTotalNum > 0 ? "Total amount" : "Grand total"}</Text>
         <Text style={styles.grandTotalValue}>{formatCurrency(grandTotal)}</Text>
       </View>
+      {manualTotalNum != null && manualTotalNum > 0 && manualTotalNum !== calculatedTotal && (
+        <Text style={styles.priceNote}>Entered by hand · the lines add up to {formatCurrency(calculatedTotal)}</Text>
+      )}
 
       <Text style={styles.label}>Terms & conditions</Text>
       <TextInput
@@ -292,6 +361,16 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
   chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  customNameRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 10 },
+  customTag: { color: "#ff9a4d", fontSize: 10, fontWeight: "800", borderWidth: 1, borderColor: "rgba(255,154,77,0.5)", borderRadius: 100, paddingHorizontal: 7, paddingVertical: 1 },
+  customNameInput: { flex: 1, paddingVertical: 7 },
+  customChip: { borderColor: "rgba(255,154,77,0.6)" },
+  priceDisplayRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  priceOption: { flexGrow: 1, flexBasis: 180, borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 12, backgroundColor: "#132540", gap: 2 },
+  priceOptionOn: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.08)" },
+  priceOptionTitle: { color: "#e8edf3", fontSize: 13.5, fontWeight: "700" },
+  priceOptionText: { color: "#6f83a0", fontSize: 12 },
+  priceNote: { color: "#6f83a0", fontSize: 11.5, marginTop: 6 },
   itemCard: { borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", padding: 14, marginBottom: 10, gap: 8 },
   itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   itemServiceName: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },

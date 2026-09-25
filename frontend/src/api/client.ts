@@ -41,9 +41,21 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+// Called when the server says the studio's subscription has run out (HTTP 402), so the app can
+// switch to the renewal page straight away instead of showing broken screens.
+let onSubscriptionExpired: (() => void) | null = null;
+export function setOnSubscriptionExpired(callback: (() => void) | null) {
+  onSubscriptionExpired = callback;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const code = error.response?.data?.code;
+    if (code === "SUBSCRIPTION_READ_ONLY" || code === "STUDIO_SUSPENDED") {
+      onSubscriptionExpired?.();
+    }
+
     const originalRequest = error.config;
     const isAuthEndpoint = originalRequest?.url?.startsWith("/api/auth/");
 

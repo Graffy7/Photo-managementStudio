@@ -16,6 +16,7 @@ public class StudioConfiguration : IEntityTypeConfiguration<Studio>
     public void Configure(EntityTypeBuilder<Studio> b)
     {
         b.HasKey(x => x.StudioId);
+        b.Property(x => x.AccessMode).IsRequired().HasMaxLength(20).HasDefaultValue(StudioAccessModes.Auto);
         b.Property(x => x.StudioName).IsRequired().HasMaxLength(200);
         b.Property(x => x.OwnerName).HasMaxLength(200);
         b.Property(x => x.Email).IsRequired().HasMaxLength(256);
@@ -67,8 +68,10 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
 
         var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         b.HasData(
-            new SubscriptionPlan { SubscriptionPlanId = 1, PlanName = "Monthly", PlanType = SubscriptionPlanTypes.Monthly, Price = 999m, DurationInDays = 30, Description = "Billed every month.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
-            new SubscriptionPlan { SubscriptionPlanId = 2, PlanName = "Yearly", PlanType = SubscriptionPlanTypes.Yearly, Price = 9999m, DurationInDays = 365, Description = "Billed once a year — two months free versus Monthly.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
+            new SubscriptionPlan { SubscriptionPlanId = 1, PlanName = "Monthly", PlanType = SubscriptionPlanTypes.Monthly, Price = 599m, DurationInDays = 30, DurationMonths = 1, Description = "1 month of full access.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new SubscriptionPlan { SubscriptionPlanId = 2, PlanName = "Yearly", PlanType = SubscriptionPlanTypes.Yearly, Price = 5500m, DurationInDays = 365, DurationMonths = 12, Description = "12 months of full access — the best value.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new SubscriptionPlan { SubscriptionPlanId = 3, PlanName = "Quarterly", PlanType = SubscriptionPlanTypes.Quarterly, Price = 1600m, DurationInDays = 91, DurationMonths = 3, Description = "3 months of full access.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+            new SubscriptionPlan { SubscriptionPlanId = 4, PlanName = "Half-Yearly", PlanType = SubscriptionPlanTypes.HalfYearly, Price = 3000m, DurationInDays = 182, DurationMonths = 6, Description = "6 months of full access.", IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
         );
     }
 }
@@ -186,6 +189,53 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         b.HasIndex(x => new { x.StudioId, x.CreatedAt });
         b.HasOne<Studio>().WithMany().HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public class SubscriptionOrderConfiguration : IEntityTypeConfiguration<SubscriptionOrder>
+{
+    public void Configure(EntityTypeBuilder<SubscriptionOrder> b)
+    {
+        b.HasKey(x => x.SubscriptionOrderId);
+        b.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+        b.Property(x => x.Currency).IsRequired().HasMaxLength(3);
+        b.Property(x => x.Gateway).IsRequired().HasMaxLength(30);
+        b.Property(x => x.GatewayOrderId).IsRequired().HasMaxLength(100);
+        b.Property(x => x.GatewayPaymentId).HasMaxLength(100);
+        b.Property(x => x.PaymentMethod).HasMaxLength(40);
+        b.Property(x => x.Status).IsRequired().HasMaxLength(20);
+        b.Property(x => x.FailureReason).HasMaxLength(300);
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.PaidAt).HasColumnType("datetime2");
+        b.Property(x => x.UpdatedAt).HasColumnType("datetime2");
+
+        // Duplicate-payment protection at the database level: one row per gateway order, and a
+        // gateway payment can be attached to one order only.
+        b.HasIndex(x => x.GatewayOrderId).IsUnique();
+        b.HasIndex(x => x.GatewayPaymentId).IsUnique().HasFilter("[GatewayPaymentId] IS NOT NULL");
+        b.HasIndex(x => x.SubscriptionPaymentId).IsUnique().HasFilter("[SubscriptionPaymentId] IS NOT NULL");
+        b.HasIndex(x => new { x.StudioId, x.CreatedAt });
+
+        b.HasOne(x => x.Studio).WithMany().HasForeignKey(x => x.StudioId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.SubscriptionPlan).WithMany().HasForeignKey(x => x.SubscriptionPlanId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.SubscriptionPayment).WithMany().HasForeignKey(x => x.SubscriptionPaymentId).OnDelete(DeleteBehavior.Restrict);
+        b.ToTable(t => t.HasCheckConstraint("CK_SubscriptionOrders_Status", CheckConstraintSql.In("Status", PaymentOrderStatuses.All)));
+    }
+}
+
+public class PaymentGatewayEventConfiguration : IEntityTypeConfiguration<PaymentGatewayEvent>
+{
+    public void Configure(EntityTypeBuilder<PaymentGatewayEvent> b)
+    {
+        b.HasKey(x => x.PaymentGatewayEventId);
+        b.Property(x => x.Gateway).IsRequired().HasMaxLength(30);
+        b.Property(x => x.EventId).IsRequired().HasMaxLength(100);
+        b.Property(x => x.EventType).IsRequired().HasMaxLength(60);
+        b.Property(x => x.GatewayOrderId).HasMaxLength(100);
+        b.Property(x => x.GatewayPaymentId).HasMaxLength(100);
+        b.Property(x => x.Outcome).IsRequired().HasMaxLength(200);
+        b.Property(x => x.ReceivedAt).HasColumnType("datetime2");
+        b.HasIndex(x => new { x.Gateway, x.EventId }).IsUnique();
     }
 }
 

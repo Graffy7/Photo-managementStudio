@@ -6,13 +6,15 @@ import { subscriptionPlansApi } from "../../../../api/subscriptionPlansApi";
 import { extractErrorMessage } from "../../../../api/errorMessage";
 import { MiniDatePicker } from "../../../../components/MiniDatePicker";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "../../../../types/payment";
+import type { AdminStudioRow } from "../../../../types/adminConsole";
+import { AccessControl, ChangePlan } from "./AccessControl";
 import {
   Button, C, Card, Chips, ConfirmDialog, DaysLeft, EmptyState, ErrorState, Field, Loading, StatusBadge,
   date, isoDay, money, s,
 } from "../ui";
 
-export function SubscriptionTab({ studioId, openForm, onFormOpened, onChanged }: {
-  studioId: number; openForm: boolean; onFormOpened: () => void; onChanged: () => void;
+export function SubscriptionTab({ studioId, row, openForm, onFormOpened, onChanged }: {
+  studioId: number; row: AdminStudioRow; openForm: boolean; onFormOpened: () => void; onChanged: () => void;
 }) {
   const narrow = useWindowDimensions().width < 760;
   const [showForm, setShowForm] = useState(openForm);
@@ -41,6 +43,10 @@ export function SubscriptionTab({ studioId, openForm, onFormOpened, onChanged }:
         </View>
       </Card>
 
+      <AccessControl row={row} onChanged={() => { refetch(); onChanged(); }} />
+
+      <ManualControl studioId={studioId} running={data.status === "Active" || data.status === "Trial"} endDate={data.endDate} onChanged={() => { refetch(); onChanged(); }} />
+
       {showForm && (
         <PaymentForm
           studioId={studioId}
@@ -50,6 +56,8 @@ export function SubscriptionTab({ studioId, openForm, onFormOpened, onChanged }:
           onSaved={() => { setShowForm(false); refetch(); onChanged(); }}
         />
       )}
+
+      <ChangePlan studioId={studioId} currentPlanId={data.isTrial ? null : data.subscriptionPlanId} onChanged={() => { refetch(); onChanged(); }} />
 
       <Card title="Payment history">
         {data.payments.length === 0 ? (
@@ -97,6 +105,48 @@ export function SubscriptionTab({ studioId, openForm, onFormOpened, onChanged }:
 
 const WIDTHS = [1, 1.1, 1.8, 0.6, 0.9, 1.6];
 
+// Free days (goodwill, support) or ending access now. Paid time is added with "Record payment".
+function ManualControl({ studioId, running, endDate, onChanged }: { studioId: number; running: boolean; endDate: string | null; onChanged: () => void }) {
+  const [days, setDays] = useState("7");
+  const [pending, setPending] = useState<"extend" | "expire" | null>(null);
+  const n = parseInt(days || "0", 10) || 0;
+  const valid = n >= 1 && n <= 3650;
+  const base = running && endDate ? new Date(/[zZ]$/.test(endDate) ? endDate : `${endDate}Z`) : new Date();
+  const newEnd = new Date(base); newEnd.setDate(newEnd.getDate() + n);
+
+  const run = useMutation({
+    mutationFn: (a: "extend" | "expire") => (a === "extend" ? adminConsoleApi.extendSubscription(studioId, n) : adminConsoleApi.expireSubscription(studioId)),
+    onSuccess: () => { setPending(null); onChanged(); },
+  });
+
+  return (
+    <Card title="Manual control">
+      <Text style={s.faint}>Give free days (the studio keeps its plan) or end access now. The studio's data is never deleted.</Text>
+      <View style={styles.controlRow}>
+        <View style={{ width: 110, gap: 6 }}>
+          <Text style={s.fieldLabel}>Days</Text>
+          <TextInput style={s.input} value={days} onChangeText={(v) => setDays(v.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" />
+        </View>
+        <Button label={`Extend by ${n || 0} days`} icon="add" disabled={!valid} onPress={() => setPending("extend")} />
+        {running && <Button label="Expire now" kind="danger" icon="stop-circle-outline" onPress={() => setPending("expire")} />}
+      </View>
+      <ConfirmDialog
+        visible={!!pending}
+        title={pending === "expire" ? "Expire this subscription now?" : `Add ${n} free days?`}
+        message={pending === "expire"
+          ? "The studio loses access straight away and sees the renewal page. Nothing is deleted; paying again restores access."
+          : `Access will run until ${date(newEnd.toISOString())}.`}
+        confirmLabel={pending === "expire" ? "Expire now" : "Add days"}
+        danger={pending === "expire"}
+        busy={run.isPending}
+        error={run.isError ? extractErrorMessage(run.error) : null}
+        onConfirm={() => pending && run.mutate(pending)}
+        onCancel={() => { setPending(null); run.reset(); }}
+      />
+    </Card>
+  );
+}
+
 function methodLabel(m: string): string {
   return (PAYMENT_METHOD_LABELS as Record<string, string>)[m] ?? m;
 }
@@ -107,6 +157,13 @@ function PaymentForm({ studioId, isTrial, currentPlanId, onClose, onSaved }: {
   const { data: plans } = useQuery({ queryKey: ["subscription-plans"], queryFn: subscriptionPlansApi.getActive });
   const [planId, setPlanId] = useState<number | null>(currentPlanId);
   const [months, setMonths] = useState("1");
+  // Picking a plan fills in its own length (still editable).
+  const pickPlan = (id: number) => {
+    setPlanId(id);
+    const p = plans?.find((x) => x.subscriptionPlanId === id);
+    if (p?.durationMonths) setMonths(String(p.durationMonths));
+    setAmountTouched(false);
+  };
   const [amount, setAmount] = useState("");
   const [amountTouched, setAmountTouched] = useState(false);
   const [paymentDate, setPaymentDate] = useState(isoDay(new Date()));
@@ -122,7 +179,7 @@ function PaymentForm({ studioId, isTrial, currentPlanId, onClose, onSaved }: {
   // Suggested amount: the plan's monthly price times the months (still editable).
   const suggested = useMemo(() => {
     if (!plan || monthsNum === 0) return null;
-    const perMonth = plan.price / Math.max(1, plan.durationInDays / 30.4375);
+    const perMonth = plan.price / Math.max(1, plan.durationMonths || plan.durationInDays / 30.4375);
     return Math.round(perMonth * monthsNum);
   }, [plan, monthsNum]);
   useEffect(() => { if (!amountTouched && suggested !== null) setAmount(String(suggested)); }, [suggested, amountTouched]);
@@ -153,7 +210,7 @@ function PaymentForm({ studioId, isTrial, currentPlanId, onClose, onSaved }: {
         <View style={styles.formField}>
           <Text style={s.fieldLabel}>Plan</Text>
           <Chips options={(plans ?? []).map((p) => ({ key: String(p.subscriptionPlanId), label: `${p.planName} · ${money(p.price)}` }))}
-            value={String(planId ?? "")} onChange={(v) => { setPlanId(Number(v)); setAmountTouched(false); }} />
+            value={String(planId ?? "")} onChange={(v) => pickPlan(Number(v))} />
         </View>
         <View style={styles.formRow}>
           <View style={styles.formField}>
@@ -218,4 +275,5 @@ const styles = StyleSheet.create({
   form: { gap: 14 },
   formRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   formField: { flexGrow: 1, flexBasis: 200, gap: 6 },
+  controlRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, flexWrap: "wrap" },
 });

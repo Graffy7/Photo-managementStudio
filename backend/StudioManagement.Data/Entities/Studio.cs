@@ -16,6 +16,10 @@ public class Studio
     public string? LogoUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsBlocked { get; set; }
+
+    // How the platform admin wants access decided (StudioAccessModes): "Auto" follows the
+    // subscription; "Full" and "ReadOnly" override it. Suspending is IsBlocked.
+    public string AccessMode { get; set; } = "Auto";
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import type { Customer } from "../../types/customer";
 import { StatusPill } from "../../components/StatusPill";
 import { CustomerEventsList } from "../../components/CustomerEventsList";
@@ -27,9 +28,11 @@ export function CustomerDetailScreen({ customer, onBack, onEdit }: { customer: C
           <Text style={styles.title}>{customer.fullName}</Text>
           <Text style={styles.subtitle}>Customer details</Text>
         </View>
-        <Pressable style={styles.editButton} onPress={onEdit}>
-          <Text style={styles.editButtonText}>Edit</Text>
-        </Pressable>
+        <SubscriptionLock>
+          <Pressable style={styles.editButton} onPress={onEdit}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </Pressable>
+        </SubscriptionLock>
       </View>
 
       <View style={styles.pillRow}>

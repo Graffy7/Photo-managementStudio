@@ -1122,6 +1122,53 @@ namespace StudioManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StudioManagement.Data.Entities.PaymentGatewayEvent", b =>
+                {
+                    b.Property<long>("PaymentGatewayEventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PaymentGatewayEventId"));
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Gateway")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("GatewayOrderId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("GatewayPaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PaymentGatewayEventId");
+
+                    b.HasIndex("Gateway", "EventId")
+                        .IsUnique();
+
+                    b.ToTable("PaymentGatewayEvents");
+                });
+
             modelBuilder.Entity("StudioManagement.Data.Entities.Photo", b =>
                 {
                     b.Property<int>("PhotoId")
@@ -1538,6 +1585,16 @@ namespace StudioManagement.Data.Migrations
                     b.Property<decimal>("GrandTotal")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("ManualTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PriceDisplay")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Detailed");
+
                     b.Property<DateTime>("QuotationDate")
                         .HasColumnType("datetime2");
 
@@ -1604,6 +1661,10 @@ namespace StudioManagement.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("QuotationItemId"));
 
+                    b.Property<string>("CustomName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
@@ -1613,7 +1674,7 @@ namespace StudioManagement.Data.Migrations
                     b.Property<int>("QuotationId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ServiceId")
+                    b.Property<int?>("ServiceId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Total")
@@ -1718,6 +1779,13 @@ namespace StudioManagement.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StudioId"));
+
+                    b.Property<string>("AccessMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Auto");
 
                     b.Property<string>("Address")
                         .HasMaxLength(500)
@@ -1922,6 +1990,93 @@ namespace StudioManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StudioManagement.Data.Entities.SubscriptionOrder", b =>
+                {
+                    b.Property<int>("SubscriptionOrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubscriptionOrderId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Gateway")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("GatewayOrderId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("GatewayPaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Months")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StudioId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubscriptionPaymentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SubscriptionPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SubscriptionOrderId");
+
+                    b.HasIndex("GatewayOrderId")
+                        .IsUnique();
+
+                    b.HasIndex("GatewayPaymentId")
+                        .IsUnique()
+                        .HasFilter("[GatewayPaymentId] IS NOT NULL");
+
+                    b.HasIndex("SubscriptionPaymentId")
+                        .IsUnique()
+                        .HasFilter("[SubscriptionPaymentId] IS NOT NULL");
+
+                    b.HasIndex("SubscriptionPlanId");
+
+                    b.HasIndex("StudioId", "CreatedAt");
+
+                    b.ToTable("SubscriptionOrders", t =>
+                        {
+                            t.HasCheckConstraint("CK_SubscriptionOrders_Status", "[Status] IN ('Created','Paid','Failed')");
+                        });
+                });
+
             modelBuilder.Entity("StudioManagement.Data.Entities.SubscriptionPayment", b =>
                 {
                     b.Property<int>("SubscriptionPaymentId")
@@ -1985,6 +2140,9 @@ namespace StudioManagement.Data.Migrations
                     b.Property<int>("DurationInDays")
                         .HasColumnType("int");
 
+                    b.Property<int>("DurationMonths")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -2008,7 +2166,7 @@ namespace StudioManagement.Data.Migrations
 
                     b.ToTable("SubscriptionPlans", t =>
                         {
-                            t.HasCheckConstraint("CK_SubscriptionPlans_PlanType", "[PlanType] IN ('Monthly','Yearly','Custom')");
+                            t.HasCheckConstraint("CK_SubscriptionPlans_PlanType", "[PlanType] IN ('Monthly','Quarterly','HalfYearly','Yearly','Custom')");
                         });
 
                     b.HasData(
@@ -2016,24 +2174,52 @@ namespace StudioManagement.Data.Migrations
                         {
                             SubscriptionPlanId = 1,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Billed every month.",
+                            Description = "1 month of full access.",
                             DurationInDays = 30,
+                            DurationMonths = 1,
                             IsActive = true,
                             PlanName = "Monthly",
                             PlanType = "Monthly",
-                            Price = 999m,
+                            Price = 599m,
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             SubscriptionPlanId = 2,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Billed once a year — two months free versus Monthly.",
+                            Description = "12 months of full access — the best value.",
                             DurationInDays = 365,
+                            DurationMonths = 12,
                             IsActive = true,
                             PlanName = "Yearly",
                             PlanType = "Yearly",
-                            Price = 9999m,
+                            Price = 5500m,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            SubscriptionPlanId = 3,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "3 months of full access.",
+                            DurationInDays = 91,
+                            DurationMonths = 3,
+                            IsActive = true,
+                            PlanName = "Quarterly",
+                            PlanType = "Quarterly",
+                            Price = 1600m,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            SubscriptionPlanId = 4,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "6 months of full access.",
+                            DurationInDays = 182,
+                            DurationMonths = 6,
+                            IsActive = true,
+                            PlanName = "Half-Yearly",
+                            PlanType = "HalfYearly",
+                            Price = 3000m,
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
@@ -2730,8 +2916,7 @@ namespace StudioManagement.Data.Migrations
                     b.HasOne("StudioManagement.Data.Entities.Service", "Service")
                         .WithMany("QuotationItems")
                         .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Quotation");
 
@@ -2816,6 +3001,32 @@ namespace StudioManagement.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Studio");
+
+                    b.Navigation("SubscriptionPlan");
+                });
+
+            modelBuilder.Entity("StudioManagement.Data.Entities.SubscriptionOrder", b =>
+                {
+                    b.HasOne("StudioManagement.Data.Entities.Studio", "Studio")
+                        .WithMany()
+                        .HasForeignKey("StudioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudioManagement.Data.Entities.SubscriptionPayment", "SubscriptionPayment")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("StudioManagement.Data.Entities.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Studio");
+
+                    b.Navigation("SubscriptionPayment");
 
                     b.Navigation("SubscriptionPlan");
                 });

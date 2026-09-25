@@ -6,7 +6,7 @@ import { adminConsoleApi } from "../../../api/adminConsoleApi";
 import { studiosApi } from "../../../api/studiosApi";
 import { extractErrorMessage } from "../../../api/errorMessage";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
-import { Button, C, ConfirmDialog, ErrorState, Loading, StatusBadge, s } from "./ui";
+import { Button, C, ConfirmDialog, ErrorState, Loading, Pill, StatusBadge, s } from "./ui";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { ModulesTab } from "./tabs/ModulesTab";
 import { SubscriptionTab } from "./tabs/SubscriptionTab";
@@ -62,8 +62,8 @@ export function AdminStudioDetailScreen({ studioId, onBack, onEdit }: { studioId
 
   const st = data.studio;
   const dialog = {
-    block: { title: `Block ${st.studioName}?`, message: "The owner can't sign in and customer links stop working until it is unblocked. No data is deleted.", label: "Block studio", danger: true },
-    unblock: { title: `Unblock ${st.studioName}?`, message: "The owner can sign in again and customer links work again.", label: "Unblock", danger: false },
+    block: { title: `Suspend ${st.studioName}?`, message: "The owner can't sign in and customer links stop working until access is restored. No data is deleted.", label: "Suspend studio", danger: true },
+    unblock: { title: `Restore access for ${st.studioName}?`, message: "The owner can sign in again; access follows the subscription and the access setting.", label: "Restore access", danger: false },
     deactivate: { title: `Deactivate ${st.studioName}?`, message: "The studio is switched off: the owner can't sign in and reminders stop. Its data stays and it can be activated again.", label: "Deactivate", danger: true },
     activate: { title: `Activate ${st.studioName}?`, message: "The studio is switched back on.", label: "Activate", danger: false },
   };
@@ -81,6 +81,8 @@ export function AdminStudioDetailScreen({ studioId, onBack, onEdit }: { studioId
           <View style={styles.titleRow}>
             <Text style={styles.title} numberOfLines={1}>{st.studioName}</Text>
             <StatusBadge status={st.status} />
+            {st.accessLevel === "ReadOnly" && <Pill text={st.accessMode === "ReadOnly" ? "Read-only (override)" : "Read-only"} color={C.warn} />}
+            {st.accessMode === "Full" && <Pill text="Full access (override)" color={C.good} />}
           </View>
           <Text style={s.faint}>{st.ownerName ?? "—"} · {data.loginEmail ?? st.ownerEmail ?? "no login"}{st.phoneNumber ? ` · ${st.phoneNumber}` : ""}</Text>
         </View>
@@ -88,7 +90,7 @@ export function AdminStudioDetailScreen({ studioId, onBack, onEdit }: { studioId
           <Button label="Edit details" icon="create-outline" onPress={onEdit} small />
           <Button label={st.isActive ? "Deactivate" : "Activate"} icon={st.isActive ? "pause-outline" : "play-outline"}
             onPress={() => setPending(st.isActive ? "deactivate" : "activate")} small />
-          <Button label={st.isBlocked ? "Unblock" : "Block"} icon={st.isBlocked ? "lock-open-outline" : "ban-outline"}
+          <Button label={st.isBlocked ? "Restore access" : "Suspend"} icon={st.isBlocked ? "lock-open-outline" : "ban-outline"}
             kind={st.isBlocked ? "secondary" : "danger"} onPress={() => setPending(st.isBlocked ? "unblock" : "block")} small />
         </View>
       </View>
@@ -106,7 +108,7 @@ export function AdminStudioDetailScreen({ studioId, onBack, onEdit }: { studioId
       {tab === "overview" && <OverviewTab detail={data} onRefresh={refreshAll} />}
       {tab === "modules" && <ModulesTab studioId={studioId} studioName={st.studioName} />}
       {tab === "subscription" && (
-        <SubscriptionTab studioId={studioId} openForm={openPaymentForm} onFormOpened={() => setOpenPaymentForm(false)} onChanged={refreshAll} />
+        <SubscriptionTab studioId={studioId} row={st} openForm={openPaymentForm} onFormOpened={() => setOpenPaymentForm(false)} onChanged={refreshAll} />
       )}
       {tab === "usage" && <UsageTab studioId={studioId} />}
       {tab === "activity" && <ActivityTable studioId={studioId} />}

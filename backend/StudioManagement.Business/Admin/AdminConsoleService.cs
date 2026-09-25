@@ -1,4 +1,5 @@
 using StudioManagement.Business.Audit;
+using StudioManagement.Business.Billing;
 using StudioManagement.Business.Common;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -21,6 +22,11 @@ public interface IAdminConsoleService
     Task<AdminResult> ExtendTrialAsync(int studioId, int days, CancellationToken ct = default);
     Task<AdminResult> EndTrialAsync(int studioId, CancellationToken ct = default);
     Task<AdminResult> RecordPaymentAsync(int studioId, ManualPaymentRequestDto request, CancellationToken ct = default);
+    Task<AdminResult> ExtendSubscriptionAsync(int studioId, int days, CancellationToken ct = default);
+    Task<AdminResult> ExpireSubscriptionAsync(int studioId, CancellationToken ct = default);
+    Task<AdminResult> SetAccessModeAsync(int studioId, string mode, CancellationToken ct = default);
+    Task<AdminResult> ChangePlanAsync(int studioId, int planId, CancellationToken ct = default);
+    Task<AdminLedgerPageDto> GetLedgerAsync(int? studioId, string? search, string? status, string? kind, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken ct = default);
 }
 
 public enum AdminFailure
@@ -49,6 +55,9 @@ public class AdminConsoleService(
     IStudioSubscriptionRepository subscriptionRepository,
     ISubscriptionPaymentRepository paymentRepository,
     IRepository<SubscriptionPlan> planRepository,
+    ISubscriptionLedger ledger,
+    IStudioAccessService accessService,
+    ISubscriptionOrderRepository orderRepository,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IAdminConsoleService
 {
@@ -147,8 +156,19 @@ public class AdminConsoleService(
             AppStorageBytes = st?.AppBytes ?? 0,
             OriginalStorageBytes = st?.OriginalBytes ?? 0,
             LastActiveAt = lastActive,
-            CreatedAt = s.Studio.CreatedAt
+            CreatedAt = s.Studio.CreatedAt,
+            AccessMode = s.Studio.AccessMode,
+            AccessLevel = LevelOf(s)
         };
+    }
+
+    // Same rules as StudioAccessService, from the snapshot already loaded.
+    private static string LevelOf(StudioState s)
+    {
+        if (s.Studio.IsBlocked || !s.Studio.IsActive) return nameof(AccessLevel.None);
+        if (s.Studio.AccessMode == StudioAccessModes.Full) return nameof(AccessLevel.Full);
+        if (s.Studio.AccessMode == StudioAccessModes.ReadOnly) return nameof(AccessLevel.ReadOnly);
+        return s.Status is AdminStudioStatuses.Active or AdminStudioStatuses.Trial ? nameof(AccessLevel.Full) : nameof(AccessLevel.ReadOnly);
     }
 
     // ---- Dashboard -----------------------------------------------------------------------------
@@ -485,6 +505,7 @@ public class AdminConsoleService(
         }, ct);
 
         await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
         await auditService.LogAsync($"Trial started ({days} days)", Module, studioId, ct);
         return AdminResult.Ok();
     }
@@ -508,6 +529,7 @@ public class AdminConsoleService(
         subscriptionRepository.Update(current);
 
         await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
         await auditService.LogAsync($"Trial extended by {days} days", Module, studioId, ct);
         return AdminResult.Ok();
     }
@@ -529,6 +551,7 @@ public class AdminConsoleService(
         subscriptionRepository.Update(current);
 
         await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
         await auditService.LogAsync("Trial ended", Module, studioId, ct);
         return AdminResult.Ok();
     }
@@ -550,85 +573,206 @@ public class AdminConsoleService(
         {
             return AdminResult.Fail(AdminFailure.Invalid, "No subscription plan is set up.");
         }
-
-        var now = DateTime.UtcNow;
-        var paymentDate = request.PaymentDate ?? now;
-        StudioSubscription target;
-        DateTime? periodStart = null, periodEnd = null;
-
-        if (request.Months > 0)
+        if (request.Months == 0 && current is null)
         {
-            var running = current is not null && current.Status != SubscriptionStatuses.Cancelled && current.EndDate > now;
-            if (current is null || current.IsTrial || current.Status == SubscriptionStatuses.Cancelled)
-            {
-                // No subscription yet, or converting a trial: a new paid subscription from today,
-                // and a running trial ends now.
-                if (current is not null && current.IsTrial && running)
-                {
-                    current.EndDate = now;
-                    current.Status = SubscriptionStatuses.Expired;
-                    current.UpdatedAt = now;
-                    subscriptionRepository.Update(current);
-                }
-
-                target = new StudioSubscription
-                {
-                    StudioId = studioId,
-                    SubscriptionPlanId = plan.SubscriptionPlanId,
-                    StartDate = now,
-                    EndDate = now.AddMonths(request.Months),
-                    Amount = request.Amount,
-                    Status = SubscriptionStatuses.Active,
-                    IsTrial = false,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                };
-                await subscriptionRepository.AddAsync(target, ct);
-                periodStart = target.StartDate;
-                periodEnd = target.EndDate;
-            }
-            else
-            {
-                // Paid subscription: the new months follow on from its end (or from today if it lapsed).
-                target = current;
-                periodStart = running ? current.EndDate : now;
-                periodEnd = periodStart.Value.AddMonths(request.Months);
-                if (!running) current.StartDate = now;
-                current.EndDate = periodEnd.Value;
-                current.SubscriptionPlanId = plan.SubscriptionPlanId;
-                current.Amount = request.Amount;
-                current.Status = SubscriptionStatuses.Active;
-                current.UpdatedAt = now;
-                subscriptionRepository.Update(current);
-            }
-        }
-        else
-        {
-            if (current is null)
-            {
-                return AdminResult.Fail(AdminFailure.Invalid, "This studio has no subscription to record a payment against. Enter the months it pays for.");
-            }
-            target = current;
+            return AdminResult.Fail(AdminFailure.Invalid, "This studio has no subscription to record a payment against. Enter the months it pays for.");
         }
 
-        var payment = new SubscriptionPayment
-        {
-            StudioSubscription = target,
-            Amount = request.Amount,
-            PaymentDate = paymentDate,
-            PaymentMethod = request.PaymentMethod,
-            ReferenceNumber = string.IsNullOrWhiteSpace(request.ReferenceNumber) ? null : request.ReferenceNumber.Trim(),
-            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
-            PeriodStart = periodStart,
-            PeriodEnd = periodEnd,
-            CreatedAt = now
-        };
-        await paymentRepository.AddAsync(payment, ct);
+        await ledger.RecordAsync(new LedgerEntry(
+            studioId, plan, request.Months, request.Amount, request.PaymentDate ?? DateTime.UtcNow,
+            request.PaymentMethod, request.ReferenceNumber, request.Notes), ct);
 
-        await unitOfWork.SaveChangesAsync(ct);
         await auditService.LogAsync(
             request.Months > 0 ? $"Payment ₹{request.Amount:0.##} recorded, {request.Months} month(s) added" : $"Payment ₹{request.Amount:0.##} recorded",
             Module, studioId, ct);
         return AdminResult.Ok();
     }
+
+    // ---- Access control -------------------------------------------------------------------------
+
+    // Auto follows the subscription; Full / ReadOnly override it; Suspended blocks the studio
+    // (no sign-in). Restoring is choosing Auto (or Full) again. Nothing is ever deleted.
+    public async Task<AdminResult> SetAccessModeAsync(int studioId, string mode, CancellationToken ct = default)
+    {
+        var studio = await studioRepository.GetByIdAsync(studioId, ct);
+        if (studio is null)
+        {
+            return AdminResult.Fail(AdminFailure.NotFound);
+        }
+
+        if (mode == "Suspended")
+        {
+            studio.IsBlocked = true;
+        }
+        else if (StudioAccessModes.All.Contains(mode))
+        {
+            studio.IsBlocked = false;
+            studio.AccessMode = mode;
+        }
+        else
+        {
+            return AdminResult.Fail(AdminFailure.Invalid, "Unknown access mode.");
+        }
+
+        studio.UpdatedAt = DateTime.UtcNow;
+        studioRepository.Update(studio);
+        await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
+
+        var label = mode switch
+        {
+            "Suspended" => "Studio suspended",
+            StudioAccessModes.Full => "Access set to full (override)",
+            StudioAccessModes.ReadOnly => "Access set to read-only (override)",
+            _ => "Access set to automatic (follows subscription)"
+        };
+        await auditService.LogAsync(label, Module, studioId, ct);
+        return AdminResult.Ok();
+    }
+
+    // Moves the current subscription to another plan (its dates stay as they are).
+    public async Task<AdminResult> ChangePlanAsync(int studioId, int planId, CancellationToken ct = default)
+    {
+        var plan = (await planRepository.GetAllAsync(ct)).FirstOrDefault(p => p.SubscriptionPlanId == planId && p.IsActive);
+        var current = await subscriptionRepository.GetCurrentAsync(studioId, ct);
+        if (plan is null)
+        {
+            return AdminResult.Fail(AdminFailure.Invalid, "That plan isn't available.");
+        }
+        if (current is null)
+        {
+            return await studioRepository.GetByIdAsync(studioId, ct) is null
+                ? AdminResult.Fail(AdminFailure.NotFound)
+                : AdminResult.Fail(AdminFailure.Conflict, "This studio has no subscription yet. Record a payment to start one.");
+        }
+
+        current.SubscriptionPlanId = plan.SubscriptionPlanId;
+        current.UpdatedAt = DateTime.UtcNow;
+        subscriptionRepository.Update(current);
+        await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
+
+        await auditService.LogAsync($"Plan changed to {plan.PlanName}", Module, studioId, ct);
+        return AdminResult.Ok();
+    }
+
+    // ---- Payment ledger -------------------------------------------------------------------------
+
+    public async Task<AdminLedgerPageDto> GetLedgerAsync(int? studioId, string? search, string? status, string? kind, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken ct = default)
+    {
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize is < 1 or > 100 ? 25 : pageSize;
+
+        var studios = (await repository.GetStudiosAsync(ct)).ToDictionary(s => s.StudioId, s => s.StudioName);
+        var plans = await planRepository.GetAllAsync(ct);
+        var (orders, _) = await orderRepository.SearchAsync(new OrderQuery(studioId, null, null, null, null, 1, int.MaxValue), ct);
+        var payments = await repository.GetPaymentsAsync(studioId, ct);
+        var fromOrders = orders.Where(o => o.SubscriptionPaymentId is not null).Select(o => o.SubscriptionPaymentId!.Value).ToHashSet();
+
+        var rows = orders.Select(o => new AdminLedgerRowDto
+        {
+            Date = o.PaidAt ?? o.CreatedAt,
+            StudioId = o.StudioId,
+            StudioName = studios.GetValueOrDefault(o.StudioId, $"Studio {o.StudioId}"),
+            Kind = "Online",
+            PlanName = o.SubscriptionPlan.PlanName,
+            Months = o.Months,
+            Amount = o.Amount,
+            Status = o.Status == PaymentOrderStatuses.Paid ? "Paid" : o.Status == PaymentOrderStatuses.Failed ? "Failed" : "Pending",
+            Method = o.PaymentMethod,
+            TransactionId = o.GatewayPaymentId,
+            OrderId = o.GatewayOrderId,
+            FailureReason = o.FailureReason
+        }).Concat(payments.Where(p => !fromOrders.Contains(p.SubscriptionPaymentId)).Select(p => new AdminLedgerRowDto
+        {
+            Date = p.PaymentDate,
+            StudioId = p.StudioSubscription.StudioId,
+            StudioName = studios.GetValueOrDefault(p.StudioSubscription.StudioId, $"Studio {p.StudioSubscription.StudioId}"),
+            Kind = "Manual",
+            PlanName = p.StudioSubscription.SubscriptionPlan.PlanName,
+            Months = MonthsOf(p, plans),
+            Amount = p.Amount,
+            Status = "Paid",
+            Method = p.PaymentMethod,
+            TransactionId = p.ReferenceNumber
+        }));
+
+        if (from is not null) rows = rows.Where(r => r.Date >= from.Value.Date);
+        if (to is not null) rows = rows.Where(r => r.Date < to.Value.Date.AddDays(1));
+        if (!string.IsNullOrWhiteSpace(kind)) rows = rows.Where(r => string.Equals(r.Kind, kind, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var t = search.Trim();
+            rows = rows.Where(r => r.StudioName.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                                   (r.TransactionId?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                                   (r.OrderId?.Contains(t, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        // Totals cover the whole filtered range, before the status filter narrows the list.
+        var inRange = rows.ToList();
+        var list = (string.IsNullOrWhiteSpace(status) ? inRange : inRange.Where(r => string.Equals(r.Status, status, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(r => r.Date).ToList();
+
+        return new AdminLedgerPageDto
+        {
+            Items = list.Skip((page - 1) * pageSize).Take(pageSize).ToList(),
+            TotalCount = list.Count,
+            Page = page,
+            PageSize = pageSize,
+            PaidTotal = inRange.Where(r => r.Status == "Paid").Sum(r => r.Amount),
+            PaidCount = inRange.Count(r => r.Status == "Paid"),
+            FailedCount = inRange.Count(r => r.Status == "Failed"),
+            PendingCount = inRange.Count(r => r.Status == "Pending")
+        };
+    }
+
+    // ---- Manual subscription control ----------------------------------------------------------
+
+    // Free extra days on whatever the studio has now (paid or trial); a lapsed one restarts today.
+    public async Task<AdminResult> ExtendSubscriptionAsync(int studioId, int days, CancellationToken ct = default)
+    {
+        var current = await subscriptionRepository.GetCurrentAsync(studioId, ct);
+        if (current is null)
+        {
+            return await studioRepository.GetByIdAsync(studioId, ct) is null
+                ? AdminResult.Fail(AdminFailure.NotFound)
+                : AdminResult.Fail(AdminFailure.Conflict, "This studio has no subscription yet. Record a payment or start a trial.");
+        }
+
+        var now = DateTime.UtcNow;
+        var running = current.Status != SubscriptionStatuses.Cancelled && current.EndDate > now;
+        current.EndDate = (running ? current.EndDate : now).AddDays(days);
+        current.Status = SubscriptionStatuses.Active;
+        current.UpdatedAt = now;
+        subscriptionRepository.Update(current);
+        await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
+
+        await auditService.LogAsync($"Subscription extended by {days} days (free)", Module, studioId, ct);
+        return AdminResult.Ok();
+    }
+
+    // Ends access now (the data stays; paying again restores it).
+    public async Task<AdminResult> ExpireSubscriptionAsync(int studioId, CancellationToken ct = default)
+    {
+        var current = await subscriptionRepository.GetCurrentAsync(studioId, ct);
+        var now = DateTime.UtcNow;
+        if (current is null || current.Status == SubscriptionStatuses.Cancelled || current.EndDate <= now)
+        {
+            return await studioRepository.GetByIdAsync(studioId, ct) is null
+                ? AdminResult.Fail(AdminFailure.NotFound)
+                : AdminResult.Fail(AdminFailure.Conflict, "There is no running subscription to expire.");
+        }
+
+        current.EndDate = now;
+        current.Status = SubscriptionStatuses.Expired;
+        current.UpdatedAt = now;
+        subscriptionRepository.Update(current);
+        await unitOfWork.SaveChangesAsync(ct);
+        accessService.Invalidate(studioId);
+
+        await auditService.LogAsync(current.IsTrial ? "Trial expired by admin" : "Subscription expired by admin", Module, studioId, ct);
+        return AdminResult.Ok();
+    }
+
 }

@@ -10,10 +10,11 @@ import { AdminDashboardScreen } from "../screens/superAdmin/console/AdminDashboa
 import { AdminStudiosScreen } from "../screens/superAdmin/console/AdminStudiosScreen";
 import { AdminStudioDetailScreen } from "../screens/superAdmin/console/AdminStudioDetailScreen";
 import { AdminActivityScreen } from "../screens/superAdmin/console/AdminActivityScreen";
+import { AdminPaymentsScreen } from "../screens/superAdmin/console/AdminPaymentsScreen";
 import { C, Loading } from "../screens/superAdmin/console/ui";
 import type { AdminStudioStatus } from "../types/adminConsole";
 
-type Section = "dashboard" | "studios" | "activity";
+type Section = "dashboard" | "studios" | "payments" | "activity";
 
 type View_ =
   | { name: "dashboard" }
@@ -21,11 +22,13 @@ type View_ =
   | { name: "studio"; studioId: number }
   | { name: "create" }
   | { name: "edit"; studioId: number; back: View_ }
+  | { name: "payments" }
   | { name: "activity" };
 
 const NAV: { section: Section; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { section: "dashboard", label: "Dashboard", icon: "grid-outline" },
   { section: "studios", label: "Studios", icon: "business-outline" },
+  { section: "payments", label: "Payments", icon: "wallet-outline" },
   { section: "activity", label: "Activity", icon: "time-outline" },
 ];
 
@@ -35,7 +38,7 @@ export function SuperAdminHome() {
   const [view, setView] = useState<View_>({ name: "dashboard" });
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const section: Section = view.name === "dashboard" ? "dashboard" : view.name === "activity" ? "activity" : "studios";
+  const section: Section = view.name === "dashboard" || view.name === "activity" || view.name === "payments" ? view.name : "studios";
   const go = (v: View_) => { setView(v); setMenuOpen(false); };
 
   let page: ReactNode;
@@ -71,6 +74,9 @@ export function SuperAdminHome() {
       break;
     case "activity":
       page = <AdminActivityScreen />;
+      break;
+    case "payments":
+      page = <AdminPaymentsScreen onOpenStudio={(studioId) => go({ name: "studio", studioId })} />;
       break;
   }
 

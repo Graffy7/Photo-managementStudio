@@ -21,7 +21,7 @@ const STATUS_FILTERS: { key: AdminStudioStatus | "All"; label: string }[] = [
   { key: "Trial", label: "Trial" },
   { key: "Expired", label: "Expired" },
   { key: "NoPlan", label: "No plan" },
-  { key: "Blocked", label: "Blocked" },
+  { key: "Blocked", label: "Suspended" },
   { key: "Inactive", label: "Inactive" },
 ];
 
@@ -128,7 +128,11 @@ export function AdminStudiosScreen({ initialStatus, onOpen, onCreate, onEdit }: 
                       <Text style={styles.name} numberOfLines={1}>{r.studioName}</Text>
                       <Text style={s.faint} numberOfLines={1}>{r.ownerName ?? "—"} · {r.ownerEmail ?? "no email"}</Text>
                     </View>
-                    <View style={[styles.td, { width: COLS.status }]}><StatusBadge status={r.status} /></View>
+                    <View style={[styles.td, { width: COLS.status, gap: 3 }]}>
+                      <StatusBadge status={r.status} />
+                      {r.accessLevel === "ReadOnly" && <Text style={[s.faint, { color: C.warn }]}>read-only{r.accessMode === "ReadOnly" ? " (set)" : ""}</Text>}
+                      {r.accessMode === "Full" && <Text style={[s.faint, { color: C.good }]}>full (override)</Text>}
+                    </View>
                     <View style={[styles.td, { width: COLS.plan }]}><Text style={styles.cell}>{r.planName ?? "—"}</Text></View>
                     <View style={[styles.td, { width: COLS.days }]}><DaysLeft status={r.status} days={r.daysRemaining} /></View>
                     <View style={[styles.td, { width: COLS.months }]}><Text style={[styles.cell, styles.right]}>{r.monthsSubscribed}</Text></View>
@@ -139,7 +143,7 @@ export function AdminStudiosScreen({ initialStatus, onOpen, onCreate, onEdit }: 
                       <IconAction icon="create-outline" label={`Edit ${r.studioName}`} onPress={() => onEdit(r.studioId)} />
                       <IconAction
                         icon={r.isBlocked ? "lock-open-outline" : "ban-outline"}
-                        label={`${r.isBlocked ? "Unblock" : "Block"} ${r.studioName}`}
+                        label={`${r.isBlocked ? "Restore access for" : "Suspend"} ${r.studioName}`}
                         danger={!r.isBlocked}
                         onPress={() => setPending({ row: r, action: r.isBlocked ? "unblock" : "block" })}
                       />
@@ -158,11 +162,11 @@ export function AdminStudiosScreen({ initialStatus, onOpen, onCreate, onEdit }: 
 
       <ConfirmDialog
         visible={!!pending}
-        title={pending?.action === "block" ? `Block ${pending.row.studioName}?` : `Unblock ${pending?.row.studioName}?`}
+        title={pending?.action === "block" ? `Suspend ${pending.row.studioName}?` : `Restore access for ${pending?.row.studioName}?`}
         message={pending?.action === "block"
-          ? "The owner won't be able to sign in and the studio's customer links stop working until it is unblocked. No data is deleted."
-          : "The owner can sign in again and customer links work again."}
-        confirmLabel={pending?.action === "block" ? "Block studio" : "Unblock"}
+          ? "The owner won't be able to sign in and the studio's customer links stop working until access is restored. No data is deleted."
+          : "The owner can sign in again; access follows the studio's subscription and access setting."}
+        confirmLabel={pending?.action === "block" ? "Suspend studio" : "Restore access"}
         danger={pending?.action === "block"}
         busy={toggleBlock.isPending}
         error={toggleBlock.isError ? extractErrorMessage(toggleBlock.error) : null}

@@ -313,6 +313,7 @@ public class PhotoGalleriesController(
     }
 
     [FeatureRequired(FeatureCodes.WhatsApp)]
+    [BlockWhenReadOnly]
     [HttpGet("{id:int}/share-message")]
     public async Task<IActionResult> ShareMessage(int id, [FromQuery] string baseUrl, [FromQuery] bool reminder = false, CancellationToken ct = default)
     {

@@ -33,10 +33,32 @@ public static class FeatureCodes
 public static class SubscriptionPlanTypes
 {
     public const string Monthly = "Monthly";
+    public const string Quarterly = "Quarterly";
+    public const string HalfYearly = "HalfYearly";
     public const string Yearly = "Yearly";
     public const string Custom = "Custom";
 
-    public static readonly string[] All = [Monthly, Yearly, Custom];
+    public static readonly string[] All = [Monthly, Quarterly, HalfYearly, Yearly, Custom];
+}
+
+// Per-studio access override set by the platform admin.
+public static class StudioAccessModes
+{
+    public const string Auto = "Auto";          // follow the subscription: active/trial = full, otherwise read-only
+    public const string Full = "Full";          // full access whatever the subscription says (complimentary)
+    public const string ReadOnly = "ReadOnly";  // view only, whatever the subscription says
+
+    public static readonly string[] All = [Auto, Full, ReadOnly];
+}
+
+// Lifecycle of one online checkout (a gateway order). Paid is final and is applied exactly once.
+public static class PaymentOrderStatuses
+{
+    public const string Created = "Created";
+    public const string Paid = "Paid";
+    public const string Failed = "Failed";
+
+    public static readonly string[] All = [Created, Paid, Failed];
 }
 
 public static class SubscriptionStatuses
@@ -56,6 +78,16 @@ public static class EventStatuses
     public const string Cancelled = "Cancelled";
 
     public static readonly string[] All = [Upcoming, Confirmed, Completed, Cancelled];
+}
+
+// How a quotation's PDF shows prices. Only the printout changes - the stored items, prices and
+// totals are always kept in full.
+public static class QuotationPriceDisplays
+{
+    public const string Detailed = "Detailed";     // every service with its price
+    public const string TotalOnly = "TotalOnly";   // the services listed, one total amount
+
+    public static readonly string[] All = [Detailed, TotalOnly];
 }
 
 public static class QuotationStatuses

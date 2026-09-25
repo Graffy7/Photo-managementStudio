@@ -17,7 +17,8 @@ public class SubscriptionPlanService(IRepository<SubscriptionPlan> subscriptionP
                 PlanName = p.PlanName,
                 PlanType = p.PlanType,
                 Price = p.Price,
-                DurationInDays = p.DurationInDays
+                DurationInDays = p.DurationInDays,
+                DurationMonths = p.DurationMonths
             })
             .ToList();
     }

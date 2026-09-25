@@ -52,6 +52,36 @@ export interface NotificationSettings {
   whatsAppNotification: boolean;
 }
 
+export type PdfTemplate = "Classic" | "Modern" | "Minimal" | "Elegant";
+export type PdfHeaderStyle = "Standard" | "Banner" | "Centered";
+export type PdfLogoPlacement = "Watermark" | "Header" | "Both" | "None";
+
+// This studio's quotation PDF look. Nothing set = the original Classic design.
+export interface PdfSettings {
+  template: PdfTemplate;
+  headerStyle: PdfHeaderStyle;
+  primaryColor: string;
+  accentColor: string;
+  logoPlacement: PdfLogoPlacement;
+  displayName: string;
+  tagline: string;
+  showWebsite: boolean;
+  footerText: string;
+  showPageNumbers: boolean;
+  useDefaultTerms: boolean;
+  showSignature: boolean;
+  signatoryName: string;
+  signatoryTitle: string;
+  signatureUrl: string | null;
+  showPaymentDetails: boolean;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  ifsc: string;
+  upiId: string;
+  paymentNote: string;
+}
+
 export interface QuotationSettings {
   prefix: string;
   startingNumber: number;

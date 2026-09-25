@@ -4,6 +4,7 @@ import type { NavigationContainerRefWithCurrent } from "@react-navigation/native
 import { Ionicons } from "@expo/vector-icons";
 import { Sidebar } from "./Sidebar";
 import { useAuthStore } from "../auth/authStore";
+import { ExpiryBanner } from "../screens/studioOwner/subscription/SubscriptionScreens";
 
 interface WebAppShellProps {
   children: ReactNode;
@@ -63,7 +64,10 @@ export function WebAppShell({ children, navigationRef, activeRoute }: WebAppShel
         </View>
       )}
 
-      <View style={styles.content}>{children}</View>
+      <View style={styles.content}>
+        <ExpiryBanner onRenew={() => navigationRef.current?.navigate("Subscription" as never)} />
+        {children}
+      </View>
 
       {compact && menuOpen && (
         <View style={styles.overlay}>

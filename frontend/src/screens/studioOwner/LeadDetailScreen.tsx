@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import type { Lead } from "../../types/lead";
 import { StatusPill } from "../../components/StatusPill";
 
@@ -36,9 +37,11 @@ export function LeadDetailScreen({ lead, onBack, onEdit }: { lead: Lead; onBack:
           <Text style={styles.title}>{lead.fullName}</Text>
           <Text style={styles.subtitle}>Enquiry details</Text>
         </View>
-        <Pressable style={styles.editButton} onPress={onEdit}>
-          <Text style={styles.editButtonText}>Edit</Text>
-        </Pressable>
+        <SubscriptionLock>
+          <Pressable style={styles.editButton} onPress={onEdit}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </Pressable>
+        </SubscriptionLock>
       </View>
 
       <View style={styles.pillRow}>

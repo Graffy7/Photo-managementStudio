@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,8 @@ namespace StudioManagement.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+// Usable without an active subscription (an expired studio still signs in and renews).
+[AllowWithoutSubscription]
 public class AuthController(
     IAuthService authService,
     IPasswordResetService passwordResetService,

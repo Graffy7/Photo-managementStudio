@@ -3,8 +3,10 @@ namespace StudioManagement.Business.Quotations;
 public class QuotationItemDto
 {
     public int QuotationItemId { get; set; }
-    public int ServiceId { get; set; }
+    public int? ServiceId { get; set; }
+    // The catalog service's name, or the hand-typed name of a custom line.
     public string ServiceName { get; set; } = null!;
+    public bool IsCustom { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Total { get; set; }
@@ -28,6 +30,8 @@ public class QuotationDto
     public decimal GrandTotal { get; set; }
     public string Status { get; set; } = null!;
     public string? TermsAndConditions { get; set; }
+    public string? PriceDisplay { get; set; }
+    public decimal? ManualTotal { get; set; }
     public List<QuotationItemDto> Items { get; set; } = [];
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -35,7 +39,9 @@ public class QuotationDto
 
 public class QuotationItemRequestDto
 {
-    public int ServiceId { get; set; }
+    // Either a catalog service, or (ServiceId null/0) a custom line named by CustomName.
+    public int? ServiceId { get; set; }
+    public string? CustomName { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public string? Notes { get; set; }
@@ -51,6 +57,8 @@ public class CreateQuotationRequestDto
     public decimal TaxAmount { get; set; }
     public string Status { get; set; } = null!;
     public string? TermsAndConditions { get; set; }
+    public string? PriceDisplay { get; set; }
+    public decimal? ManualTotal { get; set; }
     public List<QuotationItemRequestDto> Items { get; set; } = [];
 }
 
@@ -64,6 +72,8 @@ public class UpdateQuotationRequestDto
     public decimal TaxAmount { get; set; }
     public string Status { get; set; } = null!;
     public string? TermsAndConditions { get; set; }
+    public string? PriceDisplay { get; set; }
+    public decimal? ManualTotal { get; set; }
     public List<QuotationItemRequestDto> Items { get; set; } = [];
 }
 

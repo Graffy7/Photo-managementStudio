@@ -82,7 +82,7 @@ export const STATUS_META: Record<AdminStudioStatus, { label: string; color: stri
   Trial: { label: "Trial", color: C.accent, icon: "hourglass-outline" },
   Expired: { label: "Expired", color: C.bad, icon: "alert-circle-outline" },
   NoPlan: { label: "No plan", color: C.faint, icon: "remove-circle-outline" },
-  Blocked: { label: "Blocked", color: C.bad, icon: "ban-outline" },
+  Blocked: { label: "Suspended", color: C.bad, icon: "ban-outline" },
   Inactive: { label: "Inactive", color: C.faint, icon: "pause-circle-outline" },
 };
 

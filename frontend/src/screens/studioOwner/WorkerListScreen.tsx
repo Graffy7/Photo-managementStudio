@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -43,9 +44,11 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
         <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
           <Text style={styles.actionText}>View</Text>
         </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-          <Text style={styles.actionText}>Edit</Text>
-        </Pressable>
+        <SubscriptionLock compact>
+          <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
+            <Text style={styles.actionText}>Edit</Text>
+          </Pressable>
+        </SubscriptionLock>
         <Pressable
           style={styles.actionBtn}
           onPress={() => (item.isActive ? deactivate.mutate(item.workerId) : activate.mutate(item.workerId))}
@@ -67,9 +70,11 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>‹ Home</Text>
           </Pressable>
-          <Pressable style={styles.newButton} onPress={onCreate}>
-            <Text style={styles.newButtonText}>+ New Worker</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable style={styles.newButton} onPress={onCreate}>
+              <Text style={styles.newButtonText}>+ New Worker</Text>
+            </Pressable>
+          </SubscriptionLock>
         </View>
       </View>
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { SearchInput } from "../../components/SearchInput";
 import { useNavigation } from "@react-navigation/native";
@@ -101,9 +102,11 @@ export function ExpenseListScreen({
           <Pressable style={styles.categoriesButton} onPress={onManageCategories}>
             <Text style={styles.categoriesButtonText}>Categories</Text>
           </Pressable>
-          <Pressable style={styles.newButton} onPress={onCreate}>
-            <Text style={styles.newButtonText}>+ New Expense</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable style={styles.newButton} onPress={onCreate}>
+              <Text style={styles.newButtonText}>+ New Expense</Text>
+            </Pressable>
+          </SubscriptionLock>
         </View>
       </View>
 

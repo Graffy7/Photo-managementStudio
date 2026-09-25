@@ -7,4 +7,5 @@ public class SubscriptionPlanDto
     public string PlanType { get; set; } = null!;
     public decimal Price { get; set; }
     public int DurationInDays { get; set; }
+    public int DurationMonths { get; set; }
 }

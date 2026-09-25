@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -273,13 +274,15 @@ export function CalendarScreen() {
             <View style={styles.card}>
               <View style={styles.panelHeaderRow}>
                 <Text style={styles.panelTitle}>Events on Selected Date</Text>
-                <Pressable
-                  style={styles.addButton}
-                  onPress={() => navigation.navigate("Events", { create: true, date: selectedKey ?? undefined, returnTo: "Calendar" })}
-                >
-                  <Ionicons name="add" size={14} color="#0d1826" />
-                  <Text style={styles.addButtonText}>Add Event</Text>
-                </Pressable>
+                <SubscriptionLock>
+                  <Pressable
+                    style={styles.addButton}
+                    onPress={() => navigation.navigate("Events", { create: true, date: selectedKey ?? undefined, returnTo: "Calendar" })}
+                  >
+                    <Ionicons name="add" size={14} color="#0d1826" />
+                    <Text style={styles.addButtonText}>Add Event</Text>
+                  </Pressable>
+                </SubscriptionLock>
               </View>
               {selectedLabel ? (
                 <Text style={styles.panelSubtitleAccent}>{selectedLabel}</Text>
@@ -347,12 +350,14 @@ export function CalendarScreen() {
                                 </Text>
                               </View>
                             </View>
-                            <Pressable style={styles.recordPaymentButton} onPress={() => setView({ name: "recordPayment", event: e })}>
-                              <Ionicons name="cash-outline" size={13} color="#0d1826" />
-                              <Text style={styles.recordPaymentButtonText}>
-                                {e.balance > 0 ? "Record Payment" : "Add Payment"}
-                              </Text>
-                            </Pressable>
+                            <SubscriptionLock>
+                              <Pressable style={styles.recordPaymentButton} onPress={() => setView({ name: "recordPayment", event: e })}>
+                                <Ionicons name="cash-outline" size={13} color="#0d1826" />
+                                <Text style={styles.recordPaymentButtonText}>
+                                  {e.balance > 0 ? "Record Payment" : "Add Payment"}
+                                </Text>
+                              </Pressable>
+                            </SubscriptionLock>
                           </>
                         )}
 

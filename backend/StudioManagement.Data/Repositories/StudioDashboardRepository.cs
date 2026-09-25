@@ -43,8 +43,9 @@ public class StudioDashboardRepository(AppDbContext context) : IStudioDashboardR
     public async Task<List<(string ServiceName, int Count)>> GetTopServicesAsync(int studioId, DateTime start, DateTime end, int take, CancellationToken ct = default)
     {
         var results = await context.QuotationItems
-            .Where(qi => qi.Quotation.StudioId == studioId && qi.Quotation.QuotationDate >= start && qi.Quotation.QuotationDate < end)
-            .GroupBy(qi => qi.Service.ServiceName)
+            // Catalog services only - hand-typed lines aren't services.
+            .Where(qi => qi.Quotation.StudioId == studioId && qi.Quotation.QuotationDate >= start && qi.Quotation.QuotationDate < end && qi.ServiceId != null)
+            .GroupBy(qi => qi.Service!.ServiceName)
             .Select(g => new { ServiceName = g.Key, Count = g.Count() })
             .OrderByDescending(g => g.Count)
             .Take(take)

@@ -7,7 +7,9 @@ public class QuotationItemRequestValidator : AbstractValidator<QuotationItemRequ
 {
     public QuotationItemRequestValidator()
     {
-        RuleFor(x => x.ServiceId).GreaterThan(0);
+        RuleFor(x => x).Must(i => (i.ServiceId ?? 0) > 0 || !string.IsNullOrWhiteSpace(i.CustomName))
+            .WithName("Items").WithMessage("Each line needs a service or a name.");
+        RuleFor(x => x.CustomName).MaximumLength(200);
         RuleFor(x => x.Quantity).GreaterThan(0);
         RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Notes).MaximumLength(500);
@@ -31,6 +33,10 @@ public class CreateQuotationRequestValidator : AbstractValidator<CreateQuotation
         RuleFor(x => x.Status).NotEmpty().Must(s => QuotationStatuses.All.Contains(s))
             .WithMessage($"Status must be one of: {string.Join(", ", QuotationStatuses.All)}");
         RuleFor(x => x.TermsAndConditions).MaximumLength(4000);
+        RuleFor(x => x.PriceDisplay).Must(v => v is null || QuotationPriceDisplays.All.Contains(v))
+            .WithMessage("Price display must be Detailed or TotalOnly.");
+        RuleFor(x => x.ManualTotal).GreaterThan(0).LessThanOrEqualTo(1_000_000_000).When(x => x.ManualTotal is not null)
+            .WithMessage("Enter a total amount above zero.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Add at least one line item.");
         RuleForEach(x => x.Items).SetValidator(new QuotationItemRequestValidator());
     }
@@ -53,6 +59,10 @@ public class UpdateQuotationRequestValidator : AbstractValidator<UpdateQuotation
         RuleFor(x => x.Status).NotEmpty().Must(s => QuotationStatuses.All.Contains(s))
             .WithMessage($"Status must be one of: {string.Join(", ", QuotationStatuses.All)}");
         RuleFor(x => x.TermsAndConditions).MaximumLength(4000);
+        RuleFor(x => x.PriceDisplay).Must(v => v is null || QuotationPriceDisplays.All.Contains(v))
+            .WithMessage("Price display must be Detailed or TotalOnly.");
+        RuleFor(x => x.ManualTotal).GreaterThan(0).LessThanOrEqualTo(1_000_000_000).When(x => x.ManualTotal is not null)
+            .WithMessage("Enter a total amount above zero.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Add at least one line item.");
         RuleForEach(x => x.Items).SetValidator(new QuotationItemRequestValidator());
     }

@@ -1,3 +1,4 @@
+using StudioManagement.Business.Billing;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Repositories;
 
@@ -7,7 +8,8 @@ public class EventReminderService(
     IEventRepository eventRepository,
     INotificationRepository notificationRepository,
     IStudioRepository studioRepository,
-    INotificationService notificationService) : IEventReminderService
+    INotificationService notificationService,
+    IStudioAccessService accessService) : IEventReminderService
 {
     public async Task<int> CreateRemindersForStudioAsync(int studioId, DateTime referenceNow, CancellationToken ct = default)
     {
@@ -48,7 +50,11 @@ public class EventReminderService(
         var total = 0;
         foreach (var studioId in studioIds)
         {
-            total += await CreateRemindersForStudioAsync(studioId, referenceNow, ct);
+            // A studio whose subscription has lapsed isn't sent reminders until it renews.
+            if ((await accessService.GetAsync(studioId, ct)).HasAccess)
+            {
+                total += await CreateRemindersForStudioAsync(studioId, referenceNow, ct);
+            }
         }
 
         return total;

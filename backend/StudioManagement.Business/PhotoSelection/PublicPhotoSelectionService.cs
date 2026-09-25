@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
+using StudioManagement.Business.Billing;
 using StudioManagement.Business.Features;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Data.Common;
@@ -18,6 +19,7 @@ public class PublicPhotoSelectionService(
     INotificationService notificationService,
     IAuditService auditService,
     IFeatureService featureService,
+    IStudioAccessService accessService,
     IUnitOfWork unitOfWork) : IPublicPhotoSelectionService
 {
     private const string Module = "PhotoSelection";
@@ -45,7 +47,7 @@ public class PublicPhotoSelectionService(
             Title = gallery.Event.EventType?.Name ?? "Photo selection",
             CustomerName = gallery.Customer.FullName,
             EventDate = gallery.Event.EventDate,
-            IsLocked = gallery.Status == GalleryStatuses.Locked,
+            IsLocked = await IsLockedAsync(gallery, ct),
             IsSubmitted = gallery.SubmittedAt is not null,
             SubmittedAt = gallery.SubmittedAt,
             ChangedSinceSubmit = PhotoGalleryService.ChangedSinceSubmit(gallery),
@@ -110,7 +112,7 @@ public class PublicPhotoSelectionService(
         {
             return SelectionResult.NoAccess(failure!.Value);
         }
-        if (gallery.Status == GalleryStatuses.Locked)
+        if (await IsLockedAsync(gallery, ct))
         {
             return SelectionResult.Fail(SelectionFailureReason.Locked);
         }
@@ -147,7 +149,7 @@ public class PublicPhotoSelectionService(
         {
             return SelectionResult.NoAccess(failure!.Value);
         }
-        if (gallery.Status == GalleryStatuses.Locked)
+        if (await IsLockedAsync(gallery, ct))
         {
             return SelectionResult.Fail(SelectionFailureReason.Locked);
         }
@@ -181,7 +183,7 @@ public class PublicPhotoSelectionService(
         {
             return SubmitResult.NoAccess(failure!.Value);
         }
-        if (gallery.Status == GalleryStatuses.Locked)
+        if (await IsLockedAsync(gallery, ct))
         {
             return SubmitResult.Fail(SubmitFailureReason.Locked);
         }
@@ -220,6 +222,10 @@ public class PublicPhotoSelectionService(
 
     // ---- Helpers -----------------------------------------------------------------------------
 
+    // Locked by the studio, or the studio is read-only (no new selections until it renews).
+    private async Task<bool> IsLockedAsync(PhotoGallery gallery, CancellationToken ct) =>
+        gallery.Status == GalleryStatuses.Locked || !(await accessService.GetAsync(gallery.StudioId, ct)).HasAccess;
+
     // The one gate every customer call goes through. Unknown, malformed and revoked tokens are all
     // "Invalid" (indistinguishable); only a real link that has run out says "Expired".
     private async Task<(PhotoGallery? Gallery, GalleryAccessFailure? Failure)> ResolveAsync(string token, CancellationToken ct)
@@ -243,6 +249,13 @@ public class PublicPhotoSelectionService(
         // for a studio; its links then stop opening like any revoked link.
         var features = await featureService.GetMyFeaturesAsync(gallery.StudioId, ct);
         if (!features.GetValueOrDefault(FeatureCodes.Gallery, true) || !features.GetValueOrDefault(FeatureCodes.PhotoSelection, true))
+        {
+            return (null, GalleryAccessFailure.Invalid);
+        }
+
+        // A suspended studio's links stop working. A read-only one (subscription lapsed) still lets
+        // the customer look at the photos, but the selection is locked until the studio renews.
+        if (!(await accessService.GetAsync(gallery.StudioId, ct)).CanRead)
         {
             return (null, GalleryAccessFailure.Invalid);
         }

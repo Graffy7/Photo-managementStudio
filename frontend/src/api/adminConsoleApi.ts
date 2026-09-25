@@ -1,7 +1,7 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
 import type {
-  AdminActivity, AdminOverview, AdminStudioDetail, AdminStudioRow, AdminStudioUsage, AdminSubscription, ManualPaymentRequest,
+  AdminActivity, AdminOverview, LedgerPage, AdminStudioDetail, AdminStudioRow, AdminStudioUsage, AdminSubscription, ManualPaymentRequest,
 } from "../types/adminConsole";
 
 // The platform admin's console (api/admin). Studio edits, block/unblock and module switches keep
@@ -29,6 +29,18 @@ export const adminConsoleApi = {
   startTrial: (id: number, days: number) => apiClient.post(`/api/admin/studios/${id}/trial/start`, { days }).then(() => undefined),
   extendTrial: (id: number, days: number) => apiClient.post(`/api/admin/studios/${id}/trial/extend`, { days }).then(() => undefined),
   endTrial: (id: number) => apiClient.post(`/api/admin/studios/${id}/trial/end`).then(() => undefined),
+
+  payments: (params: { studioId?: number; search?: string; status?: string; kind?: string; from?: string; to?: string; page: number; pageSize: number }) =>
+    apiClient.get<LedgerPage>("/api/admin/payments", { params }).then((r) => r.data),
+
+  extendSubscription: (id: number, days: number) =>
+    apiClient.post(`/api/admin/studios/${id}/subscription/extend`, { days }).then(() => undefined),
+  expireSubscription: (id: number) => apiClient.post(`/api/admin/studios/${id}/subscription/expire`).then(() => undefined),
+
+  setAccess: (id: number, mode: "Auto" | "Full" | "ReadOnly" | "Suspended") =>
+    apiClient.put(`/api/admin/studios/${id}/access`, { mode }).then(() => undefined),
+  changePlan: (id: number, planId: number) =>
+    apiClient.put(`/api/admin/studios/${id}/subscription/plan`, { planId }).then(() => undefined),
 
   recordPayment: (id: number, request: ManualPaymentRequest) =>
     apiClient.post(`/api/admin/studios/${id}/payments`, request).then(() => undefined),

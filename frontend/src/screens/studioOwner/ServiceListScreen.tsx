@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,9 +41,11 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
         </View>
       </View>
       <View style={styles.actions}>
-        <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-          <Text style={styles.actionText}>Edit</Text>
-        </Pressable>
+        <SubscriptionLock compact>
+          <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
+            <Text style={styles.actionText}>Edit</Text>
+          </Pressable>
+        </SubscriptionLock>
         <Pressable
           style={styles.actionBtn}
           onPress={() => (item.isActive ? deactivate.mutate(item.serviceId) : activate.mutate(item.serviceId))}
@@ -64,9 +67,11 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>‹ Home</Text>
           </Pressable>
-          <Pressable style={styles.newButton} onPress={onCreate}>
-            <Text style={styles.newButtonText}>+ New Service</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable style={styles.newButton} onPress={onCreate}>
+              <Text style={styles.newButtonText}>+ New Service</Text>
+            </Pressable>
+          </SubscriptionLock>
         </View>
       </View>
 

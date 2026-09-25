@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Platform, Share } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -105,9 +106,11 @@ export function EventDetailScreen({
           <Text style={styles.title}>{current.eventTypeName ?? "Event"} — {current.customerName}</Text>
           <Text style={styles.subtitle}>{formatDate(current.eventDate)} · Event history</Text>
         </View>
-        <Pressable style={styles.editButton} onPress={onEdit}>
-          <Text style={styles.editButtonText}>Edit</Text>
-        </Pressable>
+        <SubscriptionLock>
+          <Pressable style={styles.editButton} onPress={onEdit}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </Pressable>
+        </SubscriptionLock>
       </View>
 
       <View style={styles.pillRow}>

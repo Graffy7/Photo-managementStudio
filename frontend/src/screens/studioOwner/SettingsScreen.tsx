@@ -6,9 +6,10 @@ import { LogoBrandingTab } from "./settings/LogoBrandingTab";
 import { BusinessSettingsTab } from "./settings/BusinessSettingsTab";
 import { NotificationSettingsTab } from "./settings/NotificationSettingsTab";
 import { QuotationSettingsTab } from "./settings/QuotationSettingsTab";
+import { PdfSettingsTab } from "./settings/PdfSettingsTab";
 import { SecurityTab } from "./settings/SecurityTab";
 
-type TabKey = "profile" | "logo" | "business" | "notifications" | "quotation" | "security";
+type TabKey = "profile" | "logo" | "business" | "notifications" | "quotation" | "pdf" | "security";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "profile", label: "Studio Profile" },
@@ -16,6 +17,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "business", label: "Business" },
   { key: "notifications", label: "Notifications" },
   { key: "quotation", label: "Quotations" },
+  { key: "pdf", label: "Quotation PDF" },
   { key: "security", label: "Security" },
 ];
 
@@ -57,6 +59,7 @@ export function SettingsScreen() {
         {tab === "business" && <BusinessSettingsTab />}
         {tab === "notifications" && <NotificationSettingsTab />}
         {tab === "quotation" && <QuotationSettingsTab />}
+        {tab === "pdf" && <PdfSettingsTab />}
         {tab === "security" && <SecurityTab />}
       </View>
 

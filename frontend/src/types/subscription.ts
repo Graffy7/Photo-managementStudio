@@ -4,4 +4,5 @@ export interface SubscriptionPlan {
   planType: string;
   price: number;
   durationInDays: number;
+  durationMonths: number;
 }

@@ -67,6 +67,35 @@ public class AdminConsoleController(
     public async Task<IActionResult> EndTrial(int id, CancellationToken ct) =>
         ToResult(await consoleService.EndTrialAsync(id, ct));
 
+    // Every payment on the platform: online checkouts (paid, failed, pending) and manual entries.
+    [HttpGet("payments")]
+    public async Task<IActionResult> Payments(
+        [FromQuery] int? studioId, [FromQuery] string? search, [FromQuery] string? status, [FromQuery] string? kind,
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default) =>
+        Ok(await consoleService.GetLedgerAsync(studioId, search, status, kind, from, to, page, pageSize, ct));
+
+    // Free days on top of the current subscription or trial (a lapsed one restarts today).
+    [HttpPost("studios/{id:int}/subscription/extend")]
+    public async Task<IActionResult> ExtendSubscription(int id, TrialDaysRequestDto request, CancellationToken ct)
+    {
+        if (await Invalid(trialValidator, request, ct) is { } bad) return bad;
+        return ToResult(await consoleService.ExtendSubscriptionAsync(id, request.Days, ct));
+    }
+
+    // Ends access now. Nothing is deleted; paying again restores it.
+    [HttpPost("studios/{id:int}/subscription/expire")]
+    public async Task<IActionResult> ExpireSubscription(int id, CancellationToken ct) =>
+        ToResult(await consoleService.ExpireSubscriptionAsync(id, ct));
+
+    // Access control: Auto (follow the subscription), Full or ReadOnly (override), Suspended.
+    [HttpPut("studios/{id:int}/access")]
+    public async Task<IActionResult> SetAccess(int id, AccessModeRequestDto request, CancellationToken ct) =>
+        ToResult(await consoleService.SetAccessModeAsync(id, request.Mode ?? "", ct));
+
+    [HttpPut("studios/{id:int}/subscription/plan")]
+    public async Task<IActionResult> ChangePlan(int id, ChangePlanRequestDto request, CancellationToken ct) =>
+        ToResult(await consoleService.ChangePlanAsync(id, request.PlanId, ct));
+
     // Manual payment entry; with months > 0 it also extends (or, from a trial, starts) the paid plan.
     [HttpPost("studios/{id:int}/payments")]
     public async Task<IActionResult> RecordPayment(int id, ManualPaymentRequestDto request, CancellationToken ct)

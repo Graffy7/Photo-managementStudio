@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import type { Worker } from "../../types/worker";
 import { StatusPill } from "../../components/StatusPill";
 
@@ -26,9 +27,11 @@ export function WorkerDetailScreen({ worker, onBack, onEdit }: { worker: Worker;
           <Text style={styles.title}>{worker.fullName}</Text>
           <Text style={styles.subtitle}>Worker details</Text>
         </View>
-        <Pressable style={styles.editButton} onPress={onEdit}>
-          <Text style={styles.editButtonText}>Edit</Text>
-        </Pressable>
+        <SubscriptionLock>
+          <Pressable style={styles.editButton} onPress={onEdit}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </Pressable>
+        </SubscriptionLock>
       </View>
 
       <View style={styles.pillRow}>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import {
   View, Text, TextInput, Pressable, ScrollView, Image, Modal, StyleSheet, ActivityIndicator, Platform, Share, Linking,
 } from "react-native";
@@ -230,13 +231,15 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
         <Pressable style={styles.secondaryButton} disabled={running} onPress={() => setBrowsing(true)}>
           <Text style={styles.secondaryButtonText}>Browse</Text>
         </Pressable>
-        <Pressable
-          style={[styles.primaryButton, (running || starting || !folder.trim()) && styles.disabled]}
-          disabled={running || starting || !folder.trim()}
-          onPress={start}
-        >
-          <Text style={styles.primaryButtonText}>{gallery.counts.total > 0 ? "Import new photos" : "Import photos"}</Text>
-        </Pressable>
+        <SubscriptionLock>
+          <Pressable
+            style={[styles.primaryButton, (running || starting || !folder.trim()) && styles.disabled]}
+            disabled={running || starting || !folder.trim()}
+            onPress={start}
+          >
+            <Text style={styles.primaryButtonText}>{gallery.counts.total > 0 ? "Import new photos" : "Import photos"}</Text>
+          </Pressable>
+        </SubscriptionLock>
       </View>
 
       {!!message && <Text style={styles.error}>{message}</Text>}
@@ -470,9 +473,11 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
             original photos, then send the customer a new 5 or 10 day link. Their earlier selections are kept.
           </Text>
           <View style={styles.actionRow}>
-            <Pressable style={[styles.primaryButton, busy !== null && styles.disabled]} disabled={busy !== null} onPress={rebuild}>
-              <Text style={styles.primaryButtonText}>{busy === "rebuild" ? "Starting…" : "Rebuild previews"}</Text>
-            </Pressable>
+            <SubscriptionLock>
+              <Pressable style={[styles.primaryButton, busy !== null && styles.disabled]} disabled={busy !== null} onPress={rebuild}>
+                <Text style={styles.primaryButtonText}>{busy === "rebuild" ? "Starting…" : "Rebuild previews"}</Text>
+              </Pressable>
+            </SubscriptionLock>
           </View>
         </>
       ) : noPhotos || importing ? (
@@ -504,9 +509,11 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
                 <Text style={[styles.secondaryButtonText, copied && styles.copiedButtonText]}>{copied ? "✓ Copied" : "Copy link"}</Text>
               </Pressable>
               {isOn("WHATSAPP") && (
-                <Pressable style={styles.whatsButton} disabled={busy !== null} onPress={() => whatsApp(false)}>
-                  <Text style={styles.whatsButtonText}>Send on WhatsApp</Text>
-                </Pressable>
+                <SubscriptionLock>
+                  <Pressable style={styles.whatsButton} disabled={busy !== null} onPress={() => whatsApp(false)}>
+                    <Text style={styles.whatsButtonText}>Send on WhatsApp</Text>
+                  </Pressable>
+                </SubscriptionLock>
               )}
               {isOn("WHATSAPP") && !gallery.submittedAt && (
                 <Pressable style={styles.secondaryButton} disabled={busy !== null} onPress={() => whatsApp(true)}>
@@ -526,13 +533,15 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
                 <Text style={[styles.chipText, days === d && styles.chipTextSelected]}>{d} days</Text>
               </Pressable>
             ))}
-            <Pressable
-              style={[styles.primaryButton, busy !== null && styles.disabled]}
-              disabled={busy !== null}
-              onPress={generate}
-            >
-              <Text style={styles.primaryButtonText}>{activeLink ? "Generate new link" : "Generate link"}</Text>
-            </Pressable>
+            <SubscriptionLock>
+              <Pressable
+                style={[styles.primaryButton, busy !== null && styles.disabled]}
+                disabled={busy !== null}
+                onPress={generate}
+              >
+                <Text style={styles.primaryButtonText}>{activeLink ? "Generate new link" : "Generate link"}</Text>
+              </Pressable>
+            </SubscriptionLock>
           </View>
           <Text style={styles.hintSmall}>
             {activeLink ? "Generating a new link stops the old one from working. " : ""}Previews are deleted 10 days after the link is sent.

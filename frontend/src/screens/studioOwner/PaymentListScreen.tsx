@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -92,9 +93,11 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>‹ Home</Text>
           </Pressable>
-          <Pressable style={styles.newButton} onPress={onCreate}>
-            <Text style={styles.newButtonText}>+ New Payment</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable style={styles.newButton} onPress={onCreate}>
+              <Text style={styles.newButtonText}>+ New Payment</Text>
+            </Pressable>
+          </SubscriptionLock>
         </View>
       </View>
 

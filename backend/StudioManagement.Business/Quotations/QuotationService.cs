@@ -52,7 +52,8 @@ public class QuotationService(
 
         var items = request.Items.Select(i => new QuotationItem
         {
-            ServiceId = i.ServiceId,
+            ServiceId = (i.ServiceId ?? 0) > 0 ? i.ServiceId : null,
+            CustomName = (i.ServiceId ?? 0) > 0 ? null : i.CustomName?.Trim(),
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice,
             Total = i.Quantity * i.UnitPrice,
@@ -79,9 +80,11 @@ public class QuotationService(
             Subtotal = subtotal,
             Discount = request.Discount,
             TaxAmount = request.TaxAmount,
-            GrandTotal = subtotal - request.Discount + request.TaxAmount,
+            GrandTotal = GrandTotalFor(subtotal, request.Discount, request.TaxAmount, ManualTotalFor(request.PriceDisplay, request.ManualTotal)),
             Status = request.Status,
             TermsAndConditions = request.TermsAndConditions,
+            PriceDisplay = NormalizePriceDisplay(request.PriceDisplay) ?? QuotationPriceDisplays.Detailed,
+            ManualTotal = ManualTotalFor(request.PriceDisplay, request.ManualTotal),
             CreatedAt = now,
             UpdatedAt = now,
             Items = items
@@ -124,7 +127,8 @@ public class QuotationService(
         {
             quotation.Items.Add(new QuotationItem
             {
-                ServiceId = i.ServiceId,
+                ServiceId = (i.ServiceId ?? 0) > 0 ? i.ServiceId : null,
+                CustomName = (i.ServiceId ?? 0) > 0 ? null : i.CustomName?.Trim(),
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice,
                 Total = i.Quantity * i.UnitPrice,
@@ -142,9 +146,16 @@ public class QuotationService(
         quotation.Subtotal = subtotal;
         quotation.Discount = request.Discount;
         quotation.TaxAmount = request.TaxAmount;
-        quotation.GrandTotal = subtotal - request.Discount + request.TaxAmount;
+        // An older client that sends neither field keeps the quotation's display and manual total.
+        if (request.PriceDisplay is not null)
+        {
+            quotation.ManualTotal = ManualTotalFor(request.PriceDisplay, request.ManualTotal);
+        }
+        quotation.GrandTotal = GrandTotalFor(subtotal, request.Discount, request.TaxAmount, quotation.ManualTotal);
         quotation.Status = request.Status;
         quotation.TermsAndConditions = request.TermsAndConditions;
+        // Left as it was when the form doesn't send it (older clients).
+        quotation.PriceDisplay = NormalizePriceDisplay(request.PriceDisplay) ?? quotation.PriceDisplay;
         quotation.UpdatedAt = DateTime.UtcNow;
 
         quotationRepository.Update(quotation);
@@ -162,6 +173,46 @@ public class QuotationService(
 
         return QuotationWriteResult.Success(dto);
     }
+
+    // Changes only how this quotation's PDF shows prices; items, prices and totals are untouched.
+    public async Task<QuotationDto?> SetPriceDisplayAsync(int studioId, int quotationId, string priceDisplay, CancellationToken ct = default)
+    {
+        var quotation = await quotationRepository.GetByIdAsync(studioId, quotationId, ct);
+        var value = NormalizePriceDisplay(priceDisplay);
+        if (quotation is null || value is null)
+        {
+            return null;
+        }
+
+        // A manual total only makes sense as "Total only": the listed prices wouldn't add up to it.
+        if (value == QuotationPriceDisplays.Detailed && quotation.ManualTotal is not null)
+        {
+            throw new InvalidOperationException(ManualTotalLocksDisplay);
+        }
+
+        if (quotation.PriceDisplay != value)
+        {
+            quotation.PriceDisplay = value;
+            quotation.UpdatedAt = DateTime.UtcNow;
+            quotationRepository.Update(quotation);
+            await unitOfWork.SaveChangesAsync(ct);
+        }
+        return MapToDto(quotation);
+    }
+
+    public const string ManualTotalLocksDisplay =
+        "This quotation has a manually entered total, so it prints as Total only. Edit the quotation and clear the manual total to show detailed prices.";
+
+    // The manual total counts only on a "Total only" quotation.
+    private static decimal? ManualTotalFor(string? priceDisplay, decimal? manualTotal) =>
+        NormalizePriceDisplay(priceDisplay) == QuotationPriceDisplays.TotalOnly && manualTotal is > 0 ? manualTotal : null;
+
+    // The usual calculation, unless a total was entered by hand.
+    private static decimal GrandTotalFor(decimal subtotal, decimal discount, decimal tax, decimal? manualTotal) =>
+        manualTotal ?? subtotal - discount + tax;
+
+    private static string? NormalizePriceDisplay(string? value) =>
+        QuotationPriceDisplays.All.FirstOrDefault(v => string.Equals(v, value, StringComparison.OrdinalIgnoreCase));
 
     public async Task<QuotationDto?> SetStatusAsync(int studioId, int quotationId, string status, CancellationToken ct = default)
     {
@@ -207,7 +258,7 @@ public class QuotationService(
             }
         }
 
-        foreach (var serviceId in items.Select(i => i.ServiceId).Distinct())
+        foreach (var serviceId in items.Where(i => (i.ServiceId ?? 0) > 0).Select(i => i.ServiceId!.Value).Distinct())
         {
             var service = await serviceCatalogRepository.GetByIdAsync(studioId, serviceId, ct);
             if (service is null)
@@ -236,11 +287,14 @@ public class QuotationService(
         GrandTotal = quotation.GrandTotal,
         Status = quotation.Status,
         TermsAndConditions = quotation.TermsAndConditions,
+        PriceDisplay = quotation.PriceDisplay,
+        ManualTotal = quotation.ManualTotal,
         Items = quotation.Items.Select(i => new QuotationItemDto
         {
             QuotationItemId = i.QuotationItemId,
             ServiceId = i.ServiceId,
-            ServiceName = i.Service.ServiceName,
+            ServiceName = i.Service?.ServiceName ?? i.CustomName ?? "Item",
+            IsCustom = i.ServiceId is null,
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice,
             Total = i.Total,

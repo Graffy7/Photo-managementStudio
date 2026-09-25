@@ -2,7 +2,9 @@ using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StudioManagement.Business.Quotations;
 using StudioManagement.Business.Settings;
+using StudioManagement.Business.Storage;
 using StudioManagement.Business.Tenant;
 using StudioManagement.Data.Common;
 
@@ -15,6 +17,9 @@ public class StudioSettingsController(
     IStudioSettingsService studioSettingsService,
     IValidator<BusinessSettingsDto> businessValidator,
     IValidator<QuotationSettingsDto> quotationValidator,
+    IValidator<PdfSettingsDto> pdfValidator,
+    IQuotationPdfService pdfService,
+    IFileStorage fileStorage,
     ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
@@ -62,5 +67,79 @@ public class StudioSettingsController(
         }
 
         return Ok(await studioSettingsService.UpdateQuotationSettingsAsync(StudioId, request, ct));
+    }
+
+    // ---- Quotation PDF look (this studio only) ------------------------------------------------
+
+    private const long MaxSignatureBytes = 1024 * 1024;
+    private static readonly string[] SignatureTypes = ["image/png", "image/jpeg", "image/webp"];
+
+    [HttpGet("pdf")]
+    public async Task<IActionResult> GetPdf(CancellationToken ct) =>
+        Ok(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct));
+
+    [FeatureRequired(FeatureCodes.Settings)]
+    [HttpPut("pdf")]
+    public async Task<IActionResult> UpdatePdf(PdfSettingsDto request, CancellationToken ct)
+    {
+        var validation = await pdfValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        return Ok(await studioSettingsService.UpdatePdfSettingsAsync(StudioId, request, ct));
+    }
+
+    // Renders a sample quotation with the settings as they are on screen (not saved). A preview
+    // changes nothing, so it's allowed even while the studio is read-only.
+    [AllowWhenReadOnly]
+    [HttpPost("pdf/preview")]
+    public async Task<IActionResult> PreviewPdf(PdfSettingsDto request, CancellationToken ct)
+    {
+        var validation = await pdfValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
+        // The signature shown is always this studio's own saved one.
+        request.SignatureUrl = (await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)).SignatureUrl;
+        var bytes = await pdfService.GeneratePreviewAsync(StudioId, request, ct);
+        return File(bytes, "application/pdf", "quotation-preview.pdf");
+    }
+
+    [FeatureRequired(FeatureCodes.Settings)]
+    [HttpPost("pdf/signature")]
+    public async Task<IActionResult> UploadSignature(IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0) return BadRequest(new { message = "No file was uploaded." });
+        if (file.Length > MaxSignatureBytes) return BadRequest(new { message = "The signature image must be 1MB or smaller." });
+        if (!SignatureTypes.Contains(file.ContentType)) return BadRequest(new { message = "The signature must be a PNG, JPG or WEBP image." });
+
+        var previous = (await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)).SignatureUrl;
+        await using var stream = file.OpenReadStream();
+        var url = await fileStorage.SaveAsync(stream, file.FileName, $"signatures/{StudioId}", ct);
+        await studioSettingsService.SetPdfSignatureUrlAsync(StudioId, url, ct);
+        if (!string.IsNullOrWhiteSpace(previous) && previous.StartsWith($"/uploads/signatures/{StudioId}/", StringComparison.Ordinal))
+        {
+            fileStorage.Delete(previous);
+        }
+        return Ok(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct));
+    }
+
+    [FeatureRequired(FeatureCodes.Settings)]
+    [HttpDelete("pdf/signature")]
+    public async Task<IActionResult> RemoveSignature(CancellationToken ct)
+    {
+        var previous = (await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)).SignatureUrl;
+        await studioSettingsService.SetPdfSignatureUrlAsync(StudioId, null, ct);
+        if (!string.IsNullOrWhiteSpace(previous) && previous.StartsWith($"/uploads/signatures/{StudioId}/", StringComparison.Ordinal))
+        {
+            fileStorage.Delete(previous);
+        }
+        return Ok(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct));
     }
 }

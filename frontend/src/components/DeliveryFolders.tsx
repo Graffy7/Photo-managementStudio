@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "./SubscriptionLock";
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -202,10 +203,12 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
             </View>
           </View>
         ) : (
-          <Pressable style={styles.addCard} onPress={() => { setAdding(true); setError(null); }} accessibilityRole="button">
-            <Ionicons name="add" size={16} color="#7fc0e6" />
-            <Text style={styles.addText}>Add Folder</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable style={styles.addCard} onPress={() => { setAdding(true); setError(null); }} accessibilityRole="button">
+              <Ionicons name="add" size={16} color="#7fc0e6" />
+              <Text style={styles.addText}>Add Folder</Text>
+            </Pressable>
+          </SubscriptionLock>
         )}
       </View>
 

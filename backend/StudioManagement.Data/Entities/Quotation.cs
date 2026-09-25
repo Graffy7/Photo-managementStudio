@@ -15,6 +15,13 @@ public class Quotation : ITenantEntity
     public decimal GrandTotal { get; set; }
     public string Status { get; set; } = null!;
     public string? TermsAndConditions { get; set; }
+
+    // QuotationPriceDisplays: how this quotation's PDF shows prices (this quotation only).
+    public string PriceDisplay { get; set; } = "Detailed";
+
+    // A total typed in by hand for a "Total only" quotation. When set it IS the quotation's grand
+    // total (approved amount, balances, reports); the item prices stay stored for reference.
+    public decimal? ManualTotal { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = null!;

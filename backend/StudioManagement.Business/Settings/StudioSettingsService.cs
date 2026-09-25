@@ -29,6 +29,10 @@ public class StudioSettingsService(IStudioSettingRepository studioSettingReposit
     private const string QuotationShowContact = "Quotation.ShowContact";
     private const string QuotationShowLogo = "Quotation.ShowLogo";
 
+    // PDF look ("Pdf.*" keys in the same per-studio settings table).
+    private const string PdfPrefix = "Pdf.";
+    public const string PdfSignatureUrlKey = "Pdf.SignatureUrl";
+
     public async Task<BusinessSettingsDto> GetBusinessSettingsAsync(int studioId, CancellationToken ct = default)
     {
         var values = await LoadAsync(studioId, ct);
@@ -116,6 +120,70 @@ public class StudioSettingsService(IStudioSettingRepository studioSettingReposit
         }, ct);
         return request;
     }
+
+    public async Task<PdfSettingsDto> GetPdfSettingsAsync(int studioId, CancellationToken ct = default)
+    {
+        var v = await LoadAsync(studioId, ct);
+        string S(string name, string fallback = "") => GetString(v, PdfPrefix + name, fallback);
+        bool B(string name, bool fallback) => GetBool(v, PdfPrefix + name, fallback);
+        return new PdfSettingsDto
+        {
+            Template = S(nameof(PdfSettingsDto.Template), "Classic"),
+            HeaderStyle = S(nameof(PdfSettingsDto.HeaderStyle), "Standard"),
+            PrimaryColor = S(nameof(PdfSettingsDto.PrimaryColor)),
+            AccentColor = S(nameof(PdfSettingsDto.AccentColor)),
+            LogoPlacement = S(nameof(PdfSettingsDto.LogoPlacement), "Watermark"),
+            DisplayName = S(nameof(PdfSettingsDto.DisplayName)),
+            Tagline = S(nameof(PdfSettingsDto.Tagline)),
+            ShowWebsite = B(nameof(PdfSettingsDto.ShowWebsite), false),
+            FooterText = S(nameof(PdfSettingsDto.FooterText)),
+            ShowPageNumbers = B(nameof(PdfSettingsDto.ShowPageNumbers), true),
+            UseDefaultTerms = B(nameof(PdfSettingsDto.UseDefaultTerms), false),
+            ShowSignature = B(nameof(PdfSettingsDto.ShowSignature), false),
+            SignatoryName = S(nameof(PdfSettingsDto.SignatoryName)),
+            SignatoryTitle = S(nameof(PdfSettingsDto.SignatoryTitle)),
+            SignatureUrl = GetString(v, PdfSignatureUrlKey, "") is { Length: > 0 } url ? url : null,
+            ShowPaymentDetails = B(nameof(PdfSettingsDto.ShowPaymentDetails), false),
+            BankName = S(nameof(PdfSettingsDto.BankName)),
+            AccountName = S(nameof(PdfSettingsDto.AccountName)),
+            AccountNumber = S(nameof(PdfSettingsDto.AccountNumber)),
+            Ifsc = S(nameof(PdfSettingsDto.Ifsc)),
+            UpiId = S(nameof(PdfSettingsDto.UpiId)),
+            PaymentNote = S(nameof(PdfSettingsDto.PaymentNote))
+        };
+    }
+
+    public async Task<PdfSettingsDto> UpdatePdfSettingsAsync(int studioId, PdfSettingsDto r, CancellationToken ct = default)
+    {
+        await studioSettingRepository.UpsertManyAsync(studioId, new Dictionary<string, string?>
+        {
+            [PdfPrefix + nameof(r.Template)] = r.Template,
+            [PdfPrefix + nameof(r.HeaderStyle)] = r.HeaderStyle,
+            [PdfPrefix + nameof(r.PrimaryColor)] = r.PrimaryColor ?? "",
+            [PdfPrefix + nameof(r.AccentColor)] = r.AccentColor ?? "",
+            [PdfPrefix + nameof(r.LogoPlacement)] = r.LogoPlacement,
+            [PdfPrefix + nameof(r.DisplayName)] = r.DisplayName?.Trim() ?? "",
+            [PdfPrefix + nameof(r.Tagline)] = r.Tagline?.Trim() ?? "",
+            [PdfPrefix + nameof(r.ShowWebsite)] = r.ShowWebsite.ToString(),
+            [PdfPrefix + nameof(r.FooterText)] = r.FooterText?.Trim() ?? "",
+            [PdfPrefix + nameof(r.ShowPageNumbers)] = r.ShowPageNumbers.ToString(),
+            [PdfPrefix + nameof(r.UseDefaultTerms)] = r.UseDefaultTerms.ToString(),
+            [PdfPrefix + nameof(r.ShowSignature)] = r.ShowSignature.ToString(),
+            [PdfPrefix + nameof(r.SignatoryName)] = r.SignatoryName?.Trim() ?? "",
+            [PdfPrefix + nameof(r.SignatoryTitle)] = r.SignatoryTitle?.Trim() ?? "",
+            [PdfPrefix + nameof(r.ShowPaymentDetails)] = r.ShowPaymentDetails.ToString(),
+            [PdfPrefix + nameof(r.BankName)] = r.BankName?.Trim() ?? "",
+            [PdfPrefix + nameof(r.AccountName)] = r.AccountName?.Trim() ?? "",
+            [PdfPrefix + nameof(r.AccountNumber)] = r.AccountNumber?.Trim() ?? "",
+            [PdfPrefix + nameof(r.Ifsc)] = r.Ifsc?.Trim().ToUpperInvariant() ?? "",
+            [PdfPrefix + nameof(r.UpiId)] = r.UpiId?.Trim() ?? "",
+            [PdfPrefix + nameof(r.PaymentNote)] = r.PaymentNote?.Trim() ?? ""
+        }, ct);
+        return await GetPdfSettingsAsync(studioId, ct);
+    }
+
+    public Task SetPdfSignatureUrlAsync(int studioId, string? url, CancellationToken ct = default) =>
+        studioSettingRepository.UpsertManyAsync(studioId, new Dictionary<string, string?> { [PdfSignatureUrlKey] = url ?? "" }, ct);
 
     public async Task<bool> IsNotificationEnabledAsync(int studioId, string notificationType, CancellationToken ct = default)
     {

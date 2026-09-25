@@ -85,13 +85,46 @@ public class QuotationsController(
         return quotation is null ? NotFound() : Ok(quotation);
     }
 
+    // Saves how this quotation's PDF shows prices (Detailed / TotalOnly).
+    [HttpPut("{id:int}/price-display")]
+    public async Task<IActionResult> SetPriceDisplay(int id, SetPriceDisplayRequestDto request, CancellationToken ct)
+    {
+        if (!QuotationPriceDisplays.All.Contains(request.PriceDisplay ?? ""))
+        {
+            return BadRequest(new { message = "Price display must be Detailed or TotalOnly." });
+        }
+        try
+        {
+            var quotation = await quotationService.SetPriceDisplayAsync(StudioId, id, request.PriceDisplay!, ct);
+            return quotation is null ? NotFound() : Ok(quotation);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == QuotationService.ManualTotalLocksDisplay)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // priceDisplay (optional) prints this copy that way without saving it; without it the
+    // quotation's own saved choice is used.
     [HttpGet("{id:int}/pdf")]
-    public async Task<IActionResult> DownloadPdf(int id, CancellationToken ct)
+    public async Task<IActionResult> DownloadPdf(int id, [FromQuery] string? priceDisplay, CancellationToken ct)
     {
         var quotation = await quotationService.GetByIdAsync(StudioId, id, ct);
         if (quotation is null)
         {
             return NotFound();
+        }
+        if (!string.IsNullOrEmpty(priceDisplay))
+        {
+            if (!QuotationPriceDisplays.All.Contains(priceDisplay))
+            {
+                return BadRequest(new { message = "Price display must be Detailed or TotalOnly." });
+            }
+            if (priceDisplay == QuotationPriceDisplays.Detailed && quotation.ManualTotal is not null)
+            {
+                return Conflict(new { message = QuotationService.ManualTotalLocksDisplay });
+            }
+            quotation.PriceDisplay = priceDisplay;
         }
 
         var pdfBytes = await quotationPdfService.GenerateAsync(StudioId, quotation, ct);
@@ -105,4 +138,9 @@ public class QuotationsController(
         QuotationWriteFailureReason.ServiceNotFound => "One of the selected services could not be found.",
         _ => "Invalid request."
     };
+}
+
+public class SetPriceDisplayRequestDto
+{
+    public string? PriceDisplay { get; set; }
 }

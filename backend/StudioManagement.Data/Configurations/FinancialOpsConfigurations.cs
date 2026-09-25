@@ -15,7 +15,9 @@ public class QuotationConfiguration : IEntityTypeConfiguration<Quotation>
         b.Property(x => x.Discount).HasColumnType("decimal(18,2)");
         b.Property(x => x.TaxAmount).HasColumnType("decimal(18,2)");
         b.Property(x => x.GrandTotal).HasColumnType("decimal(18,2)");
+        b.Property(x => x.ManualTotal).HasColumnType("decimal(18,2)");
         b.Property(x => x.Status).IsRequired().HasMaxLength(30);
+        b.Property(x => x.PriceDisplay).IsRequired().HasMaxLength(20).HasDefaultValue(QuotationPriceDisplays.Detailed);
         b.Property(x => x.QuotationDate).HasColumnType("datetime2");
         b.Property(x => x.ValidUntil).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
@@ -49,8 +51,9 @@ public class QuotationItemConfiguration : IEntityTypeConfiguration<QuotationItem
 
         b.HasOne(x => x.Quotation).WithMany(x => x.Items)
             .HasForeignKey(x => x.QuotationId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.CustomName).HasMaxLength(200);
         b.HasOne(x => x.Service).WithMany(x => x.QuotationItems)
-            .HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(x => x.ServiceId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

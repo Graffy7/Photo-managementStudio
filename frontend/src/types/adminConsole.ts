@@ -56,6 +56,8 @@ export interface AdminStudioRow {
   originalStorageBytes: number;
   lastActiveAt: string | null;
   createdAt: string;
+  accessMode: "Auto" | "Full" | "ReadOnly";
+  accessLevel: "Full" | "ReadOnly" | "None";
 }
 
 export interface AdminStudioDetail {
@@ -117,6 +119,32 @@ export interface AdminActivity {
   userType: string | null;
   ipAddress: string | null;
   device: string | null;
+}
+
+export interface LedgerRow {
+  date: string;
+  studioId: number;
+  studioName: string;
+  kind: "Online" | "Manual";
+  planName: string | null;
+  months: number;
+  amount: number;
+  status: "Paid" | "Failed" | "Pending";
+  method: string | null;
+  transactionId: string | null;
+  orderId: string | null;
+  failureReason: string | null;
+}
+
+export interface LedgerPage {
+  items: LedgerRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  paidTotal: number;
+  paidCount: number;
+  failedCount: number;
+  pendingCount: number;
 }
 
 export interface ManualPaymentRequest {

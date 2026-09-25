@@ -1,3 +1,4 @@
+using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Features;
@@ -8,6 +9,8 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/features")]
 [Authorize]
+// Usable without an active subscription (an expired studio still signs in and renews).
+[AllowWithoutSubscription]
 public class FeaturesController(IFeatureService featureService, ITenantContext tenantContext) : ControllerBase
 {
     [HttpGet("my-features")]

@@ -15,4 +15,12 @@ public class UnitOfWork(AppDbContext context) : IUnitOfWork
         await transaction.CommitAsync(ct);
         return result;
     }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken ct = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
+        var result = await operation(ct);
+        await transaction.CommitAsync(ct);
+        return result;
+    }
 }

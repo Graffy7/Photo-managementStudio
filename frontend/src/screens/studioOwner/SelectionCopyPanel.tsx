@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, Pressable, Modal, ActivityIndicator, StyleSheet } from "react-native";
 import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { extractErrorMessage } from "../../api/errorMessage";
@@ -67,22 +68,26 @@ export function SelectionCopyPanel({ gallery, onChanged }: { gallery: OwnerGalle
             <View style={styles.createdBadge}>
               <Text style={styles.createdText}>✓ Selection Created</Text>
             </View>
-            <Pressable
-              style={[gallery.selectionOutOfSync ? styles.primaryButton : styles.secondaryButton, busy && styles.disabled]}
-              disabled={busy}
-              onPress={() => setConfirming(true)}
-            >
-              <Text style={gallery.selectionOutOfSync ? styles.primaryText : styles.secondaryText}>Sync Selected Photos</Text>
-            </Pressable>
+            <SubscriptionLock>
+              <Pressable
+                style={[gallery.selectionOutOfSync ? styles.primaryButton : styles.secondaryButton, busy && styles.disabled]}
+                disabled={busy}
+                onPress={() => setConfirming(true)}
+              >
+                <Text style={gallery.selectionOutOfSync ? styles.primaryText : styles.secondaryText}>Sync Selected Photos</Text>
+              </Pressable>
+            </SubscriptionLock>
           </>
         ) : (
-          <Pressable
-            style={[styles.primaryButton, (!canCreate || busy) && styles.disabled]}
-            disabled={!canCreate || busy}
-            onPress={() => setConfirming(true)}
-          >
-            <Text style={styles.primaryText}>Create Selected Photos</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable
+              style={[styles.primaryButton, (!canCreate || busy) && styles.disabled]}
+              disabled={!canCreate || busy}
+              onPress={() => setConfirming(true)}
+            >
+              <Text style={styles.primaryText}>Create Selected Photos</Text>
+            </Pressable>
+          </SubscriptionLock>
         )}
       </View>
 

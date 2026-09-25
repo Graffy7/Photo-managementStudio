@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using StudioManagement.Business.Billing;
 using StudioManagement.Business.Features;
 using StudioManagement.Business.Settings;
 using StudioManagement.Data.Common;
@@ -27,6 +28,7 @@ public partial class WhatsAppReminderService(
     IWhatsAppReminderLogRepository logRepository,
     IStudioSettingsService settingsService,
     IFeatureService featureService,
+    IStudioAccessService accessService,
     IWhatsAppSender sender,
     WhatsAppOptions options,
     IUnitOfWork unitOfWork,
@@ -72,7 +74,8 @@ public partial class WhatsAppReminderService(
             var result = new WhatsAppRunResult();
 
             // Switched off for this studio by the platform admin, or by the studio itself.
-            if (!await featureService.IsEnabledAsync(studioId, FeatureCodes.WhatsApp, ct))
+            if (!await featureService.IsEnabledAsync(studioId, FeatureCodes.WhatsApp, ct) ||
+                !(await accessService.GetAsync(studioId, ct)).HasAccess)
             {
                 return result;
             }

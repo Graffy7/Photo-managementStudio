@@ -24,6 +24,8 @@ public class StudioProfileController(IStudioService studioService, IValidator<Up
 
     private int StudioId => tenantContext.CurrentStudioId!.Value;
 
+    // Name and logo still show on the "subscription expired" page.
+    [AllowWithoutSubscription]
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken ct)
     {

@@ -13,5 +13,8 @@ public interface IStudioSettingsService
 
     // Used by NotificationService to gate a single notification type without the caller needing
     // to know the underlying settings-key mapping. Types with no matching toggle default to enabled.
+    Task<PdfSettingsDto> GetPdfSettingsAsync(int studioId, CancellationToken ct = default);
+    Task<PdfSettingsDto> UpdatePdfSettingsAsync(int studioId, PdfSettingsDto request, CancellationToken ct = default);
+    Task SetPdfSignatureUrlAsync(int studioId, string? url, CancellationToken ct = default);
     Task<bool> IsNotificationEnabledAsync(int studioId, string notificationType, CancellationToken ct = default);
 }

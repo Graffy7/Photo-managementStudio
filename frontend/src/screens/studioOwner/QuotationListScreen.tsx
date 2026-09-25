@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,8 +12,7 @@ import { QUOTATION_STATUSES, type Quotation, type QuotationStatus } from "../../
 const SEARCH_FILTER_STATUSES: QuotationStatus[] = ["Draft", "Sent"];
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
-import { downloadAndSharePdf } from "../../utils/downloadPdf";
-import { extractErrorMessage } from "../../api/errorMessage";
+import { QuotationPdfButton } from "../../components/QuotationPdfButton";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 
 function formatDate(value: string): string {
@@ -42,7 +42,6 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
   });
   useRefetchOnFocus(refetch);
 
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [changingStatusId, setChangingStatusId] = useState<number | null>(null);
 
@@ -53,19 +52,6 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
       setChangingStatusId(null);
     },
   });
-
-  const handleDownload = async (item: Quotation) => {
-    setDownloadingId(item.quotationId);
-    setDownloadError(null);
-    try {
-      const bytes = await quotationsApi.downloadPdf(item.quotationId);
-      await downloadAndSharePdf(bytes, `${item.quotationNumber}.pdf`);
-    } catch (err) {
-      setDownloadError(extractErrorMessage(err, "Couldn't download the PDF."));
-    } finally {
-      setDownloadingId(null);
-    }
-  };
 
   const renderItem = ({ item }: { item: Quotation }) => (
     <View style={styles.row}>
@@ -99,13 +85,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
       </View>
       <View style={styles.rowEnd}>
         <Text style={styles.grandTotal}>{formatCurrency(item.grandTotal)}</Text>
-        <Pressable style={styles.pdfButton} onPress={() => handleDownload(item)} disabled={downloadingId === item.quotationId}>
-          {downloadingId === item.quotationId ? (
-            <ActivityIndicator color="#7fc0e6" size="small" />
-          ) : (
-            <Text style={styles.pdfButtonText}>PDF</Text>
-          )}
-        </Pressable>
+        <QuotationPdfButton quotation={item} onError={setDownloadError} />
         <Pressable onPress={() => onEdit(item)}>
           <Text style={styles.chevron}>›</Text>
         </Pressable>
@@ -124,9 +104,11 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>‹ Home</Text>
           </Pressable>
-          <Pressable style={styles.newButton} onPress={onCreate}>
-            <Text style={styles.newButtonText}>+ New Quotation</Text>
-          </Pressable>
+          <SubscriptionLock>
+            <Pressable style={styles.newButton} onPress={onCreate}>
+              <Text style={styles.newButtonText}>+ New Quotation</Text>
+            </Pressable>
+          </SubscriptionLock>
         </View>
       </View>
 
@@ -195,8 +177,6 @@ const styles = StyleSheet.create({
   statusChipTextCurrent: { color: "#ff9a4d" },
   rowEnd: { flexDirection: "row", alignItems: "center", gap: 10 },
   grandTotal: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
-  pdfButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10, minWidth: 44, alignItems: "center" },
-  pdfButtonText: { color: "#7fc0e6", fontSize: 11, fontWeight: "700" },
   chevron: { color: "#6f83a0", fontSize: 20 },
   separator: { height: 1, backgroundColor: "#1b2c42" },
   error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },

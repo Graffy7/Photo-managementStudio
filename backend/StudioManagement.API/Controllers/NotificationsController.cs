@@ -28,6 +28,7 @@ public class NotificationsController(
     public async Task<IActionResult> GetUnreadCount(CancellationToken ct) =>
         Ok(new { count = await notificationService.GetUnreadCountAsync(StudioId, ct) });
 
+    [AllowWhenReadOnly]
     [HttpPost("{id:int}/read")]
     public async Task<IActionResult> MarkAsRead(int id, CancellationToken ct)
     {
@@ -35,6 +36,7 @@ public class NotificationsController(
         return notification is null ? NotFound() : Ok(notification);
     }
 
+    [AllowWhenReadOnly]
     [HttpPost("mark-all-read")]
     public async Task<IActionResult> MarkAllAsRead(CancellationToken ct) =>
         Ok(new { updated = await notificationService.MarkAllAsReadAsync(StudioId, ct) });

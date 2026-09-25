@@ -23,6 +23,7 @@ const NAV_ITEMS: { route: string; label: string; icon: keyof typeof Ionicons.gly
   { route: "Reports", label: "Reports", icon: "bar-chart-outline" },
   { route: "DayBoard", label: "Day Board", icon: "today-outline" },
   { route: "Notifications", label: "Notifications", icon: "notifications-outline" },
+  { route: "Subscription", label: "Subscription", icon: "card-outline" },
 ];
 
 interface SidebarProps {

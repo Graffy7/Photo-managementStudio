@@ -4,6 +4,7 @@ import type {
   NotificationSettings,
   ReminderPreview,
   ReminderRunResult,
+  PdfSettings,
   QuotationSettings,
   StudioProfile,
   UpdateStudioProfileRequest,
@@ -54,4 +55,24 @@ export const settingsApi = {
 
   updateQuotationSettings: (request: QuotationSettings) =>
     apiClient.put<QuotationSettings>("/api/studio-settings/quotation", request).then((res) => res.data),
+
+  getPdfSettings: () => apiClient.get<PdfSettings>("/api/studio-settings/pdf").then((res) => res.data),
+
+  updatePdfSettings: (request: PdfSettings) =>
+    apiClient.put<PdfSettings>("/api/studio-settings/pdf", request).then((res) => res.data),
+
+  // A sample quotation rendered with the settings as they are on screen (nothing is saved).
+  previewPdf: (request: PdfSettings) =>
+    apiClient.post<ArrayBuffer>("/api/studio-settings/pdf/preview", request, { responseType: "arraybuffer" }).then((res) => res.data),
+
+  uploadSignature: (file: { uri: string; name: string; type: string } | Blob, fileName?: string) => {
+    const formData = new FormData();
+    if (file instanceof Blob) formData.append("file", file, fileName ?? "signature.png");
+    else formData.append("file", file as any);
+    return apiClient
+      .post<PdfSettings>("/api/studio-settings/pdf/signature", formData, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((res) => res.data);
+  },
+
+  removeSignature: () => apiClient.delete<PdfSettings>("/api/studio-settings/pdf/signature").then((res) => res.data),
 };

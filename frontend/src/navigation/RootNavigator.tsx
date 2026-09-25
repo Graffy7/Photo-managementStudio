@@ -28,6 +28,7 @@ import { NotificationsScreen } from "../screens/studioOwner/NotificationsScreen"
 import { ActivityScreen } from "../screens/studioOwner/ActivityScreen";
 import { SuperAdminHome } from "./SuperAdminHome";
 import { withModule } from "./ModuleGate";
+import { SubscriptionGate, SubscriptionScreen } from "../screens/studioOwner/subscription/SubscriptionScreens";
 
 const Stack = createNativeStackNavigator();
 
@@ -81,6 +82,9 @@ export function RootNavigator() {
           <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         </Stack.Navigator>
       ) : (
+        // An expired subscription replaces the whole app with the renewal page (the server refuses
+        // everything else anyway).
+        <SubscriptionGate>
         <WebAppShell navigationRef={navigationRef} activeRoute={activeRoute}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Home" component={HomeScreen} />
@@ -102,8 +106,10 @@ export function RootNavigator() {
             <Stack.Screen name="Lookups" component={GatedLookupsScreen} />
             <Stack.Screen name="LeadFormConfig" component={GatedLeadFormConfigScreen} />
             <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
           </Stack.Navigator>
         </WebAppShell>
+        </SubscriptionGate>
       )}
     </NavigationContainer>
   );

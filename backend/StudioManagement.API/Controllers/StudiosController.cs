@@ -1,3 +1,4 @@
+using StudioManagement.Business.Billing;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,8 @@ public class StudiosController(
     IStudioService studioService,
     IValidator<CreateStudioRequestDto> createValidator,
     IValidator<UpdateStudioRequestDto> updateValidator,
-    IValidator<ResetStudioPasswordRequestDto> resetPasswordValidator) : ControllerBase
+    IValidator<ResetStudioPasswordRequestDto> resetPasswordValidator,
+    IStudioAccessService accessService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] string? search, [FromQuery] bool? isActive, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
@@ -96,6 +98,7 @@ public class StudiosController(
     public async Task<IActionResult> Activate(int id, CancellationToken ct)
     {
         var studio = await studioService.SetActiveAsync(id, true, ct);
+        accessService.Invalidate(id);   // takes effect on the studio's next request
         return studio is null ? NotFound() : Ok(studio);
     }
 
@@ -103,6 +106,7 @@ public class StudiosController(
     public async Task<IActionResult> Deactivate(int id, CancellationToken ct)
     {
         var studio = await studioService.SetActiveAsync(id, false, ct);
+        accessService.Invalidate(id);   // takes effect on the studio's next request
         return studio is null ? NotFound() : Ok(studio);
     }
 
@@ -110,6 +114,7 @@ public class StudiosController(
     public async Task<IActionResult> Block(int id, CancellationToken ct)
     {
         var studio = await studioService.SetBlockedAsync(id, true, ct);
+        accessService.Invalidate(id);   // takes effect on the studio's next request
         return studio is null ? NotFound() : Ok(studio);
     }
 
@@ -117,6 +122,7 @@ public class StudiosController(
     public async Task<IActionResult> Unblock(int id, CancellationToken ct)
     {
         var studio = await studioService.SetBlockedAsync(id, false, ct);
+        accessService.Invalidate(id);   // takes effect on the studio's next request
         return studio is null ? NotFound() : Ok(studio);
     }
 }

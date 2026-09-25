@@ -12,6 +12,9 @@ using StudioManagement.API.Infrastructure;
 using StudioManagement.API.Middleware;
 using StudioManagement.Business.Admin;
 using StudioManagement.Business.Audit;
+using StudioManagement.Business.Billing;
+using StudioManagement.API.Filters;
+using StudioManagement.API.Controllers;
 using StudioManagement.Business.Auth;
 using StudioManagement.Business.Dashboard;
 using StudioManagement.Business.Email;
@@ -52,7 +55,8 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Services(services)
     .Enrich.FromLogContext());
 
-builder.Services.AddControllers();
+// Every studio request needs a running subscription or trial (see SubscriptionRequiredFilter).
+builder.Services.AddControllers(options => options.Filters.Add<SubscriptionRequiredFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -93,6 +97,14 @@ builder.Services.AddScoped<IStudioUsageRepository, StudioUsageRepository>();
 builder.Services.AddScoped<IAdminConsoleRepository, AdminConsoleRepository>();
 builder.Services.AddScoped<IStorageUsageService, StorageUsageService>();
 builder.Services.AddScoped<IAdminConsoleService, AdminConsoleService>();
+builder.Services.AddScoped<IStudioAccessService, StudioAccessService>();
+builder.Services.AddScoped<ISubscriptionLedger, SubscriptionLedger>();
+builder.Services.AddScoped<ISubscriptionOrderRepository, SubscriptionOrderRepository>();
+builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<IValidator<VerifyPaymentRequestDto>, VerifyPaymentRequestValidator>();
+builder.Services.AddScoped<IValidator<PdfSettingsDto>, PdfSettingsValidator>();
+builder.Services.AddSingleton(builder.Configuration.GetSection("Payments:Razorpay").Get<RazorpayOptions>() ?? new RazorpayOptions());
+builder.Services.AddHttpClient<IPaymentGateway, RazorpayGateway>(client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<IValidator<TrialDaysRequestDto>, TrialDaysRequestValidator>();
 builder.Services.AddScoped<IValidator<ManualPaymentRequestDto>, ManualPaymentRequestValidator>();
 builder.Services.AddSingleton<UsageTracker>();
@@ -265,6 +277,15 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 300,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    // Starting/confirming payments: plenty for a person, a wall for a script.
+    options.AddPolicy("checkout", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
