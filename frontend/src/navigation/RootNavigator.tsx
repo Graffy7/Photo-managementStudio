@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuthStore } from "../auth/authStore";
+import { RealtimeSync } from "../realtime/RealtimeSync";
 import { WebAppShell } from "./WebAppShell";
 import { LoginScreen } from "../screens/auth/LoginScreen";
 import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
@@ -84,6 +85,10 @@ export function RootNavigator() {
       ) : (
         // An expired subscription replaces the whole app with the renewal page (the server refuses
         // everything else anyway).
+        <>
+        {/* Live updates from the studio's other signed-in devices (SignalR) - outside the gate so an
+            expired studio hears the moment it's renewed. */}
+        <RealtimeSync />
         <SubscriptionGate>
         <WebAppShell navigationRef={navigationRef} activeRoute={activeRoute}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -110,6 +115,7 @@ export function RootNavigator() {
           </Stack.Navigator>
         </WebAppShell>
         </SubscriptionGate>
+        </>
       )}
     </NavigationContainer>
   );

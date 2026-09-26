@@ -1,3 +1,5 @@
+using StudioManagement.Business.Realtime;
+using StudioManagement.API.Realtime;
 using System.Text;
 using System.Threading.RateLimiting;
 using FluentValidation;
@@ -60,7 +62,14 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .Enrich.FromLogContext());
 
 // Every studio request needs a running subscription or trial (see SubscriptionRequiredFilter).
-builder.Services.AddControllers(options => options.Filters.Add<SubscriptionRequiredFilter>());
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<SubscriptionRequiredFilter>();
+    // Tells a studio's other signed-in devices what a successful write changed (SignalR).
+    options.Filters.Add<RealtimeChangeFilter>();
+});
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IStudioChangeNotifier, SignalRStudioChangeNotifier>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -338,6 +347,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+        // Browsers can't set an Authorization header on a WebSocket, so the live-updates hub (and
+        // only it) accepts the access token from the query string.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments(StudioHub.Path))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -441,6 +464,9 @@ app.Use(async (context, next) =>
 app.UseRateLimiter();
 
 app.MapControllers();
+// Live updates for a studio's devices. The connection closes when its access token expires, and
+// the app reconnects with a fresh one - a signed-out or expired session doesn't keep listening.
+app.MapHub<StudioHub>(StudioHub.Path, options => options.CloseOnAuthenticationExpiration = true);
 
 // Unauthenticated by design: an infra load balancer/orchestrator probe needs a reachable
 // endpoint, but it only ever gets a bare "Healthy"/"Unhealthy" string — no connection

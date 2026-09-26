@@ -16,10 +16,20 @@ export function setOnAuthFailure(callback: () => void): void {
   onAuthFailure = callback;
 }
 
+// This device's live-updates connection (src/realtime). Sent with every request so the server
+// doesn't echo a change back to the device that made it.
+let realtimeConnectionId: string | null = null;
+export function setRealtimeConnectionId(id: string | null): void {
+  realtimeConnectionId = id;
+}
+
 apiClient.interceptors.request.use(async (config) => {
   const token = await tokenStorage.getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (realtimeConnectionId) {
+    config.headers["X-Realtime-Connection"] = realtimeConnectionId;
   }
   return config;
 });
@@ -37,8 +47,36 @@ async function refreshAccessToken(): Promise<string | null> {
     await tokenStorage.setTokens(data.accessToken, data.refreshToken);
     return data.accessToken;
   } catch {
+    // Another tab of this browser may have refreshed with the same token a moment earlier (they
+    // share storage). If it saved new tokens, use them rather than signing out.
+    const latest = await tokenStorage.getRefreshToken();
+    if (latest && latest !== refreshToken) {
+      return tokenStorage.getAccessToken();
+    }
     return null;
   }
+}
+
+function secondsLeft(jwt: string): number {
+  try {
+    const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.exp - Date.now() / 1000;
+  } catch {
+    return 0;
+  }
+}
+
+// An access token good for at least another minute (refreshing first if needed) - for the
+// live-updates connection, which can't use the 401-and-retry path below.
+export async function getFreshAccessToken(): Promise<string | null> {
+  const token = await tokenStorage.getAccessToken();
+  if (token && secondsLeft(token) > 60) {
+    return token;
+  }
+  refreshInFlight ??= refreshAccessToken().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
 }
 
 // Called when the server says the studio's subscription has run out (HTTP 402), so the app can

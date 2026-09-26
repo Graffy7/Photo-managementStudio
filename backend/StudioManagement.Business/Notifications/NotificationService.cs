@@ -1,3 +1,5 @@
+using StudioManagement.Data.Common;
+using StudioManagement.Business.Realtime;
 using StudioManagement.Business.Common;
 using StudioManagement.Business.Settings;
 using StudioManagement.Data.Entities;
@@ -9,6 +11,7 @@ namespace StudioManagement.Business.Notifications;
 public class NotificationService(
     INotificationRepository notificationRepository,
     IStudioSettingsService studioSettingsService,
+    IStudioChangeNotifier changeNotifier,
     IUnitOfWork unitOfWork) : INotificationService
 {
     public async Task<PagedResult<NotificationDto>> SearchAsync(int studioId, bool? isRead, int page, int pageSize, CancellationToken ct = default)
@@ -52,6 +55,14 @@ public class NotificationService(
 
     public async Task NotifyAsync(int studioId, string title, string message, string notificationType, CancellationToken ct = default)
     {
+        // Things that happen outside the owner's own requests (a customer submitting a photo
+        // selection, reminders, payments confirmed by the gateway) still reach the studio's open
+        // devices live, even when this kind of notification is switched off.
+        if (notificationType == NotificationTypes.PhotoSelectionSubmitted)
+        {
+            await changeNotifier.PublishAsync(studioId, [ChangeAreas.Photos]);
+        }
+
         if (!await studioSettingsService.IsNotificationEnabledAsync(studioId, notificationType, ct))
         {
             return;
@@ -69,6 +80,7 @@ public class NotificationService(
 
         await notificationRepository.AddAsync(notification, ct);
         await unitOfWork.SaveChangesAsync(ct);
+        await changeNotifier.PublishAsync(studioId, [ChangeAreas.Notifications]);
     }
 
     private static NotificationDto MapToDto(Notification notification) => new()

@@ -1,3 +1,4 @@
+using StudioManagement.Business.Realtime;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Business.Audit;
@@ -56,6 +57,7 @@ public class BillingService(
     ISubscriptionLedger ledger,
     IStudioAccessService accessService,
     IAuditService auditService,
+    IStudioChangeNotifier changeNotifier,
     IUnitOfWork unitOfWork,
     ILogger<BillingService> logger) : IBillingService
 {
@@ -406,6 +408,10 @@ public class BillingService(
         if (applied)
         {
             await auditService.LogAsync($"Subscription paid online: {order.SubscriptionPlan.PlanName} ₹{order.Amount:0.##} ({via})", Module, order.StudioId, ct);
+
+            // Every open device of the studio (not only the one that paid - the payment may even be
+            // confirmed by the gateway's webhook) picks up the new expiry straight away.
+            await changeNotifier.PublishAsync(order.StudioId, [ChangeAreas.Subscription]);
         }
         return null;
     }
