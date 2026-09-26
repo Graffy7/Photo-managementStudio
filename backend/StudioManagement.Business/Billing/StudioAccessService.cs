@@ -44,7 +44,7 @@ public class StudioAccessService(
     private static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(30);
     private static string Key(int studioId) => $"studio-access:{studioId}";
 
-    private sealed record Snapshot(bool Exists, bool Active, bool Blocked, string Mode, bool HasSubscription, bool Cancelled, bool IsTrial, DateTime? EndDate);
+    private sealed record Snapshot(bool Exists, bool Active, bool Blocked, string Mode, bool HasSubscription, bool Cancelled, bool IsTrial, DateTime? EndDate, DateTime? StartDate = null);
 
     public async Task<StudioAccess> GetAsync(int studioId, CancellationToken ct = default)
     {
@@ -64,8 +64,11 @@ public class StudioAccessService(
         if (!s.Exists || !s.Active) return new StudioAccess { Level = AccessLevel.None, Reason = "Inactive" };
         if (s.Blocked) return new StudioAccess { Level = AccessLevel.None, Reason = "Suspended" };
 
-        var running = s.HasSubscription && !s.Cancelled && s.EndDate > now;
-        var subscriptionReason = !s.HasSubscription ? "NoSubscription" : running ? (s.IsTrial ? "Trial" : "Active") : "Expired";
+        var notStarted = s.HasSubscription && !s.Cancelled && s.StartDate > now;
+        var running = s.HasSubscription && !s.Cancelled && !notStarted && s.EndDate > now;
+        var subscriptionReason = !s.HasSubscription ? "NoSubscription"
+            : notStarted ? (s.IsTrial ? "TrialNotStarted" : "NotStarted")
+            : running ? (s.IsTrial ? "Trial" : "Active") : "Expired";
 
         return s.Mode switch
         {
@@ -87,6 +90,6 @@ public class StudioAccessService(
 
         var current = await subscriptionRepository.GetCurrentAsync(studioId, ct);
         return new Snapshot(true, studio.IsActive, studio.IsBlocked, studio.AccessMode, current is not null,
-            current?.Status == SubscriptionStatuses.Cancelled, current?.IsTrial ?? false, current?.EndDate);
+            current?.Status == SubscriptionStatuses.Cancelled, current?.IsTrial ?? false, current?.EndDate, current?.StartDate);
     }
 }

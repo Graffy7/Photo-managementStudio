@@ -131,7 +131,7 @@ export function PlanPicker({ status, highlightRenew }: { status: SubscriptionSta
 
 export function StatusSummary({ status }: { status: SubscriptionStatus }) {
   const tone = status.status === "Active" || status.status === "Complimentary" ? T.good : status.status === "Trial" ? T.accent : T.bad;
-  const label = ({ NoSubscription: "No subscription", ReadOnly: "Read-only (set by support)", Expired: "Expired — read-only" } as Record<string, string>)[status.status] ?? status.status;
+  const label = ({ NoSubscription: "No subscription", ReadOnly: "Read-only (set by support)", Expired: "Expired — read-only", TrialNotStarted: "Free trial - not started yet", NotStarted: "Not started yet" } as Record<string, string>)[status.status] ?? status.status;
   return (
     <View style={styles.fields}>
       <Field label="Status">

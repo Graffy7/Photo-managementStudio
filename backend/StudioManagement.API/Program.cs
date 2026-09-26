@@ -260,16 +260,41 @@ else
     builder.Services.AddScoped<IEmailSender, LoggingEmailSender>();
 }
 
-// Phone codes for Forgot password. "Log" writes texts to the log (development). A real provider:
-// implement ISmsSender, add a case here, keep its keys in configuration. Unset = phone option hidden.
+// Phone codes for Forgot password (Sms:Provider). "Log" writes texts to the log (development);
+// "Twilio" and "Msg91" send real SMS with keys from user-secrets / environment. Unset = the phone
+// option is hidden. A provider missing its keys stops the API at startup with a clear message
+// rather than failing quietly when someone needs a code.
 switch (builder.Configuration["Sms:Provider"])
 {
     case "Log":
     case null or "":
         builder.Services.AddScoped<ISmsSender, LoggingSmsSender>();
         break;
+    case "Twilio":
+    {
+        var twilio = builder.Configuration.GetSection("Sms:Twilio").Get<TwilioOptions>() ?? new TwilioOptions();
+        if (string.IsNullOrWhiteSpace(twilio.AccountSid) || string.IsNullOrWhiteSpace(twilio.AuthToken)
+            || (string.IsNullOrWhiteSpace(twilio.From) && string.IsNullOrWhiteSpace(twilio.MessagingServiceSid)))
+        {
+            throw new InvalidOperationException("Sms:Provider is Twilio but Sms:Twilio:AccountSid, AuthToken and From (or MessagingServiceSid) aren't all set.");
+        }
+        builder.Services.AddSingleton(twilio);
+        builder.Services.AddHttpClient<ISmsSender, TwilioSmsSender>(client => client.Timeout = TimeSpan.FromSeconds(15));
+        break;
+    }
+    case "Msg91":
+    {
+        var msg91 = builder.Configuration.GetSection("Sms:Msg91").Get<Msg91Options>() ?? new Msg91Options();
+        if (string.IsNullOrWhiteSpace(msg91.AuthKey) || string.IsNullOrWhiteSpace(msg91.TemplateId))
+        {
+            throw new InvalidOperationException("Sms:Provider is Msg91 but Sms:Msg91:AuthKey and TemplateId aren't both set.");
+        }
+        builder.Services.AddSingleton(msg91);
+        builder.Services.AddHttpClient<ISmsSender, Msg91SmsSender>(client => client.Timeout = TimeSpan.FromSeconds(15));
+        break;
+    }
     default:
-        throw new InvalidOperationException($"Unknown Sms:Provider '{builder.Configuration["Sms:Provider"]}'.");
+        throw new InvalidOperationException($"Unknown Sms:Provider '{builder.Configuration["Sms:Provider"]}' (use Log, Twilio or Msg91).");
 }
 
 builder.Services.AddScoped<IValidator<LoginRequestDto>, LoginRequestValidator>();

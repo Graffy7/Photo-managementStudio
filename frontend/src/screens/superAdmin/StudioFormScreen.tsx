@@ -5,6 +5,24 @@ import { studiosApi } from "../../api/studiosApi";
 import { subscriptionPlansApi } from "../../api/subscriptionPlansApi";
 import type { Studio } from "../../types/studio";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
+
+// yyyy-mm-dd on this device's calendar.
+function isoDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return isoDay(d);
+}
+// Both dates count: 1 Oct to 30 Oct is 30 days.
+function daysBetween(from: string, to: string): number {
+  return Math.round((new Date(`${to}T00:00:00`).getTime() - new Date(`${from}T00:00:00`).getTime()) / 86_400_000) + 1;
+}
+function niceDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 
 interface Props {
   studio?: Studio;
@@ -23,6 +41,18 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   const [subscriptionPlanId, setSubscriptionPlanId] = useState<number | null>(null);
+  // New studios start on a free trial by default; the owner can pay for a plan later.
+  const [access, setAccess] = useState<"trial" | "plan">("trial");
+  const today = isoDay(new Date());
+  const [trialFrom, setTrialFrom] = useState(today);
+  const [trialTo, setTrialTo] = useState(addDays(today, 29));
+  const trialDays = trialFrom && trialTo ? daysBetween(trialFrom, trialTo) : 0;
+  const trialError = access !== "trial" ? null
+    : !trialFrom || !trialTo ? "Choose both dates."
+    : trialFrom < today ? "The trial can't start in the past."
+    : trialDays < 1 ? "The end date must be on or after the start date."
+    : trialDays > 366 ? "A free trial can be at most a year."
+    : null;
   const [error, setError] = useState<string | null>(null);
 
   const { data: plans } = useQuery({
@@ -48,7 +78,9 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
             ownerFullName,
             ownerEmail,
             ownerPassword,
-            subscriptionPlanId: subscriptionPlanId!,
+            ...(access === "trial"
+              ? { freeTrial: true, trialStartDate: trialFrom, trialEndDate: trialTo }
+              : { subscriptionPlanId: subscriptionPlanId! }),
           }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["studios"] });
@@ -101,8 +133,55 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
             placeholderTextColor="#6f83a0"
           />
 
-          <Text style={styles.label}>Subscription plan</Text>
+          <Text style={styles.label}>Access</Text>
           <View style={styles.planRow}>
+            {([["trial", "Free trial", "Free to use between two dates"], ["plan", "Paid plan", "Start on a subscription plan"]] as const).map(([key, name, hint]) => (
+              <Pressable key={key} style={[styles.planChip, access === key && styles.planChipSelected]} onPress={() => setAccess(key)}
+                accessibilityRole="radio" accessibilityState={{ checked: access === key }}>
+                <Text style={[styles.planChipName, access === key && styles.planChipNameSelected]}>{name}</Text>
+                <Text style={[styles.planChipPrice, access === key && styles.planChipPriceSelected]}>{hint}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {access === "trial" && (
+            <View style={styles.trialBox}>
+              <View style={styles.trialDates}>
+                <View style={{ flex: 1, minWidth: 150 }}>
+                  <Text style={styles.label}>From</Text>
+                  <MiniDatePicker variant="form" value={trialFrom} onChange={(v) => {
+                    // Moving the start keeps the same length of trial.
+                    const len = trialDays > 0 ? trialDays : 30;
+                    setTrialFrom(v);
+                    setTrialTo(addDays(v, len - 1));
+                  }} placeholder="Start date" />
+                </View>
+                <View style={{ flex: 1, minWidth: 150 }}>
+                  <Text style={styles.label}>To</Text>
+                  <MiniDatePicker variant="form" value={trialTo} onChange={setTrialTo} placeholder="End date" />
+                </View>
+              </View>
+              <View style={styles.quickRow}>
+                {[30, 50, 60, 90].map((n) => (
+                  <Pressable key={n} style={[styles.quickChip, trialDays === n && styles.quickChipOn]} onPress={() => setTrialTo(addDays(trialFrom || today, n - 1))}>
+                    <Text style={[styles.quickText, trialDays === n && styles.quickTextOn]}>{n} days</Text>
+                  </Pressable>
+                ))}
+              </View>
+              {trialError ? (
+                <Text style={styles.trialError}>{trialError}</Text>
+              ) : (
+                <Text style={styles.trialSummary}>
+                  Free for <Text style={{ fontWeight: "800", color: "#e8edf3" }}>{trialDays} days</Text> — {niceDate(trialFrom)} to {niceDate(trialTo)} (both included).
+                  {trialFrom > today ? " Until the start date the studio can sign in and look around, but not add or change anything." : ""}
+                  {" "}After it ends the studio becomes read-only until they pay; nothing is deleted.
+                </Text>
+              )}
+            </View>
+          )}
+
+          {access === "plan" && <Text style={styles.label}>Subscription plan</Text>}
+          {access === "plan" && <View style={styles.planRow}>
             {(plans ?? []).map((plan) => {
               const selected = plan.subscriptionPlanId === subscriptionPlanId;
               return (
@@ -118,7 +197,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
                 </Pressable>
               );
             })}
-          </View>
+          </View>}
         </>
       )}
 
@@ -131,7 +210,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
         <Pressable
           style={styles.saveButton}
           onPress={() => mutation.mutate()}
-          disabled={mutation.isPending || (!isEdit && subscriptionPlanId === null)}
+          disabled={mutation.isPending || (!isEdit && (access === "plan" ? subscriptionPlanId === null : !!trialError))}
         >
           {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create studio"}</Text>}
         </Pressable>
@@ -141,6 +220,15 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
 }
 
 const styles = StyleSheet.create({
+  trialBox: { borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 14, marginTop: 10, backgroundColor: "rgba(19,37,64,0.5)" },
+  trialDates: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  quickChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
+  quickChipOn: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.12)" },
+  quickText: { color: "#a7b7cb", fontSize: 12.5, fontWeight: "600" },
+  quickTextOn: { color: "#ff9a4d" },
+  trialSummary: { color: "#a7b7cb", fontSize: 12.5, lineHeight: 18, marginTop: 12 },
+  trialError: { color: "#ff7a72", fontSize: 12.5, marginTop: 12 },
   screen: { flex: 1, backgroundColor: "#0d1826" },
   content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },

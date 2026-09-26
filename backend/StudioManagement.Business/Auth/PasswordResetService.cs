@@ -86,22 +86,32 @@ public class PasswordResetService(
         }, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        if (channel == PasswordResetChannels.Email)
+        try
         {
-            await emailSender.SendAsync(
-                user.Email,
-                $"{code} is your Studio OS password reset code",
-                $"Hi {user.FullName},\n\nYour Studio OS password reset code is: {code}\n\n" +
-                $"It expires in {CodeExpiryMinutes} minutes and can be used once. Never share this code with anyone - " +
-                "Studio OS staff will never ask for it.\n\nIf you didn't ask to reset your password, you can ignore this email; your password stays the same.",
-                ct);
+            if (channel == PasswordResetChannels.Email)
+            {
+                await emailSender.SendAsync(
+                    user.Email,
+                    $"{code} is your Studio OS password reset code",
+                    $"Hi {user.FullName},\n\nYour Studio OS password reset code is: {code}\n\n" +
+                    $"It expires in {CodeExpiryMinutes} minutes and can be used once. Never share this code with anyone - " +
+                    "Studio OS staff will never ask for it.\n\nIf you didn't ask to reset your password, you can ignore this email; your password stays the same.",
+                    ct);
+            }
+            else
+            {
+                await smsSender.SendVerificationCodeAsync(PhoneFor(user)!, code, CodeExpiryMinutes, ct);
+            }
         }
-        else
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            await smsSender.SendAsync(
-                PhoneFor(user)!,
-                $"{code} is your Studio OS password reset code. It expires in {CodeExpiryMinutes} minutes. Do not share it with anyone.",
-                ct);
+            // Gmail / the SMS provider refused or was unreachable. The reply stays the same (it must
+            // not reveal whether the account exists); the undelivered code is cancelled and the
+            // failure is logged for the platform admin.
+            logger.LogError(ex, "Password reset code for UserId {UserId} couldn't be sent by {Channel}.", user.UserId, channel);
+            var sent = await passwordResetTokenRepository.GetLatestCodeAsync(user.UserId, ct);
+            if (sent is not null) await passwordResetTokenRepository.TryMarkUsedAsync(sent.PasswordResetTokenId, ct);
+            return;
         }
 
         logger.LogInformation("Password reset code sent by {Channel} for UserId {UserId}.", channel, user.UserId);

@@ -40,7 +40,13 @@ public class CreateStudioRequestDto
     public string OwnerFullName { get; set; } = null!;
     public string OwnerEmail { get; set; } = null!;
     public string OwnerPassword { get; set; } = null!;
+    // Paid plan to start with (ignored for a free trial).
     public int SubscriptionPlanId { get; set; }
+
+    // Free use for a set period instead of a plan: From/To are calendar dates (both included).
+    public bool FreeTrial { get; set; }
+    public DateTime? TrialStartDate { get; set; }
+    public DateTime? TrialEndDate { get; set; }
 }
 
 public class UpdateStudioRequestDto

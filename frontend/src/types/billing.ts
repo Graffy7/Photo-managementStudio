@@ -27,7 +27,7 @@ export interface SubscriptionStatus {
   hasAccess: boolean;
   // Full: everything; ReadOnly: view only (subscription lapsed or set by the platform); None: suspended.
   accessLevel: "Full" | "ReadOnly" | "None";
-  status: "Active" | "Trial" | "Complimentary" | "Expired" | "NoSubscription" | "ReadOnly" | "Suspended" | "Inactive";
+  status: "Active" | "Trial" | "Complimentary" | "Expired" | "NoSubscription" | "ReadOnly" | "Suspended" | "Inactive" | "TrialNotStarted" | "NotStarted";
   isTrial: boolean;
   planName: string | null;
   startDate: string | null;

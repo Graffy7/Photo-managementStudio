@@ -35,7 +35,11 @@ export interface CreateStudioRequest {
   ownerFullName: string;
   ownerEmail: string;
   ownerPassword: string;
-  subscriptionPlanId: number;
+  subscriptionPlanId?: number;
+  // Free use between two dates (yyyy-mm-dd, both included) instead of a plan.
+  freeTrial?: boolean;
+  trialStartDate?: string;
+  trialEndDate?: string;
 }
 
 export interface UpdateStudioRequest {

@@ -30,7 +30,11 @@ public class StudioService(
             return StudioCreationResult.Fail(StudioCreationFailureReason.EmailAlreadyExists);
         }
 
-        var plan = await subscriptionPlanRepository.GetByIdAsync(request.SubscriptionPlanId, ct);
+        // A free trial is recorded against the cheapest plan (just as a label; it costs nothing).
+        var planId = request.FreeTrial
+            ? (await subscriptionPlanRepository.GetAllAsync(ct)).Where(p => p.IsActive).OrderBy(p => p.Price).Select(p => p.SubscriptionPlanId).FirstOrDefault()
+            : request.SubscriptionPlanId;
+        var plan = await subscriptionPlanRepository.GetByIdAsync(planId, ct);
         if (plan is null)
         {
             return StudioCreationResult.Fail(StudioCreationFailureReason.PlanNotFound);
@@ -73,13 +77,25 @@ public class StudioService(
             CreatedAt = now,
             UpdatedAt = now
         };
+        if (request.FreeTrial)
+        {
+            // From/To are the studio's calendar dates: starting today means right now; the whole of
+            // the To day is included (access ends at midnight after it).
+            var startDay = request.TrialStartDate!.Value.Date;
+            subscription.StartDate = startDay <= DateTime.Now.Date ? now : DateTime.SpecifyKind(startDay, DateTimeKind.Local).ToUniversalTime();
+            subscription.EndDate = DateTime.SpecifyKind(request.TrialEndDate!.Value.Date.AddDays(1), DateTimeKind.Local).ToUniversalTime();
+            subscription.Amount = 0;
+            subscription.IsTrial = true;
+        }
 
         await studioRepository.AddAsync(studio, ct);
         await userRepository.AddAsync(owner, ct);
         await studioSubscriptionRepository.AddAsync(subscription, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        await auditService.LogAsync("Studio created", Module, studio.StudioId, ct);
+        await auditService.LogAsync(request.FreeTrial
+            ? $"Studio created with a free trial {request.TrialStartDate:dd MMM yyyy} - {request.TrialEndDate:dd MMM yyyy}"
+            : "Studio created", Module, studio.StudioId, ct);
 
         studio.Subscriptions = [subscription];
         return StudioCreationResult.Success(MapToDto(studio));

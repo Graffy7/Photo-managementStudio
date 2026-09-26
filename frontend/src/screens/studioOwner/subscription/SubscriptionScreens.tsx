@@ -97,6 +97,17 @@ function SubscriptionExpired() {
 // Across the top of the app: read-only mode (red, always), or the last week before expiry (amber).
 export function ExpiryBanner({ onRenew }: { onRenew: () => void }) {
   const { data } = useMySubscription();
+  // Set up with a free trial that starts on a later date: nothing has "ended".
+  if (data?.status === "TrialNotStarted" || data?.status === "NotStarted") {
+    return (
+      <View style={styles.banner}>
+        <Ionicons name="calendar-outline" size={15} color={T.warn} />
+        <Text style={styles.bannerText}>
+          Your {data.isTrial ? "free trial" : "plan"} starts on {fmtDate(data.startDate)}. Until then you can look around, but adding or changing anything is locked.
+        </Text>
+      </View>
+    );
+  }
   if (data?.accessLevel === "ReadOnly") {
     const byAdmin = data.status === "ReadOnly";
     return (
