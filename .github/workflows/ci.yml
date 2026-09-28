@@ -42,16 +42,19 @@ jobs:
       CI_ADMIN_EMAIL: ci-admin@studioos.test
       CI_ADMIN_PASSWORD: "CiAdmin!Pass2026"
       API_BASE: http://localhost:5237/api
+      # Token signing key for this throwaway test run only (the real key lives on the server).
+      # Needed by every step that loads the API's configuration, migrations included.
+      Jwt__Key: "ci-only-signing-key-not-used-anywhere-else-0123456789abcdef"
       DOTNET_NOLOGO: "true"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -63,14 +66,12 @@ jobs:
         working-directory: backend
         run: |
           dotnet tool install --global dotnet-ef --version "10.*"
-          dotnet ef database update --no-build -c Release \
+          dotnet ef database update --no-build -c Release --verbose \
             --project StudioManagement.Data --startup-project StudioManagement.API
 
       - name: Start the API
         working-directory: backend/StudioManagement.API
         run: |
-          # A signing key made up for this run only.
-          export Jwt__Key="$(openssl rand -hex 48)"
           nohup dotnet bin/Release/net10.0/StudioManagement.API.dll > "$RUNNER_TEMP/api.log" 2>&1 &
           for i in $(seq 1 60); do
             if curl -fs http://localhost:5237/health > /dev/null; then echo "API is up"; exit 0; fi
@@ -94,9 +95,9 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
