@@ -502,6 +502,14 @@ app.MapHealthChecks("/health");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Opt-in (off by default): bring the database schema up to date on startup. Used by CI's
+    // throwaway database and by deployments; local development keeps running migrations by hand.
+    if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+    {
+        await db.Database.MigrateAsync();
+    }
+
     var dbName = db.Database.GetDbConnection().Database;
 
     // Dashboard summaries run a sequence of separate count/sum queries and need them all to see

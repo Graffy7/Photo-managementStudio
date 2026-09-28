@@ -45,6 +45,8 @@ jobs:
       # Token signing key for this throwaway test run only (the real key lives on the server).
       # Needed by every step that loads the API's configuration, migrations included.
       Jwt__Key: "ci-only-signing-key-not-used-anywhere-else-0123456789abcdef"
+      # Empty database: the API applies every migration when it starts.
+      Database__MigrateOnStartup: "true"
       DOTNET_NOLOGO: "true"
 
     steps:
@@ -62,14 +64,7 @@ jobs:
         working-directory: backend
         run: dotnet build StudioManagement.slnx -c Release
 
-      - name: Create the database (migrations)
-        working-directory: backend
-        run: |
-          dotnet tool install --global dotnet-ef --version "10.*"
-          dotnet ef database update --no-build -c Release --verbose \
-            --project StudioManagement.Data --startup-project StudioManagement.API
-
-      - name: Start the API
+      - name: Start the API (it creates the database from the migrations)
         working-directory: backend/StudioManagement.API
         run: |
           nohup dotnet bin/Release/net10.0/StudioManagement.API.dll > "$RUNNER_TEMP/api.log" 2>&1 &
