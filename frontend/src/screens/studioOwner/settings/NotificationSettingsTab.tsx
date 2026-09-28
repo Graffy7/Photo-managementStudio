@@ -66,13 +66,14 @@ export function NotificationSettingsTab() {
   return (
     <>
     <View style={styles.list}>
-      <ToggleRow label="Event reminder" value={settings.eventReminder} onValueChange={(v) => update({ eventReminder: v })} />
-      <ToggleRow label="Customer payment reminder" value={settings.paymentReminder} onValueChange={(v) => update({ paymentReminder: v })} />
-      <ToggleRow label="Worker / event notification" value={settings.workerEventNotification} onValueChange={(v) => update({ workerEventNotification: v })} />
+      <ToggleRow label="Event reminder" caption="In-app reminder the day before, and the WhatsApp “Function Details” message to you."
+        value={settings.eventReminder} onValueChange={(v) => update({ eventReminder: v })} />
+      <ToggleRow label="Payment details" caption="The WhatsApp “Payment Details” message — sent to you only, never to workers."
+        value={settings.paymentReminder} onValueChange={(v) => update({ paymentReminder: v })} />
       <ToggleRow label="Quotation notification" value={settings.quotationNotification} onValueChange={(v) => update({ quotationNotification: v })} />
       <ToggleRow
         label="WhatsApp notification"
-        caption="Turns on the day-before WhatsApp reminders. Messages are only delivered once a WhatsApp provider is set up on the server."
+        caption="Sends you two separate WhatsApp messages 24 hours before each function: Function Details and Payment Details. Delivered once WhatsApp Business is connected on the server."
         value={settings.whatsAppNotification}
         onValueChange={(v) => update({ whatsAppNotification: v })}
       />

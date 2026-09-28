@@ -5,6 +5,7 @@ import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { SelectedPhotosModal } from "./SelectedPhotosModal";
 import type { CopyJob, OwnerGallery } from "../../types/photoSelection";
+import { canCopyOnThisComputer, copySelectionOnThisComputer, isDeviceSource } from "../../utils/devicePhotos";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "—";
@@ -46,6 +47,30 @@ export function SelectionCopyPanel({ gallery, onChanged }: { gallery: OwnerGalle
   };
 
   if (c.total === 0) return null;
+
+  // Photos added from the owner's own computer: the server has no originals, so this browser copies them.
+  const fromComputer = gallery.importedSources.length > 0 && gallery.importedSources.every((s) => isDeviceSource(s.sourceFolder));
+  if (fromComputer) {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Selected photos</Text>
+        <Text style={styles.hint}>
+          See exactly what the customer chose, and put those original photos into their own folder on this computer — ready to edit or print.
+        </Text>
+        <View style={styles.actionRow}>
+          <Pressable
+            style={[styles.secondaryButton, c.selected === 0 && styles.disabled]}
+            disabled={c.selected === 0}
+            onPress={() => setViewing(true)}
+          >
+            <Text style={styles.secondaryText}>View Selected Photos</Text>
+          </Pressable>
+          <ComputerCopy gallery={gallery} />
+        </View>
+        <SelectedPhotosModal gallery={gallery} visible={viewing} onClose={() => setViewing(false)} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.section}>
@@ -130,6 +155,64 @@ export function SelectionCopyPanel({ gallery, onChanged }: { gallery: OwnerGalle
       />
       <SelectedPhotosModal gallery={gallery} visible={viewing} onClose={() => setViewing(false)} />
     </View>
+  );
+}
+
+// ---- Copying on this computer ----------------------------------------------------------------
+
+function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [result, setResult] = useState<{ text: string; tone: "ok" | "warn" | "error" } | null>(null);
+  const c = gallery.counts;
+  const submitted = gallery.submittedAt !== null;
+  const supported = canCopyOnThisComputer();
+
+  const copy = async () => {
+    setResult(null);
+    setBusy(true);
+    try {
+      const files = await photoSelectionApi.deviceSelection(gallery.galleryId);
+      const r = await copySelectionOnThisComputer(files, (done, total) => setProgress(`Copying ${done} of ${total}…`));
+      const missing = r.missing.length > 0
+        ? ` ${r.missing.length} couldn't be found (e.g. ${r.missing.slice(0, 3).join(", ")}) — choose the same folder the photos were added from.`
+        : "";
+      setResult({ text: `${r.copied} photo${r.copied === 1 ? "" : "s"} ready in ${r.folder} (Normal ${c.normal} · Big Size ${c.big}).${missing}`, tone: r.missing.length ? "warn" : "ok" });
+    } catch (err) {
+      if ((err as { name?: string }).name === "AbortError") return; // the owner closed the folder window
+      setResult({ text: extractErrorMessage(err, "Couldn't copy the photos. Please try again."), tone: "error" });
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  };
+
+  return (
+    <>
+      <SubscriptionLock>
+        <Pressable
+          style={[styles.primaryButton, (!supported || !submitted || c.selected === 0 || busy) && styles.disabled]}
+          disabled={!supported || !submitted || c.selected === 0 || busy}
+          onPress={copy}
+        >
+          <Text style={styles.primaryText}>{busy ? progress ?? "Choose the photo folder…" : "Copy Selected Photos to this computer"}</Text>
+        </Pressable>
+      </SubscriptionLock>
+      <View style={{ width: "100%", gap: 6 }}>
+        {!supported && (
+          <Text style={styles.warnText}>Copying needs Google Chrome or Microsoft Edge on a computer. You can still export the list below.</Text>
+        )}
+        {supported && !submitted && <Text style={styles.hint}>Available once the customer submits their selection.</Text>}
+        {supported && submitted && !result && (
+          <Text style={styles.hint}>
+            You'll be asked to choose the folder the photos were added from; a “Customer Selection” folder with Normal and Big Size is made inside it. Originals are not moved.
+          </Text>
+        )}
+        {!!result && (
+          <Text style={result.tone === "ok" ? styles.okText : result.tone === "warn" ? styles.warnText : styles.errorText}>{result.text}</Text>
+        )}
+      </View>
+    </>
   );
 }
 
@@ -262,6 +345,7 @@ const styles = StyleSheet.create({
   infoMuted: { color: "#6f83a0", fontSize: 12 },
   warnText: { color: "#f2bd5c", fontSize: 13, lineHeight: 19 },
   errorText: { color: "#ff7a72", fontSize: 13 },
+  okText: { color: "#4cc493", fontSize: 13, lineHeight: 19 },
 
   overlay: { flex: 1, backgroundColor: "rgba(5,10,18,0.72)", alignItems: "center", justifyContent: "center", padding: 20 },
   dialog: { backgroundColor: "#132540", borderRadius: 14, padding: 22, width: "100%", maxWidth: 460, borderWidth: 1, borderColor: "#23405c", gap: 10 },

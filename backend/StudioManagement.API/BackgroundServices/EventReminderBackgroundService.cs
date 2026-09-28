@@ -3,13 +3,14 @@ using StudioManagement.Business.WhatsApp;
 
 namespace StudioManagement.API.BackgroundServices;
 
-// Sweeps every active studio hourly for events happening the next day: creates the in-app reminder
-// notification for each one not already reminded, then sends the two separate WhatsApp reminders
-// (event/worker, and owner-only payment) once the configured reminder time has passed. Studio owners
-// can also force an immediate check via POST /api/notifications/check-event-reminders.
+// Sweeps every active studio every 15 minutes: creates the in-app reminder notification for events
+// happening the next day (once each), and sends the studio owner the two separate WhatsApp messages
+// (Function Details, Payment Details) for each function 24 hours before it starts. Studio owners can
+// also force an immediate check via POST /api/notifications/check-event-reminders.
 public class EventReminderBackgroundService(IServiceScopeFactory scopeFactory, ILogger<EventReminderBackgroundService> logger) : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
+    // Short enough that the "24 hours before" messages go out within 15 minutes of that mark.
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -32,7 +33,7 @@ public class EventReminderBackgroundService(IServiceScopeFactory scopeFactory, I
                 logger.LogError(ex, "Event reminder sweep failed");
             }
 
-            // WhatsApp: the two separate day-before messages. Independent of the in-app notification above
+            // WhatsApp: the two separate owner messages, 24 hours before each function. Independent of the in-app notification above
             // (a problem in one never blocks the other), and it runs on the server's local clock because
             // "tomorrow" and the reminder time are the studio's own day, not UTC.
             try

@@ -27,7 +27,35 @@ public class ImageSharpPhotoPreviewGenerator(IFileStorage fileStorage, PhotoGall
         }
 
         await using var _ = source;
+        return await GenerateFromStreamAsync(source, rawOrientation, galleryId, ct);
+    }
 
+    public async Task<GeneratedPreview> GenerateFromUploadAsync(Stream image, int galleryId, CancellationToken ct = default)
+    {
+        // Seekable copy with a hard cap: an upload is a browser-made preview, never a full original.
+        using var buffer = new MemoryStream();
+        await image.CopyToAsync(buffer, ct);
+        if (buffer.Length is 0 or > 15 * 1024 * 1024)
+        {
+            throw new InvalidDataException("The image is empty or too large.");
+        }
+        buffer.Position = 0;
+        var format = await Image.DetectFormatAsync(buffer, ct);
+        if (format is not SixLabors.ImageSharp.Formats.Jpeg.JpegFormat and not WebpFormat and not SixLabors.ImageSharp.Formats.Png.PngFormat)
+        {
+            throw new InvalidDataException("Only JPEG, WebP or PNG previews are accepted.");
+        }
+        var info = await Image.IdentifyAsync(buffer, ct);
+        if ((long)info.Width * info.Height > 60_000_000)
+        {
+            throw new InvalidDataException("The image is too large in size.");
+        }
+        buffer.Position = 0;
+        return await GenerateFromStreamAsync(buffer, 1, galleryId, ct);
+    }
+
+    private async Task<GeneratedPreview> GenerateFromStreamAsync(Stream source, ushort rawOrientation, int galleryId, CancellationToken ct)
+    {
         // TargetSize lets the JPEG decoder skip work by decoding at a reduced scale — the difference
         // between seconds and a fraction of a second per 24MP original. But it resizes TO the target,
         // upscaling anything smaller (a 280px image would be stored as a blurry 1280px one), so it is

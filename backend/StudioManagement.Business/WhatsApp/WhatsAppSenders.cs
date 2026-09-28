@@ -7,12 +7,17 @@ namespace StudioManagement.Business.WhatsApp;
 
 public record WhatsAppSendResult(bool Success, string? Error = null, bool Simulated = false);
 
+// An approved Meta message template and the values for its {{1}}, {{2}}... placeholders, in order.
+public record WhatsAppTemplate(string Name, IReadOnlyList<string> Parameters);
+
 // The one place that talks to WhatsApp. Everything above it decides WHO gets WHAT; this only delivers
 // a piece of text to a phone number.
 public interface IWhatsAppSender
 {
     string ProviderName { get; }
-    Task<WhatsAppSendResult> SendAsync(string phoneNumber, string text, CancellationToken ct = default);
+    // text is always given (the log, previews, and plain-text sending use it). When a template is
+    // given and the provider supports templates, the template is sent instead of the text.
+    Task<WhatsAppSendResult> SendAsync(string phoneNumber, string text, CancellationToken ct = default, WhatsAppTemplate? template = null);
 }
 
 // Default provider: writes the message to the log instead of sending it.
@@ -20,7 +25,7 @@ public class LoggingWhatsAppSender(ILogger<LoggingWhatsAppSender> logger) : IWha
 {
     public string ProviderName => WhatsAppOptions.LogProvider;
 
-    public Task<WhatsAppSendResult> SendAsync(string phoneNumber, string text, CancellationToken ct = default)
+    public Task<WhatsAppSendResult> SendAsync(string phoneNumber, string text, CancellationToken ct = default, WhatsAppTemplate? template = null)
     {
         logger.LogInformation(
             "WhatsApp message NOT sent (no provider configured) to {Phone}: {Length} characters",
@@ -39,21 +44,42 @@ public class CloudApiWhatsAppSender(WhatsAppOptions options, ILogger<CloudApiWha
 
     public string ProviderName => WhatsAppOptions.CloudApiProvider;
 
-    public async Task<WhatsAppSendResult> SendAsync(string phoneNumber, string text, CancellationToken ct = default)
+    public async Task<WhatsAppSendResult> SendAsync(string phoneNumber, string text, CancellationToken ct = default, WhatsAppTemplate? template = null)
     {
         if (string.IsNullOrWhiteSpace(options.PhoneNumberId) || string.IsNullOrWhiteSpace(options.AccessToken))
         {
             return new WhatsAppSendResult(false, "WhatsApp is not set up (missing PhoneNumberId or AccessToken).");
         }
 
-        var url = $"https://graph.facebook.com/{options.ApiVersion}/{options.PhoneNumberId}/messages";
-        var body = JsonSerializer.Serialize(new
-        {
-            messaging_product = "whatsapp",
-            to = phoneNumber,
-            type = "text",
-            text = new { preview_url = true, body = text }
-        });
+        var url = $"{options.ApiBaseUrl.TrimEnd('/')}/{options.ApiVersion}/{options.PhoneNumberId}/messages";
+        var body = template is null
+            ? JsonSerializer.Serialize(new
+            {
+                messaging_product = "whatsapp",
+                to = phoneNumber,
+                type = "text",
+                text = new { preview_url = true, body = text }
+            })
+            : JsonSerializer.Serialize(new
+            {
+                messaging_product = "whatsapp",
+                to = phoneNumber,
+                type = "template",
+                template = new
+                {
+                    name = template.Name,
+                    language = new { code = options.TemplateLanguage },
+                    components = new[]
+                    {
+                        new
+                        {
+                            type = "body",
+                            // Meta refuses parameter values with line breaks, tabs or runs of spaces.
+                            parameters = template.Parameters.Select(p => new { type = "text", text = CleanParameter(p) }).ToArray()
+                        }
+                    }
+                }
+            });
 
         try
         {
@@ -83,6 +109,13 @@ public class CloudApiWhatsAppSender(WhatsAppOptions options, ILogger<CloudApiWha
             logger.LogWarning(ex, "WhatsApp send to {Phone} failed", WhatsAppPhone.Mask(phoneNumber));
             return new WhatsAppSendResult(false, "Couldn't reach WhatsApp. Check the internet connection.");
         }
+    }
+
+    private static string CleanParameter(string value)
+    {
+        var flat = string.Join(", ", value.Split(['\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        while (flat.Contains("    ")) flat = flat.Replace("    ", " ");
+        return flat.Length == 0 ? "-" : flat;
     }
 
     private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken ct)

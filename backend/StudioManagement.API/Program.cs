@@ -207,6 +207,7 @@ builder.Services.AddSingleton<IPhotoPreviewGenerator, ImageSharpPhotoPreviewGene
 builder.Services.AddSingleton<IPhotoImportQueue, PhotoImportQueue>();
 builder.Services.AddSingleton<IPhotoCopyQueue, PhotoCopyQueue>();
 builder.Services.AddScoped<IPhotoImportService, PhotoImportService>();
+builder.Services.AddScoped<IDevicePhotoService, DevicePhotoService>();
 builder.Services.AddScoped<IStudioPhotoRootService, StudioPhotoRootService>();
 builder.Services.AddScoped<IPhotoSelectionCopyService, PhotoSelectionCopyService>();
 builder.Services.AddScoped<IPhotoGalleryService, PhotoGalleryService>();

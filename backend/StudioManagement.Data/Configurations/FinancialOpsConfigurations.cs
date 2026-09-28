@@ -66,6 +66,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         b.Property(x => x.PaymentMethod).IsRequired().HasMaxLength(30);
         b.Property(x => x.ReferenceNumber).HasMaxLength(100);
         b.Property(x => x.PaymentStatus).IsRequired().HasMaxLength(30);
+        b.Property(x => x.IsAdvance).HasDefaultValue(false);
         b.Property(x => x.PaymentDate).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");

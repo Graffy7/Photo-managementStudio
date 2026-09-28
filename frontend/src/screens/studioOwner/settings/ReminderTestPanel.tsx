@@ -8,9 +8,8 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
-// "Test Event Reminder": shows tomorrow's two WhatsApp messages side by side, exactly as they would be
-// sent, so the owner can see for themselves that the worker message carries no money and that the
-// payment message goes to them alone.
+// "Test Event Reminder": shows the two WhatsApp messages for the upcoming functions, exactly as they
+// would be sent, so the owner can see that Function Details carries no money and that both go to them alone.
 export function ReminderTestPanel() {
   const [preview, setPreview] = useState<ReminderPreview | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -40,17 +39,17 @@ export function ReminderTestPanel() {
       const result = await settingsApi.sendWhatsAppRemindersNow();
       setRunResult(
         result.sent + result.failed + result.skipped === 0
-          ? "Nothing to send: either there are no events tomorrow, or the reminders have already gone out."
+          ? "Nothing to send: no function starts in the next two days, or its messages have already gone out."
           : `Sent ${result.sent}, failed ${result.failed}, skipped ${result.skipped}.`
       );
     });
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.title}>Tomorrow's WhatsApp reminder</Text>
+      <Text style={styles.title}>WhatsApp messages 24 hours before each function</Text>
       <Text style={styles.caption}>
-        The evening before an event, two separate messages go out: the event details to you and your assigned workers,
-        and the payment summary to you only. Workers never receive payment information.
+        Two separate messages go to your WhatsApp number: Function Details (client, date, time, place, photographers) and
+        Payment Details (total, advance, paid, balance). Workers don't receive anything.
       </Text>
 
       <View style={styles.buttonRow}>
@@ -61,7 +60,7 @@ export function ReminderTestPanel() {
           <Text style={styles.secondaryText}>{loading === "send" ? "Sending…" : "Send test to me"}</Text>
         </Pressable>
         <Pressable style={[styles.secondary, loading !== null && styles.disabled]} disabled={loading !== null} onPress={sendNow}>
-          <Text style={styles.secondaryText}>{loading === "now" ? "Sending…" : "Send tomorrow's reminders now"}</Text>
+          <Text style={styles.secondaryText}>{loading === "now" ? "Sending…" : "Send upcoming now"}</Text>
         </Pressable>
       </View>
 
@@ -71,7 +70,7 @@ export function ReminderTestPanel() {
       {preview && (
         <View style={styles.previewWrap}>
           <Text style={styles.previewHeading}>
-            {formatDate(preview.date)} · {preview.eventCount} event{preview.eventCount === 1 ? "" : "s"}
+            From {formatDate(preview.date)} · {preview.eventCount} function{preview.eventCount === 1 ? "" : "s"}
           </Text>
 
           {preview.warnings.map((w) => (
@@ -84,7 +83,7 @@ export function ReminderTestPanel() {
           <View style={styles.checks}>
             <Check ok={preview.checks.eventMessageHasNoPaymentInfo} text="Message 1 contains no money information" />
             <Check ok={preview.checks.paymentMessageIsOwnerOnly} text="Message 2 goes to the owner only" />
-            <Check ok={preview.checks.workersReceivingPaymentMessage === 0} text="No worker receives the payment message" />
+            <Check ok={preview.checks.workersReceivingPaymentMessage === 0} text="Workers receive nothing" />
           </View>
 
           {preview.eventCount > 0 && (

@@ -4,7 +4,7 @@ using System.Text;
 namespace StudioManagement.Business.WhatsApp;
 
 // ============================================================================================
-// MESSAGE 1 — event / worker. Operational information ONLY. This type has no field for an amount,
+// MESSAGE 1 — Function Details (to the studio owner). Operational information ONLY. This type has no field for an amount,
 // a payment or a balance, so nothing financial can be put into a message built from it.
 // ============================================================================================
 
@@ -28,7 +28,7 @@ public sealed class EventReminderMessage
 }
 
 // ============================================================================================
-// MESSAGE 2 — payment. OWNER ONLY. Never built for, or sent to, a worker.
+// MESSAGE 2 — Payment Details. OWNER ONLY. Never built for, or sent to, a worker.
 // ============================================================================================
 
 public sealed class PaymentReminderMessage
@@ -40,6 +40,8 @@ public sealed class PaymentReminderMessage
 
     // Null when no total has been set for the event.
     public decimal? TotalAmount { get; init; }
+    // Advance taken at booking (part of PaidAmount), and everything paid so far.
+    public decimal AdvancePaid { get; init; }
     public decimal PaidAmount { get; init; }
 
     public decimal? Balance => TotalAmount is null ? null : Math.Max(0, TotalAmount.Value - PaidAmount);
@@ -53,7 +55,7 @@ public static class ReminderTextFormat
 
     public const string TestBanner = "🧪 TEST MESSAGE — not a real reminder";
 
-    public static string Date(DateTime date) => date.ToString("dddd, d MMMM yyyy", CultureInfo.InvariantCulture);
+    public static string Date(DateTime date) => date.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
 
     public static string Time(TimeSpan time) => DateTime.Today.Add(time).ToString("h:mm tt", CultureInfo.InvariantCulture);
 
@@ -82,167 +84,82 @@ public static class ReminderTextFormat
     public static string Divider => Rule;
 }
 
-public static class EventReminderMessageBuilder
+// "Priya Wedding": the client's name and the kind of function, as the studio says it.
+public static class FunctionName
 {
-    public static string Build(IReadOnlyList<EventReminderMessage> events, bool isTest = false)
+    public static string Of(string customerName, string eventName) =>
+        string.IsNullOrWhiteSpace(eventName) || eventName == "Event" ? customerName.Trim() : $"{customerName.Trim()} {eventName.Trim()}";
+}
+
+// MESSAGE 1 - Function Details, to the studio owner. Built only from EventReminderMessage, which has
+// no money fields. Template "function_details" placeholders, in order: {{1}} function, {{2}} client,
+// {{3}} client number, {{4}} date, {{5}} time, {{6}} location, {{7}} photographers.
+public static class FunctionDetailsMessage
+{
+    public static IReadOnlyList<string> Parameters(EventReminderMessage e) =>
+    [
+        FunctionName.Of(e.CustomerName, e.EventName),
+        e.CustomerName,
+        string.IsNullOrWhiteSpace(e.CustomerPhone) ? "Not given" : e.CustomerPhone.Trim(),
+        ReminderTextFormat.Date(e.EventDate),
+        ReminderTextFormat.TimeRange(e.StartTime, e.EndTime),
+        Location(e),
+        e.Team.Count == 0 ? "Not assigned yet" : string.Join(", ", e.Team.Select(t => t.Name))
+    ];
+
+    public static string Build(EventReminderMessage e, bool isTest = false)
     {
+        var p = Parameters(e);
         var sb = new StringBuilder();
-        if (isTest)
-        {
-            sb.AppendLine(ReminderTextFormat.TestBanner).AppendLine();
-        }
-
-        if (events.Count == 1)
-        {
-            AppendSingle(sb, events[0]);
-        }
-        else
-        {
-            AppendMany(sb, events);
-        }
-
-        return sb.ToString().TrimEnd();
+        if (isTest) sb.AppendLine(ReminderTextFormat.TestBanner).AppendLine();
+        sb.AppendLine("📸 Function Details");
+        sb.AppendLine($"Function: {p[0]}");
+        sb.AppendLine($"Client: {p[1]}");
+        sb.AppendLine($"Client No: {p[2]}");
+        sb.AppendLine($"Date: {p[3]}");
+        sb.AppendLine($"Time: {p[4]}");
+        sb.AppendLine($"Location: {p[5]}");
+        sb.Append($"Photographer: {p[6]}");
+        return sb.ToString();
     }
 
-    private static void AppendSingle(StringBuilder sb, EventReminderMessage e)
+    private static string Location(EventReminderMessage e)
     {
-        sb.AppendLine("📸 TOMORROW'S EVENT");
-        sb.AppendLine($"🎉 {e.EventName}");
-        sb.AppendLine($"👤 Customer: {e.CustomerName}");
-        if (!string.IsNullOrWhiteSpace(e.CustomerPhone))
-        {
-            sb.AppendLine($"📞 Customer Phone: {e.CustomerPhone}");
-        }
-        sb.AppendLine($"📅 Date: {ReminderTextFormat.Date(e.EventDate)}");
-        sb.AppendLine($"⏰ Time: {ReminderTextFormat.TimeRange(e.StartTime, e.EndTime)}");
-
-        if (!string.IsNullOrWhiteSpace(e.Venue) || !string.IsNullOrWhiteSpace(e.Address))
-        {
-            sb.AppendLine("📍 Location:");
-            if (!string.IsNullOrWhiteSpace(e.Venue))
-            {
-                sb.AppendLine(e.Venue.Trim());
-            }
-            if (!string.IsNullOrWhiteSpace(e.Address) && !IsLink(e.Address))
-            {
-                sb.AppendLine(e.Address.Trim());
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(e.MapLink))
-        {
-            sb.AppendLine("🗺️ Open Location:");
-            sb.AppendLine(e.MapLink);
-        }
-
-        sb.AppendLine();
-        sb.AppendLine("👥 ASSIGNED TEAM");
-        AppendTeam(sb, e.Team);
-        sb.AppendLine();
-        sb.Append("Please be ready for tomorrow's event.");
-    }
-
-    private static void AppendMany(StringBuilder sb, IReadOnlyList<EventReminderMessage> events)
-    {
-        sb.AppendLine("📸 TOMORROW'S EVENTS");
-        sb.AppendLine($"📅 {ReminderTextFormat.Date(events[0].EventDate)}");
-        sb.AppendLine(ReminderTextFormat.Divider);
-
-        for (var i = 0; i < events.Count; i++)
-        {
-            var e = events[i];
-            sb.AppendLine($"{ReminderTextFormat.Number(i + 1)} {e.EventName.ToUpperInvariant()}");
-            sb.AppendLine($"👤 Customer: {e.CustomerName}");
-            if (!string.IsNullOrWhiteSpace(e.CustomerPhone))
-            {
-                sb.AppendLine($"📞 Customer Phone: {e.CustomerPhone}");
-            }
-            sb.AppendLine($"⏰ {ReminderTextFormat.TimeRange(e.StartTime, e.EndTime)}");
-
-            var place = string.Join(", ", new[] { e.Venue, IsLink(e.Address) ? null : e.Address }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()));
-            if (place.Length > 0)
-            {
-                sb.AppendLine($"📍 {place}");
-            }
-            if (!string.IsNullOrWhiteSpace(e.MapLink))
-            {
-                sb.AppendLine($"🗺️ Open Location: {e.MapLink}");
-            }
-
-            sb.AppendLine("👥 Team:");
-            AppendTeam(sb, e.Team);
-            sb.AppendLine(ReminderTextFormat.Divider);
-        }
-
-        sb.Append("Please be ready for tomorrow's events.");
-    }
-
-    private static void AppendTeam(StringBuilder sb, IReadOnlyList<TeamMember> team)
-    {
-        if (team.Count == 0)
-        {
-            sb.AppendLine("• No team assigned yet");
-            return;
-        }
-
-        foreach (var member in team)
-        {
-            sb.AppendLine(string.IsNullOrWhiteSpace(member.Role) ? $"• {member.Name}" : $"• {member.Name} - {member.Role}");
-        }
+        var parts = new[] { e.Venue, IsLink(e.Address) ? null : e.Address }
+            .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()).ToList();
+        return parts.Count == 0 ? "Not specified" : string.Join(", ", parts);
     }
 
     private static bool IsLink(string? value) =>
         value is not null && (value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || value.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
 }
 
-public static class PaymentReminderMessageBuilder
+// MESSAGE 2 - Payment Details, to the studio owner ONLY. Template "payment_details" placeholders, in
+// order: {{1}} function, {{2}} client, {{3}} total amount, {{4}} advance paid, {{5}} total paid, {{6}} balance.
+public static class PaymentDetailsMessage
 {
-    public static string Build(IReadOnlyList<PaymentReminderMessage> payments, bool isTest = false)
+    public static IReadOnlyList<string> Parameters(PaymentReminderMessage p) =>
+    [
+        FunctionName.Of(p.CustomerName, p.EventName),
+        p.CustomerName,
+        p.TotalAmount is { } total ? ReminderTextFormat.Money(total, p.CurrencySymbol) : "Not set",
+        ReminderTextFormat.Money(p.AdvancePaid, p.CurrencySymbol),
+        ReminderTextFormat.Money(p.PaidAmount, p.CurrencySymbol),
+        p.Balance is { } balance ? ReminderTextFormat.Money(balance, p.CurrencySymbol) : "Not set"
+    ];
+
+    public static string Build(PaymentReminderMessage p, bool isTest = false)
     {
+        var v = Parameters(p);
         var sb = new StringBuilder();
-        if (isTest)
-        {
-            sb.AppendLine(ReminderTextFormat.TestBanner).AppendLine();
-        }
-
-        if (payments.Count == 1)
-        {
-            var p = payments[0];
-            sb.AppendLine("💰 TOMORROW'S EVENT — PAYMENT");
-            sb.AppendLine($"🎉 Event: {p.EventName}");
-            sb.AppendLine($"👤 Customer: {p.CustomerName}");
-            sb.AppendLine($"💰 Total Amount: {Total(p)}");
-            sb.AppendLine($"💵 Paid: {ReminderTextFormat.Money(p.PaidAmount, p.CurrencySymbol)}");
-            if (p.Balance is { } balance)
-            {
-                sb.AppendLine($"⚠️ Balance: {ReminderTextFormat.Money(balance, p.CurrencySymbol)}");
-            }
-            sb.Append($"Status: {StatusText(p)}");
-            return sb.ToString();
-        }
-
-        sb.AppendLine("💰 TOMORROW'S PAYMENT SUMMARY");
-        sb.AppendLine(ReminderTextFormat.Divider);
-        for (var i = 0; i < payments.Count; i++)
-        {
-            var p = payments[i];
-            sb.AppendLine($"{ReminderTextFormat.Number(i + 1)} {p.EventName}");
-            sb.AppendLine($"Customer: {p.CustomerName}");
-            sb.AppendLine($"Total: {Total(p)}");
-            sb.AppendLine($"Paid: {ReminderTextFormat.Money(p.PaidAmount, p.CurrencySymbol)}");
-            if (p.Balance is { } balance)
-            {
-                sb.AppendLine($"Balance: {ReminderTextFormat.Money(balance, p.CurrencySymbol)}");
-            }
-            sb.AppendLine(p.TotalAmount is null ? "⚠️ Total not set" : p.IsFullyPaid ? "✅ Fully Paid" : "⚠️ Balance Pending");
-            sb.AppendLine(ReminderTextFormat.Divider);
-        }
-
-        return sb.ToString().TrimEnd();
+        if (isTest) sb.AppendLine(ReminderTextFormat.TestBanner).AppendLine();
+        sb.AppendLine("💰 Payment Details");
+        sb.AppendLine($"Function: {v[0]}");
+        sb.AppendLine($"Client: {v[1]}");
+        sb.AppendLine($"Total Amount: {v[2]}");
+        sb.AppendLine($"Advance Paid: {v[3]}");
+        sb.AppendLine($"Total Paid: {v[4]}");
+        sb.Append($"Balance: {v[5]}");
+        return sb.ToString();
     }
-
-    private static string Total(PaymentReminderMessage p) =>
-        p.TotalAmount is { } total ? ReminderTextFormat.Money(total, p.CurrencySymbol) : "Not set";
-
-    private static string StatusText(PaymentReminderMessage p) =>
-        p.TotalAmount is null ? "Total not set" : p.IsFullyPaid ? "Fully Paid" : "Balance Pending";
 }

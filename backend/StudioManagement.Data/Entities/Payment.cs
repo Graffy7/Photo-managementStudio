@@ -16,6 +16,10 @@ public class Payment : ITenantEntity
     public DateTime UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = null!;
 
+    // The advance taken when the event was booked (recorded together with the event). Lets the
+    // owner's WhatsApp payment summary show "Advance Paid" separately from the total paid.
+    public bool IsAdvance { get; set; }
+
     public Studio Studio { get; set; } = null!;
     public Customer Customer { get; set; } = null!;
     public Event? Event { get; set; }

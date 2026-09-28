@@ -277,3 +277,11 @@ public class PhotoRootRequestDto
     // Full folder path on the server; empty clears it (the studio then can't import).
     public string? Path { get; set; }
 }
+
+public class DeviceImportDoneDto
+{
+    public string? Folder { get; set; }
+    public int Added { get; set; }
+    public int Skipped { get; set; }
+    public int Failed { get; set; }
+}

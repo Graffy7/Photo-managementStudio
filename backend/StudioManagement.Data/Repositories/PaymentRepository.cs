@@ -54,6 +54,14 @@ public class PaymentRepository(AppDbContext context) : IPaymentRepository
             .OrderBy(p => p.PaymentDate).ThenBy(p => p.PaymentId)
             .ToListAsync(ct);
 
+    public async Task<Dictionary<int, decimal>> GetCompletedAdvanceTotalsByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default) =>
+        eventIds.Count == 0 ? [] : await context.Payments.AsNoTracking()
+            .Where(p => p.StudioId == studioId && p.EventId != null && eventIds.Contains(p.EventId.Value)
+                        && p.IsAdvance && p.PaymentStatus == PaymentStatuses.Completed)
+            .GroupBy(p => p.EventId!.Value)
+            .Select(g => new { EventId = g.Key, Total = g.Sum(p => p.Amount) })
+            .ToDictionaryAsync(x => x.EventId, x => x.Total, ct);
+
     public async Task<List<(int EventId, decimal TotalPaid)>> GetCompletedTotalsByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default)
     {
         if (eventIds.Count == 0)

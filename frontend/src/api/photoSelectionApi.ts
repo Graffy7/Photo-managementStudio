@@ -21,6 +21,7 @@ import type {
   ShareMessage,
   SubmitResult,
 } from "../types/photoSelection";
+import type { DeviceSelectionFile } from "../utils/devicePhotos";
 
 // ---- Studio owner (authenticated)
 
@@ -50,6 +51,24 @@ export const photoSelectionApi = {
 
   getImportJob: (galleryId: number, jobId: number) =>
     apiClient.get<ImportJob>(`/api/photo-galleries/${galleryId}/import/${jobId}`).then((r) => r.data),
+
+  // Photos from the owner's own computer: the browser makes the previews, only those are uploaded.
+  devicePresent: (galleryId: number, folder: string) =>
+    apiClient.get<{ present: string[] }>(`/api/photo-galleries/${galleryId}/device-photos`, { params: { folder } }).then((r) => r.data.present),
+
+  addDevicePhoto: (galleryId: number, folder: string, path: string, preview: Blob) => {
+    const form = new FormData();
+    form.append("file", preview, "preview.jpg");
+    form.append("folder", folder);
+    form.append("path", path);
+    return apiClient.post<{ outcome: string }>(`/api/photo-galleries/${galleryId}/device-photos`, form).then(() => undefined);
+  },
+
+  deviceDone: (galleryId: number, folder: string, added: number, skipped: number, failed: number) =>
+    apiClient.post(`/api/photo-galleries/${galleryId}/device-photos/done`, { folder, added, skipped, failed }).then(() => undefined),
+
+  deviceSelection: (galleryId: number) =>
+    apiClient.get<DeviceSelectionFile[]>(`/api/photo-galleries/${galleryId}/device-photos/selection`).then((r) => r.data),
 
   startSelectionCopy: (galleryId: number) =>
     apiClient.post<CopyJob>(`/api/photo-galleries/${galleryId}/selection-copy`).then((r) => r.data),

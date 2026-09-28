@@ -87,6 +87,7 @@ public class EventService(
                 PaymentMethod = request.AdvancePaymentMethod!,
                 Notes = "Advance recorded when the event was booked",
                 PaymentStatus = PaymentStatuses.Completed,
+                IsAdvance = true,
                 CreatedAt = now,
                 UpdatedAt = now
             }, ct);

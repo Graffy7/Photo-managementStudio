@@ -11,16 +11,14 @@ using StudioManagement.Data.UnitOfWork;
 
 namespace StudioManagement.Business.WhatsApp;
 
-// Sends the day-before reminders as TWO independent messages with completely separate recipients:
+// Sends the studio owner two SEPARATE WhatsApp messages for each function, 24 hours before it starts:
 //
-//   Message 1 (event / worker)  -> the studio owner AND each assigned worker (only their own events).
-//                                  Built from EventReminderMessage, which has no money fields at all.
-//   Message 2 (payment)         -> the studio owner ONLY. Worker phone numbers never enter this path,
-//                                  and payment data is only loaded inside it.
+//   Message 1 (Function Details) -> the studio owner's registered number. Built from EventReminderMessage,
+//                                   which has no money fields at all.
+//   Message 2 (Payment Details)  -> the studio owner's registered number, and nobody else.
 //
-// Each (event, day, message kind, recipient) has one row in WhatsAppReminderLogs: that is what makes a
-// repeated scheduler run harmless, and what lets one failed recipient be retried without touching
-// anyone else's delivery.
+// Nothing is sent to workers. Each (function, message) has one row in WhatsAppReminderLogs: that is
+// what stops a repeated run from sending twice, and what lets a failed delivery be retried.
 public partial class WhatsAppReminderService(
     IEventRepository eventRepository,
     IPaymentRepository paymentRepository,
@@ -66,6 +64,19 @@ public partial class WhatsAppReminderService(
         return total;
     }
 
+    // When a function's two messages are due: HoursBefore (24h) before it starts; for a function with no
+    // start time, ReminderTime (09:00) on the day before.
+    private DateTime DueAt(Event e) => e.StartTime is { } start
+        ? e.EventDate.Date.Add(start).AddHours(-options.HoursBefore)
+        : e.EventDate.Date.AddDays(-1).Add(options.ReminderTimeOfDay);
+
+    // After this nothing is sent any more (a missed reminder for a function that has begun is pointless).
+    private static DateTime StartsAt(Event e) => e.EventDate.Date.Add(e.StartTime ?? new TimeSpan(23, 59, 0));
+
+    // Functions from today up to the furthest one that can be due now.
+    private Task<List<Event>> LoadUpcomingAsync(int studioId, DateTime localNow, int? eventId, CancellationToken ct) =>
+        eventRepository.GetForReminderAsync(studioId, localNow.Date, localNow.Date.AddDays(options.HoursBefore / 24 + 3), eventId, ct);
+
     public async Task<WhatsAppRunResult> SendRemindersForStudioAsync(int studioId, DateTime localNow, bool ignoreTime, CancellationToken ct = default)
     {
         await RunLock.WaitAsync(ct);
@@ -81,18 +92,18 @@ public partial class WhatsAppReminderService(
             }
 
             var notifications = await settingsService.GetNotificationSettingsAsync(studioId, ct);
-            if (!notifications.WhatsAppNotification)
-            {
-                return result;
-            }
-            if (!ignoreTime && localNow.TimeOfDay < options.ReminderTimeOfDay)
+            if (!notifications.WhatsAppNotification || (!notifications.EventReminder && !notifications.PaymentReminder))
             {
                 return result;
             }
 
-            var day = localNow.Date.AddDays(1);
-            var events = await eventRepository.GetForReminderAsync(studioId, day, day.AddDays(1), null, ct);
-            if (events.Count == 0)
+            // Due now: its 24-hour mark has passed and it hasn't started. "Send now" (ignoreTime) also
+            // takes anything starting within the next HoursBefore + 24 hours.
+            var due = (await LoadUpcomingAsync(studioId, localNow, null, ct))
+                .Where(e => e.EventStatus != EventStatuses.Completed && StartsAt(e) > localNow)
+                .Where(e => localNow >= DueAt(e) || (ignoreTime && StartsAt(e) <= localNow.AddHours(options.HoursBefore + 24)))
+                .ToList();
+            if (due.Count == 0)
             {
                 return result;
             }
@@ -103,28 +114,39 @@ public partial class WhatsAppReminderService(
                 return result;
             }
 
-            var logs = await logRepository.GetForDayAsync(studioId, day, ct);
             var owner = new Recipient(WhatsAppRecipientTypes.Owner, null, studio.OwnerName ?? "Owner",
                 WhatsAppPhone.Normalize(studio.PhoneNumber, options.DefaultCountryCode));
 
-            // MESSAGE 1 — owner + assigned workers. No payment data is loaded or referenced here.
-            if (notifications.EventReminder)
+            var logs = new List<WhatsAppReminderLog>();
+            foreach (var day in due.Select(e => e.EventDate.Date).Distinct())
             {
-                await SendEventMessageAsync(studioId, day, owner, events, logs, result, ct);
-
-                if (notifications.WorkerEventNotification)
-                {
-                    foreach (var (worker, workerEvents) in AssignedWorkers(events))
-                    {
-                        await SendEventMessageAsync(studioId, day, worker, workerEvents, logs, result, ct);
-                    }
-                }
+                logs.AddRange(await logRepository.GetForDayAsync(studioId, day, ct));
             }
 
-            // MESSAGE 2 — the owner only. A separate delivery: a failure above changes nothing here.
-            if (notifications.PaymentReminder)
+            var payments = notifications.PaymentReminder
+                ? (await BuildPaymentMessagesAsync(studioId, due, ct))
+                : [];
+
+            foreach (var e in due)
             {
-                await SendPaymentMessageAsync(studioId, day, owner, events, logs, result, ct);
+                // MESSAGE 1 - Function Details. No payment data is loaded or referenced here.
+                if (notifications.EventReminder && IsPending(Find(logs, e.EventId, WhatsAppReminderTypes.TomorrowEvent, OwnerKey)))
+                {
+                    var message = ToEventMessage(e);
+                    await DeliverAsync(studioId, e.EventDate.Date, WhatsAppReminderTypes.TomorrowEvent, owner, e.EventId,
+                        FunctionDetailsMessage.Build(message), Template(options.FunctionDetailsTemplate, FunctionDetailsMessage.Parameters(message)),
+                        logs, result, ct);
+                }
+
+                // MESSAGE 2 - Payment Details, the owner only. A separate delivery: a failure above
+                // changes nothing here.
+                if (notifications.PaymentReminder && IsPending(Find(logs, e.EventId, WhatsAppReminderTypes.TomorrowPayment, OwnerKey)))
+                {
+                    var payment = payments[e.EventId];
+                    await DeliverAsync(studioId, e.EventDate.Date, WhatsAppReminderTypes.TomorrowPayment, owner, e.EventId,
+                        PaymentDetailsMessage.Build(payment), Template(options.PaymentDetailsTemplate, PaymentDetailsMessage.Parameters(payment)),
+                        logs, result, ct);
+                }
             }
 
             return result;
@@ -135,89 +157,35 @@ public partial class WhatsAppReminderService(
         }
     }
 
-    // ---- Message 1: event / worker -----------------------------------------------------------
+    private static WhatsAppTemplate? Template(string name, IReadOnlyList<string> parameters) =>
+        string.IsNullOrWhiteSpace(name) ? null : new WhatsAppTemplate(name.Trim(), parameters);
 
-    private async Task SendEventMessageAsync(
-        int studioId, DateTime day, Recipient recipient, List<Event> candidateEvents,
-        List<WhatsAppReminderLog> logs, WhatsAppRunResult result, CancellationToken ct)
+    private async Task<Dictionary<int, PaymentReminderMessage>> BuildPaymentMessagesAsync(int studioId, List<Event> events, CancellationToken ct)
     {
-        var pending = candidateEvents
-            .Where(e => IsPending(Find(logs, e.EventId, WhatsAppReminderTypes.TomorrowEvent, recipient.Key)))
-            .ToList();
-        if (pending.Count == 0)
-        {
-            return;
-        }
-
-        var text = EventReminderMessageBuilder.Build(pending.Select(ToEventMessage).ToList());
-        await DeliverAsync(studioId, day, WhatsAppReminderTypes.TomorrowEvent, recipient, pending.Select(e => e.EventId).ToList(), text, logs, result, ct);
-    }
-
-    // Each active worker assigned to any of the events, with ONLY the events they are assigned to.
-    private IEnumerable<(Recipient Worker, List<Event> Events)> AssignedWorkers(List<Event> events)
-    {
-        var byWorker = new Dictionary<int, (Recipient Worker, List<Event> Events)>();
-        foreach (var e in events)
-        {
-            foreach (var worker in e.EventWorkers.Select(ew => ew.Worker).Where(w => w.IsActive).DistinctBy(w => w.WorkerId))
-            {
-                if (!byWorker.TryGetValue(worker.WorkerId, out var entry))
-                {
-                    entry = (new Recipient(WhatsAppRecipientTypes.Worker, worker.WorkerId, worker.FullName,
-                        WhatsAppPhone.Normalize(worker.MobileNumber, options.DefaultCountryCode)), []);
-                    byWorker[worker.WorkerId] = entry;
-                }
-                entry.Events.Add(e);
-            }
-        }
-
-        return byWorker.Values;
-    }
-
-    // ---- Message 2: payment, owner only ------------------------------------------------------
-
-    private async Task SendPaymentMessageAsync(
-        int studioId, DateTime day, Recipient owner, List<Event> events,
-        List<WhatsAppReminderLog> logs, WhatsAppRunResult result, CancellationToken ct)
-    {
-        var pending = events
-            .Where(e => IsPending(Find(logs, e.EventId, WhatsAppReminderTypes.TomorrowPayment, OwnerKey)))
-            .ToList();
-        if (pending.Count == 0)
-        {
-            return;
-        }
-
-        var payments = await BuildPaymentMessagesAsync(studioId, pending, ct);
-        var text = PaymentReminderMessageBuilder.Build(payments);
-        await DeliverAsync(studioId, day, WhatsAppReminderTypes.TomorrowPayment, owner, pending.Select(e => e.EventId).ToList(), text, logs, result, ct);
-    }
-
-    private async Task<List<PaymentReminderMessage>> BuildPaymentMessagesAsync(int studioId, List<Event> events, CancellationToken ct)
-    {
-        var paid = (await paymentRepository.GetCompletedTotalsByEventIdsAsync(studioId, events.Select(e => e.EventId).ToList(), ct))
-            .ToDictionary(x => x.EventId, x => x.TotalPaid);
+        var ids = events.Select(e => e.EventId).ToList();
+        var paid = (await paymentRepository.GetCompletedTotalsByEventIdsAsync(studioId, ids, ct)).ToDictionary(x => x.EventId, x => x.TotalPaid);
+        var advance = await paymentRepository.GetCompletedAdvanceTotalsByEventIdsAsync(studioId, ids, ct);
         var symbol = ReminderTextFormat.CurrencySymbol((await settingsService.GetBusinessSettingsAsync(studioId, ct)).Currency);
 
-        return events.Select(e => new PaymentReminderMessage
+        return events.ToDictionary(e => e.EventId, e => new PaymentReminderMessage
         {
             CustomerName = e.Customer.FullName,
             EventName = e.EventType?.Name ?? "Event",
             EventDate = e.EventDate,
             CurrencySymbol = symbol,
             TotalAmount = e.Budget,
+            AdvancePaid = advance.GetValueOrDefault(e.EventId),
             PaidAmount = paid.GetValueOrDefault(e.EventId)
-        }).ToList();
+        });
     }
 
     // ---- Delivery and the log ----------------------------------------------------------------
 
     private async Task DeliverAsync(
-        int studioId, DateTime day, string reminderType, Recipient recipient, List<int> eventIds, string text,
+        int studioId, DateTime day, string reminderType, Recipient recipient, int eventId, string text, WhatsAppTemplate? template,
         List<WhatsAppReminderLog> logs, WhatsAppRunResult result, CancellationToken ct)
     {
         var rows = new List<WhatsAppReminderLog>();
-        foreach (var eventId in eventIds)
         {
             var row = Find(logs, eventId, reminderType, recipient.Key);
             if (row is null)
@@ -261,7 +229,7 @@ public partial class WhatsAppReminderService(
         WhatsAppSendResult send;
         try
         {
-            send = await sender.SendAsync(recipient.Phone, text, ct);
+            send = await sender.SendAsync(recipient.Phone, text, ct, template);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -358,15 +326,13 @@ public partial class WhatsAppReminderService(
 
     public async Task<ReminderPreviewDto?> PreviewAsync(int studioId, DateTime localNow, TestReminderRequestDto request, CancellationToken ct = default)
     {
-        var day = localNow.Date.AddDays(1);
-        var events = await eventRepository.GetForReminderAsync(studioId, day, day.AddDays(1), request.EventId, ct);
+        // One chosen function, or the upcoming ones that haven't started yet.
+        var events = (await LoadUpcomingAsync(studioId, localNow, request.EventId, ct))
+            .Where(e => request.EventId is not null || StartsAt(e) > localNow)
+            .ToList();
         if (request.EventId is not null && events.Count == 0)
         {
             return null;
-        }
-        if (events.Count > 0)
-        {
-            day = events[0].EventDate.Date;
         }
 
         var studio = await studioRepository.GetByIdAsync(studioId, ct);
@@ -378,18 +344,24 @@ public partial class WhatsAppReminderService(
         var notifications = await settingsService.GetNotificationSettingsAsync(studioId, ct);
         var ownerPhone = WhatsAppPhone.Normalize(studio.PhoneNumber, options.DefaultCountryCode);
         var ownerName = studio.OwnerName ?? "Studio owner";
+        var payments = events.Count == 0 ? [] : await BuildPaymentMessagesAsync(studioId, events, ct);
 
-        var eventText = events.Count == 0 ? "" : EventReminderMessageBuilder.Build(events.Select(ToEventMessage).ToList(), isTest: true);
-        var paymentText = events.Count == 0 ? "" : PaymentReminderMessageBuilder.Build(await BuildPaymentMessagesAsync(studioId, events, ct), isTest: true);
+        const string between = "\n\n━━━━━━━━━━━━━━\n\n";
+        var eventText = string.Join(between, events.Select(e => FunctionDetailsMessage.Build(ToEventMessage(e), isTest: true)));
+        var paymentText = string.Join(between, events.Select(e => PaymentDetailsMessage.Build(payments[e.EventId], isTest: true)));
 
         var warnings = new List<string>();
         if (events.Count == 0)
         {
-            warnings.Add("There are no events tomorrow, so there is nothing to preview. Pick a specific event to preview it.");
+            warnings.Add("There are no upcoming functions in the next few days, so there is nothing to preview. Pick a specific event to preview it.");
+        }
+        else if (request.EventId is null)
+        {
+            warnings.Add($"Each function's messages go to the owner {options.HoursBefore} hours before it starts.");
         }
         if (!notifications.WhatsAppNotification)
         {
-            warnings.Add("WhatsApp notifications are switched off in Settings, so real reminders are not being sent.");
+            warnings.Add("WhatsApp notifications are switched off in Settings, so real messages are not being sent.");
         }
         if (options.Provider != WhatsAppOptions.CloudApiProvider)
         {
@@ -397,67 +369,36 @@ public partial class WhatsAppReminderService(
         }
         if (ownerPhone is null)
         {
-            warnings.Add("The studio owner's phone number isn't set (Settings → Studio profile), so nothing can be sent to the owner.");
+            warnings.Add("The studio owner's phone number isn't set (Settings → Studio profile), so nothing can be sent.");
         }
 
-        // Message 1 recipients: the owner and every worker assigned to a previewed event.
-        var eventRecipients = new List<ReminderRecipientDto>
+        // Both messages: the owner, and nobody else. There is no code path that adds a worker.
+        ReminderRecipientDto Owner(bool enabled, string offNote) => new()
         {
-            new()
-            {
-                Name = ownerName, Kind = WhatsAppRecipientTypes.Owner, Phone = studio.PhoneNumber, EventCount = events.Count,
-                WillReceive = events.Count > 0 && ownerPhone is not null && notifications.WhatsAppNotification && notifications.EventReminder,
-                Note = ownerPhone is null ? "Owner phone number not configured." : !notifications.EventReminder ? "Event reminders are switched off." : null
-            }
+            Name = ownerName, Kind = WhatsAppRecipientTypes.Owner, Phone = studio.PhoneNumber, EventCount = events.Count,
+            WillReceive = events.Count > 0 && ownerPhone is not null && notifications.WhatsAppNotification && enabled,
+            Note = ownerPhone is null ? "Owner phone number not configured." : !enabled ? offNote : null
         };
-
-        var allWorkers = events.SelectMany(e => e.EventWorkers.Select(ew => (ew.Worker, Event: e)))
-            .GroupBy(x => x.Worker.WorkerId);
-        foreach (var group in allWorkers)
-        {
-            var worker = group.First().Worker;
-            var phone = WhatsAppPhone.Normalize(worker.MobileNumber, options.DefaultCountryCode);
-            var note = !worker.IsActive ? "Worker is inactive — not sent."
-                : phone is null ? "Worker phone number not configured."
-                : !notifications.WorkerEventNotification ? "Worker notifications are switched off."
-                : null;
-
-            eventRecipients.Add(new ReminderRecipientDto
-            {
-                Name = worker.FullName, Kind = WhatsAppRecipientTypes.Worker, Phone = worker.MobileNumber, EventCount = group.Count(),
-                WillReceive = note is null && notifications.WhatsAppNotification && notifications.EventReminder,
-                Note = note
-            });
-        }
-
-        // Message 2: the owner, and nobody else. There is no code path that adds a worker here.
-        var paymentRecipients = new List<ReminderRecipientDto>
-        {
-            new()
-            {
-                Name = ownerName, Kind = WhatsAppRecipientTypes.Owner, Phone = studio.PhoneNumber, EventCount = events.Count,
-                WillReceive = events.Count > 0 && ownerPhone is not null && notifications.WhatsAppNotification && notifications.PaymentReminder,
-                Note = ownerPhone is null ? "Owner phone number not configured." : !notifications.PaymentReminder ? "Payment reminders are switched off." : null
-            }
-        };
+        var eventRecipients = new List<ReminderRecipientDto> { Owner(notifications.EventReminder, "Function details are switched off.") };
+        var paymentRecipients = new List<ReminderRecipientDto> { Owner(notifications.PaymentReminder, "Payment details are switched off.") };
 
         var preview = new ReminderPreviewDto
         {
-            Date = day,
+            Date = events.Count > 0 ? events[0].EventDate.Date : localNow.Date.AddDays(1),
             EventCount = events.Count,
             Provider = options.Provider,
             Warnings = warnings,
-            EventMessage = new ReminderMessagePreviewDto { Title = "MESSAGE 1 — EVENT/WORKER", Text = eventText, Recipients = eventRecipients },
-            PaymentMessage = new ReminderMessagePreviewDto { Title = "MESSAGE 2 — OWNER PAYMENT", Text = paymentText, Recipients = paymentRecipients },
+            EventMessage = new ReminderMessagePreviewDto { Title = "MESSAGE 1 — FUNCTION DETAILS (owner)", Text = eventText, Recipients = eventRecipients },
+            PaymentMessage = new ReminderMessagePreviewDto { Title = "MESSAGE 2 — PAYMENT DETAILS (owner only)", Text = paymentText, Recipients = paymentRecipients },
             Checks = new ReminderChecksDto
             {
                 EventMessageHasNoPaymentInfo = !ContainsPaymentInfo(eventText),
                 PaymentMessageIsOwnerOnly = paymentRecipients.All(r => r.Kind == WhatsAppRecipientTypes.Owner),
-                WorkersReceivingPaymentMessage = paymentRecipients.Count(r => r.Kind == WhatsAppRecipientTypes.Worker)
+                WorkersReceivingPaymentMessage = 0
             }
         };
 
-        // Optionally deliver the two TEST messages — to the owner's own phone only.
+        // Optionally deliver the TEST messages - to the owner's own phone only.
         if (request.SendToOwner && events.Count > 0)
         {
             if (ownerPhone is null)
@@ -466,23 +407,29 @@ public partial class WhatsAppReminderService(
             }
             else
             {
-                preview.SendResults.Add(await SendTestAsync("Message 1 (event) TEST", ownerPhone, eventText, ct));
-                preview.SendResults.Add(await SendTestAsync("Message 2 (payment) TEST", ownerPhone, paymentText, ct));
+                foreach (var e in events.Take(3))
+                {
+                    var message = ToEventMessage(e);
+                    preview.SendResults.Add(await SendTestAsync($"Function Details TEST ({FunctionName.Of(message.CustomerName, message.EventName)})", ownerPhone,
+                        FunctionDetailsMessage.Build(message, isTest: true), Template(options.FunctionDetailsTemplate, FunctionDetailsMessage.Parameters(message)), ct));
+                    preview.SendResults.Add(await SendTestAsync("Payment Details TEST", ownerPhone,
+                        PaymentDetailsMessage.Build(payments[e.EventId], isTest: true), Template(options.PaymentDetailsTemplate, PaymentDetailsMessage.Parameters(payments[e.EventId])), ct));
+                }
             }
         }
 
         return preview;
     }
 
-    private async Task<string> SendTestAsync(string label, string phone, string text, CancellationToken ct)
+    private async Task<string> SendTestAsync(string label, string phone, string text, WhatsAppTemplate? template, CancellationToken ct)
     {
-        var send = await sender.SendAsync(phone, text, ct);
+        var send = await sender.SendAsync(phone, text, ct, template);
         return send.Success
             ? $"{label}: sent to the owner{(send.Simulated ? " (logged only — no provider connected)" : "")}."
             : $"{label}: failed — {send.Error}";
     }
 
-    // The privacy check on the worker-facing message: no currency symbol and none of the payment words.
+    // The privacy check on the Function Details message: no currency symbol and none of the payment words.
     private static bool ContainsPaymentInfo(string text) =>
         text.IndexOfAny(['₹', '$', '€', '£']) >= 0 ||
         PaymentWords().IsMatch(text);

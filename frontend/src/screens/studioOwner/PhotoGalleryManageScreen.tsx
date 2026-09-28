@@ -11,6 +11,7 @@ import { FolderBrowserModal } from "../../components/FolderBrowserModal";
 import { DeliveryFolders } from "../../components/DeliveryFolders";
 import { SelectionCopyPanel } from "./SelectionCopyPanel";
 import { downloadBytes } from "../../utils/downloadFile";
+import { canPickFolder, importPickedFolder, isDeviceSource, pickFolder, type DeviceImportProgress } from "../../utils/devicePhotos";
 import { useModules } from "../../hooks/useModules";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
 import type { OwnerGallery, OwnerPhoto, PhotoFilter, SkippedFiles } from "../../types/photoSelection";
@@ -181,21 +182,46 @@ function Meta({ label, value }: { label: string; value: string }) {
 // ---- Import ----------------------------------------------------------------------------------
 
 function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: () => void }) {
-  const [folder, setFolder] = useState(gallery.sourceFolder ?? "");
+  const serverSource = gallery.sourceFolder && !isDeviceSource(gallery.sourceFolder) ? gallery.sourceFolder : "";
+  const [folder, setFolder] = useState(serverSource);
+  const [showServer, setShowServer] = useState(!!serverSource);
   const [browsing, setBrowsing] = useState(false);
   const [starting, setStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [removedNote, setRemovedNote] = useState<string | null>(null);
   const [skippedNote, setSkippedNote] = useState<string | null>(null);
+  const [device, setDevice] = useState<{ folder: string; progress: DeviceImportProgress | null } | null>(null);
+  const [deviceNote, setDeviceNote] = useState<{ text: string; tone: "ok" | "warn" } | null>(null);
+  const cancelRef = useRef({ cancelled: false });
 
   const job = gallery.latestImport;
   const running = job?.status === "Queued" || job?.status === "Running";
   const percent = job && job.totalCount > 0 ? Math.round((job.processedCount / job.totalCount) * 100) : 0;
+  const uploading = device !== null;
+  // The computer's own folder window: web only (the hosted app).
+  const devicePicker = Platform.OS === "web" && canPickFolder();
 
-  const start = async () => {
+  // Closing the tab mid-way would stop the upload, so the browser asks first.
+  useEffect(() => {
+    if (!uploading) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [uploading]);
+  useEffect(() => {
+    const signal = cancelRef.current;
+    return () => { signal.cancelled = true; };
+  }, []);
+
+  const clearNotes = () => {
     setMessage(null);
     setRemovedNote(null);
     setSkippedNote(null);
+    setDeviceNote(null);
+  };
+
+  const start = async () => {
+    clearNotes();
     setStarting(true);
     try {
       const started = await photoSelectionApi.startImport(gallery.galleryId, folder.trim());
@@ -208,41 +234,119 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
     }
   };
 
+  const chooseOnComputer = async () => {
+    clearNotes();
+    const picked = await pickFolder();
+    if (!picked) return;
+    setSkippedNote(describeSkipped(picked.skipped));
+    if (picked.photos.length === 0) {
+      setMessage(`No JPEG or RAW photos in "${picked.name}". Choose the folder that has the finished photos.`);
+      return;
+    }
+    const id = gallery.galleryId;
+    setDevice({ folder: picked.name, progress: null });
+    try {
+      const result = await importPickedFolder(picked, {
+        present: (f) => photoSelectionApi.devicePresent(id, f),
+        upload: (f, path, preview) => photoSelectionApi.addDevicePhoto(id, f, path, preview),
+        done: (f, added, skipped, failed) => photoSelectionApi.deviceDone(id, f, added, skipped, failed),
+      }, (progress) => setDevice({ folder: picked.name, progress }), cancelRef.current);
+      const parts = [`${plural(result.added, "photo")} added from "${picked.name}".`];
+      if (result.alreadyThere > 0) {
+        parts.push(`${plural(result.alreadyThere, "photo")} ${result.alreadyThere === 1 ? "was" : "were"} already in the gallery.`);
+      }
+      if (result.failed > 0) {
+        const examples = result.failedNames.length ? ` (e.g. ${result.failedNames.slice(0, 3).join(", ")})` : "";
+        parts.push(`${plural(result.failed, "photo")} couldn't be read${examples}.`);
+      }
+      setDeviceNote({ text: parts.join(" "), tone: result.failed > 0 ? "warn" : "ok" });
+    } catch (err) {
+      setMessage(extractErrorMessage(err, "Couldn't add the photos. Check the internet connection and choose the folder again; photos already added are kept."));
+    } finally {
+      setDevice(null);
+      onChanged();
+    }
+  };
+
+  const progress = device?.progress;
+  const devicePercent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Photos</Text>
       <Text style={styles.hint}>
-        Choose the folder on this computer where the finished photos are. Only JPEG and RAW photos are imported — videos and
-        other files are skipped. Small previews are made for the customer to look at; your original files stay exactly where
-        they are and are never uploaded.
+        Choose the folder on your computer that has the finished photos. Only JPEG and RAW photos are added — videos and other
+        files are skipped. Small previews are made on your computer for the customer to look at; your original files stay
+        exactly where they are and are never uploaded.
       </Text>
 
-      <View style={styles.folderRow}>
-        <TextInput
-          style={[styles.input, { flex: 1 }]}
-          value={folder}
-          onChangeText={setFolder}
-          placeholder="e.g. D:\Photos\Meera Wedding\Selected"
-          placeholderTextColor="#6f83a0"
-          editable={!running}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <Pressable style={styles.secondaryButton} disabled={running} onPress={() => setBrowsing(true)}>
-          <Text style={styles.secondaryButtonText}>Browse</Text>
+      {devicePicker && (
+        <View style={styles.folderRow}>
+          <SubscriptionLock>
+            <Pressable
+              style={[styles.primaryButton, (running || uploading) && styles.disabled]}
+              disabled={running || uploading}
+              onPress={chooseOnComputer}
+            >
+              <Text style={styles.primaryButtonText}>
+                {gallery.counts.total > 0 ? "Add photos from this computer" : "Choose folder on this computer"}
+              </Text>
+            </Pressable>
+          </SubscriptionLock>
+        </View>
+      )}
+
+      {device && (
+        <View style={styles.progressBox}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${devicePercent}%` }]} />
+          </View>
+          <Text style={styles.progressText}>
+            {progress
+              ? `Adding photos from "${device.folder}"… ${progress.done} of ${progress.total} (${devicePercent}%)`
+              : `Checking "${device.folder}"…`}
+          </Text>
+          <Text style={styles.hint}>Keep this page open until it finishes.</Text>
+        </View>
+      )}
+
+      {devicePicker && !showServer && (
+        <Pressable onPress={() => setShowServer(true)} style={{ alignSelf: "flex-start" }} disabled={uploading}>
+          <Text style={styles.serverLink}>Photos already on the studio server? Use a server folder instead</Text>
         </Pressable>
-        <SubscriptionLock>
-          <Pressable
-            style={[styles.primaryButton, (running || starting || !folder.trim()) && styles.disabled]}
-            disabled={running || starting || !folder.trim()}
-            onPress={start}
-          >
-            <Text style={styles.primaryButtonText}>{gallery.counts.total > 0 ? "Import new photos" : "Import photos"}</Text>
+      )}
+
+      {(showServer || !devicePicker) && (
+        <View style={styles.folderRow}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            value={folder}
+            onChangeText={setFolder}
+            placeholder={"Server folder, e.g. D:\\Photos\\Meera Wedding\\Selected"}
+            placeholderTextColor="#6f83a0"
+            editable={!running && !uploading}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Pressable style={styles.secondaryButton} disabled={running || uploading} onPress={() => setBrowsing(true)}>
+            <Text style={styles.secondaryButtonText}>Browse</Text>
           </Pressable>
-        </SubscriptionLock>
-      </View>
+          <SubscriptionLock>
+            <Pressable
+              style={[devicePicker ? styles.secondaryButton : styles.primaryButton, (running || uploading || starting || !folder.trim()) && styles.disabled]}
+              disabled={running || uploading || starting || !folder.trim()}
+              onPress={start}
+            >
+              <Text style={devicePicker ? styles.secondaryButtonText : styles.primaryButtonText}>
+                {gallery.counts.total > 0 ? "Import new photos" : "Import photos"}
+              </Text>
+            </Pressable>
+          </SubscriptionLock>
+        </View>
+      )}
 
       {!!message && <Text style={styles.error}>{message}</Text>}
+      {!!deviceNote && <Text style={deviceNote.tone === "ok" ? styles.okText : styles.warnText}>{deviceNote.text}</Text>}
       {!!skippedNote && <Text style={styles.warnText}>{skippedNote}</Text>}
 
       {running && job && (
@@ -256,7 +360,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
         </View>
       )}
 
-      {!running && job && (job.status === "Completed" || job.status === "CompletedWithErrors" || job.status === "Failed") && (
+      {!running && !uploading && !deviceNote && job && (job.status === "Completed" || job.status === "CompletedWithErrors" || job.status === "Failed") && (
         <Text style={job.status === "Completed" ? styles.okText : styles.warnText}>
           {job.status === "Failed"
             ? job.errorMessage ?? "The last import failed."
@@ -264,7 +368,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
         </Text>
       )}
 
-      {!running && gallery.importedSources.length > 0 && (
+      {!running && !uploading && gallery.importedSources.length > 0 && (
         <ImportedFolders gallery={gallery} onChanged={onChanged} onRemoved={setRemovedNote} />
       )}
       {!!removedNote && <Text style={styles.okText}>{removedNote}</Text>}
@@ -272,6 +376,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
       {gallery.previewsPurged && (
         <Text style={styles.warnText}>
           The previews for this event were deleted 10 days after the link was sent. Your original photos are untouched.
+          {isDeviceSource(gallery.sourceFolder) ? " To show them again, choose the same folder on this computer." : ""}
         </Text>
       )}
 
@@ -732,6 +837,7 @@ const styles = StyleSheet.create({
   hintSmall: { color: "#6f83a0", fontSize: 12 },
   label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginTop: 6 },
   error: { color: "#ff7a72", fontSize: 13 },
+  serverLink: { color: "#7fc0e6", fontSize: 13, textDecorationLine: "underline" },
   okText: { color: "#4cc493", fontSize: 13 },
   warnText: { color: "#f2bd5c", fontSize: 13 },
   disabled: { opacity: 0.45 },

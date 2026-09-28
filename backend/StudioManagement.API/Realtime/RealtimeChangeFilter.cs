@@ -70,6 +70,11 @@ public class RealtimeChangeFilter(IStudioChangeNotifier notifier, ITenantContext
             return;
         }
 
+        if (action.MethodInfo.IsDefined(typeof(SkipRealtimeAttribute), inherit: false))
+        {
+            return;
+        }
+
         var controller = action.ControllerName;
         var user = context.HttpContext.User;
         int? studioId = null;

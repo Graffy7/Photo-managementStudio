@@ -1,4 +1,5 @@
 using StudioManagement.API.Filters;
+using StudioManagement.API.Realtime;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ public class PhotoGalleriesController(
     IPhotoImportService importService,
     IPhotoSelectionCopyService copyService,
     IPhotoFolderService folderService,
+    IDevicePhotoService devicePhotos,
     IValidator<ImportRequestDto> importValidator,
     IValidator<GenerateLinkRequestDto> linkValidator,
     IValidator<SaveFolderRequestDto> folderValidator,
@@ -132,9 +134,62 @@ public class PhotoGalleriesController(
 
     // After the retention period the previews are deleted; this makes them again from the originals
     // so the owner can send a new link.
+    // ---- Photos from the studio's own computer (hosted use) ---------------------------------------
+    // The browser opens the computer's folder dialog, makes a screen-size copy of each photo locally
+    // and uploads only that; the originals stay on the studio's computer.
+
+    // Which photos of that folder already have previews (so choosing the folder again only sends the rest).
+    [HttpGet("{id:int}/device-photos")]
+    public async Task<IActionResult> DevicePhotosPresent(int id, [FromQuery] string folder, CancellationToken ct)
+    {
+        var present = await devicePhotos.GetPresentAsync(StudioId, id, folder, ct);
+        return present is null ? NotFound() : Ok(new { present });
+    }
+
+    // One photo. multipart: file (the browser-made preview), folder (the chosen folder's name),
+    // path (the photo's path inside that folder, e.g. "Candid Photos/IMG_0001.JPG").
+    [HttpPost("{id:int}/device-photos")]
+    [SkipRealtime]
+    [RequestSizeLimit(16 * 1024 * 1024)]
+    public async Task<IActionResult> AddDevicePhoto(int id, [FromForm] IFormFile? file, [FromForm] string? folder, [FromForm] string? path, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No image was uploaded." });
+        }
+        await using var stream = file.OpenReadStream();
+        var outcome = await devicePhotos.AddAsync(StudioId, id, folder ?? "", path ?? "", stream, ct);
+        return outcome switch
+        {
+            DeviceUploadOutcome.GalleryNotFound => NotFound(),
+            DeviceUploadOutcome.InvalidPath => BadRequest(new { message = "That folder or file name can't be used." }),
+            DeviceUploadOutcome.NotAPhoto => BadRequest(new { message = "Only JPEG and RAW photos can be added." }),
+            DeviceUploadOutcome.InvalidImage => BadRequest(new { message = "That file isn't a readable photo." }),
+            _ => Ok(new { outcome = outcome.ToString() })
+        };
+    }
+
+    // The browser has finished the folder: one log line, and the studio's other devices refresh.
+    [HttpPost("{id:int}/device-photos/done")]
+    public async Task<IActionResult> DevicePhotosDone(int id, DeviceImportDoneDto request, CancellationToken ct) =>
+        await devicePhotos.CompleteAsync(StudioId, id, request.Folder ?? "", request.Added, request.Skipped, request.Failed, ct) ? NoContent() : NotFound();
+
+    // The customer's picks and where each original is inside the chosen folder - the studio's browser
+    // copies them into "Customer Selection" on their own computer.
+    [HttpGet("{id:int}/device-photos/selection")]
+    public async Task<IActionResult> DeviceSelectionFiles(int id, CancellationToken ct)
+    {
+        var files = await devicePhotos.GetSelectionFilesAsync(StudioId, id, ct);
+        return files is null ? NotFound() : Ok(files);
+    }
+
     [HttpPost("{id:int}/rebuild-previews")]
     public async Task<IActionResult> RebuildPreviews(int id, CancellationToken ct)
     {
+        if (DevicePhotoService.IsDeviceSource((await galleryService.GetAsync(StudioId, id, ct))?.SourceFolder))
+        {
+            return Conflict(new { code = "CHOOSE_FOLDER_AGAIN", message = "These photos came from your computer. Choose the same folder again to rebuild the previews." });
+        }
         var result = await importService.StartRebuildAsync(StudioId, id, ct);
         if (result.Succeeded)
         {

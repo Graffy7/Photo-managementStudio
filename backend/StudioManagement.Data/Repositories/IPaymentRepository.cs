@@ -7,6 +7,8 @@ public interface IPaymentRepository
     Task<Payment?> GetByIdAsync(int studioId, int paymentId, CancellationToken ct = default);
     Task<(List<Payment> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default);
     Task<List<Payment>> GetForEventAsync(int studioId, int eventId, CancellationToken ct = default);
+    // Completed advance payments per event (see Payment.IsAdvance).
+    Task<Dictionary<int, decimal>> GetCompletedAdvanceTotalsByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);
     Task<List<(int EventId, decimal TotalPaid)>> GetCompletedTotalsByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);
     // Completed total for one event / one customer, optionally leaving out one payment (the one
     // being edited). Used to check a new amount against what is due or already paid.
