@@ -604,7 +604,14 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
         <>
           {activeLink ? (
             <View style={styles.linkBox}>
-              <Text style={styles.linkText} selectable numberOfLines={2}>{link}</Text>
+              <Text
+                style={styles.linkText}
+                numberOfLines={2}
+                accessibilityRole="link"
+                onPress={() => { if (link) void Linking.openURL(link); }}
+              >
+                {link}
+              </Text>
               <Text style={styles.linkMeta}>
                 Expires {formatDate(gallery.expiresAt)}{remaining !== null ? ` · ${remaining > 0 ? `${remaining} day${remaining === 1 ? "" : "s"} left` : "today"}` : ""}
               </Text>
@@ -893,7 +900,7 @@ const styles = StyleSheet.create({
   progressText: { color: "#a7b7cb", fontSize: 12 },
 
   linkBox: { backgroundColor: "#132540", borderRadius: 8, borderWidth: 1, borderColor: "#23405c", padding: 12, gap: 4 },
-  linkText: { color: "#7fc0e6", fontSize: 13 },
+  linkText: { color: "#7fc0e6", fontSize: 13, textDecorationLine: "underline" },
   linkMeta: { color: "#6f83a0", fontSize: 12 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
   divider: { borderTopWidth: 1, borderTopColor: "#1b2c42", paddingTop: 14, marginTop: 6 },

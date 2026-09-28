@@ -458,7 +458,7 @@ function directoryPicker() {
   return (window as unknown as { showDirectoryPicker: (o: object) => Promise<DirHandle> }).showDirectoryPicker;
 }
 
-export interface CopyResult { copied: number; missing: string[]; folders: string[]; asked: boolean }
+export interface CopyResult { copied: number; missing: string[]; folders: string[]; selectionFolders: DirHandle[]; asked: boolean }
 
 // The photo folder each source came from: the one remembered from "Add photos" (the browser may ask
 // "Allow editing?" once), otherwise the owner chooses it. Called straight from the button press,
@@ -494,12 +494,12 @@ export async function copySelectionOnThisComputer(
   files: DeviceSelectionFile[],
   onProgress: (done: number, total: number) => void,
 ): Promise<Omit<CopyResult, "asked">> {
-  const targets = new Map<DirHandle, { dirs: Record<string, DirHandle>; wanted: Record<string, Set<string>> }>();
+  const targets = new Map<DirHandle, { selection: DirHandle; dirs: Record<string, DirHandle>; wanted: Record<string, Set<string>> }>();
   const targetFor = async (root: DirHandle) => {
     let t = targets.get(root);
     if (!t) {
       const selection = await root.getDirectoryHandle("Customer Selection", { create: true });
-      t = { dirs: {}, wanted: {} };
+      t = { selection, dirs: {}, wanted: {} };
       for (const type of ["Normal", "Big Size"]) {
         t.dirs[type] = await selection.getDirectoryHandle(type, { create: true });
         t.wanted[type] = new Set();
@@ -549,7 +549,24 @@ export async function copySelectionOnThisComputer(
       for (const name of stale) await dir.removeEntry(name).catch(() => undefined);
     }
   }
-  return { copied, missing, folders: [...targets.keys()].map((r) => `${r.name}\\Customer Selection`) };
+  return {
+    copied,
+    missing,
+    folders: [...targets.keys()].map((r) => `${r.name}\\Customer Selection`),
+    selectionFolders: [...targets.values()].map((t) => t.selection),
+  };
+}
+
+// Opens the computer's file window already inside "Customer Selection", so the owner sees where the
+// folders are (the address bar shows the full path). A website can't open File Explorer itself.
+export async function showFolderOnComputer(folder: DirHandle): Promise<void> {
+  const picker = (window as unknown as { showOpenFilePicker?: (o: object) => Promise<unknown> }).showOpenFilePicker;
+  if (!picker) return;
+  try {
+    await picker({ startIn: folder, multiple: true });
+  } catch {
+    // Closing the window is the normal way out.
+  }
 }
 
 async function openRelative(root: DirHandle, relativePath: string): Promise<File> {

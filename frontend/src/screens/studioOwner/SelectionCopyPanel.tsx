@@ -6,7 +6,8 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { SelectedPhotosModal } from "./SelectedPhotosModal";
 import type { CopyJob, OwnerGallery } from "../../types/photoSelection";
 import {
-  canCopyOnThisComputer, copySelectionOnThisComputer, DEVICE_SOURCE_PREFIX, isDeviceSource, openPhotoFolders,
+  canCopyOnThisComputer, copySelectionOnThisComputer, DEVICE_SOURCE_PREFIX, isDeviceSource, openPhotoFolders, showFolderOnComputer,
+  type DirHandle,
 } from "../../utils/devicePhotos";
 
 function formatDateTime(value: string | null): string {
@@ -166,6 +167,7 @@ function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<{ text: string; tone: "ok" | "warn" | "error" } | null>(null);
+  const [created, setCreated] = useState<DirHandle | null>(null);
   const c = gallery.counts;
   const submitted = gallery.submittedAt !== null;
   // Only Chrome / Edge let a website create folders on the computer.
@@ -173,6 +175,7 @@ function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
 
   const create = async () => {
     setResult(null);
+    setCreated(null);
     setBusy(true);
     try {
       // First, while the click still counts: open the photo folder remembered from "Add photos".
@@ -185,6 +188,7 @@ function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
       const missing = r.missing.length > 0
         ? ` ${r.missing.length} couldn't be found (e.g. ${r.missing.slice(0, 3).join(", ")}) — they may have been moved or renamed.`
         : "";
+      setCreated(r.selectionFolders[0] ?? null);
       setResult({
         text: `✓ Created in ${r.folders.join(", ") || "the photo folder"}: Normal ${c.normal} · Big Size ${c.big}.${missing}`,
         tone: r.missing.length ? "warn" : "ok",
@@ -223,6 +227,11 @@ function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
         )}
         {!!result && (
           <Text style={result.tone === "ok" ? styles.okText : result.tone === "warn" ? styles.warnText : styles.errorText}>{result.text}</Text>
+        )}
+        {!!created && (
+          <Pressable style={[styles.secondaryButton, { alignSelf: "flex-start" }]} onPress={() => void showFolderOnComputer(created)}>
+            <Text style={styles.secondaryText}>📂 Show folder</Text>
+          </Pressable>
         )}
       </View>
     </>
