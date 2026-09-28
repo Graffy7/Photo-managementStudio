@@ -148,7 +148,8 @@ public class DevicePhotoService(
             {
                 PhotoGalleryId = galleryId,
                 PhotoNumber = await photoRepository.GetMaxPhotoNumberAsync(galleryId, ct) + 1,
-                FileName = Path.GetFileName(relative),
+                // Stored paths use '\'; Path.GetFileName only splits on it on Windows.
+                FileName = relative[(relative.LastIndexOf('\\') + 1)..],
                 SourceFolder = source,
                 SourceRelativePath = relative,
                 PhotoFolderId = folderId,

@@ -13,7 +13,8 @@ public static class SelectionFolders
     // files are our own generated copies, so imports must never treat them as new photos.
     public static bool IsInsideGenerated(string relativePath)
     {
-        var segments = relativePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],StringSplitOptions.RemoveEmptyEntries);
+        // Both separators on every OS: paths from a Windows computer use '\' even when the server runs Linux.
+        var segments = relativePath.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
         return segments.Length > 1 && segments[..^1].Any(s => s.Equals(RootName, StringComparison.OrdinalIgnoreCase));
     }
 }
