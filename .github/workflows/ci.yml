@@ -1,0 +1,112 @@
+# Checks every push and pull request: builds the API and the website, then runs the API test suite
+# against a fresh SQL Server database. Nothing here deploys anything.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: API build + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          # Throwaway database that only exists for this run.
+          MSSQL_SA_PASSWORD: "Ci_Only_Passw0rd!"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Ci_Only_Passw0rd!' -C -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://localhost:5237
+      ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=StudioOS_CI;User Id=sa;Password=Ci_Only_Passw0rd!;TrustServerCertificate=True"
+      Bootstrap__SuperAdminEmail: ci-admin@studioos.test
+      Bootstrap__SuperAdminPassword: "CiAdmin!Pass2026"
+      CI_ADMIN_EMAIL: ci-admin@studioos.test
+      CI_ADMIN_PASSWORD: "CiAdmin!Pass2026"
+      API_BASE: http://localhost:5237/api
+      DOTNET_NOLOGO: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build StudioManagement.slnx -c Release
+
+      - name: Create the database (migrations)
+        working-directory: backend
+        run: |
+          dotnet tool install --global dotnet-ef --version "10.*"
+          dotnet ef database update --no-build -c Release \
+            --project StudioManagement.Data --startup-project StudioManagement.API
+
+      - name: Start the API
+        working-directory: backend/StudioManagement.API
+        run: |
+          # A signing key made up for this run only.
+          export Jwt__Key="$(openssl rand -hex 48)"
+          nohup dotnet bin/Release/net10.0/StudioManagement.API.dll > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fs http://localhost:5237/health > /dev/null; then echo "API is up"; exit 0; fi
+            sleep 2
+          done
+          echo "API did not start"; cat "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: API tests
+        run: python tests/api/test_api.py
+
+      - name: API log (on failure)
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/api.log" || true
+
+  frontend:
+    name: Website type-check + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build the website
+        run: npx expo export --platform web --output-dir dist
