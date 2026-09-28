@@ -5,7 +5,9 @@ import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { SelectedPhotosModal } from "./SelectedPhotosModal";
 import type { CopyJob, OwnerGallery } from "../../types/photoSelection";
-import { canCopyOnThisComputer, copySelectionOnThisComputer, isDeviceSource } from "../../utils/devicePhotos";
+import {
+  canCopyOnThisComputer, copySelectionOnThisComputer, DEVICE_SOURCE_PREFIX, isDeviceSource, openPhotoFolders,
+} from "../../utils/devicePhotos";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "—";
@@ -166,21 +168,30 @@ function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
   const [result, setResult] = useState<{ text: string; tone: "ok" | "warn" | "error" } | null>(null);
   const c = gallery.counts;
   const submitted = gallery.submittedAt !== null;
+  // Only Chrome / Edge let a website create folders on the computer.
   const supported = canCopyOnThisComputer();
 
-  const copy = async () => {
+  const create = async () => {
     setResult(null);
     setBusy(true);
     try {
+      // First, while the click still counts: open the photo folder remembered from "Add photos".
+      const sources = gallery.importedSources
+        .filter((s) => isDeviceSource(s.sourceFolder))
+        .map((s) => s.sourceFolder.slice(DEVICE_SOURCE_PREFIX.length));
+      const { folders } = await openPhotoFolders(gallery.galleryId, sources);
       const files = await photoSelectionApi.deviceSelection(gallery.galleryId);
-      const r = await copySelectionOnThisComputer(files, (done, total) => setProgress(`Copying ${done} of ${total}…`));
+      const r = await copySelectionOnThisComputer(folders, files, (done, total) => setProgress(`Creating ${done} of ${total}…`));
       const missing = r.missing.length > 0
-        ? ` ${r.missing.length} couldn't be found (e.g. ${r.missing.slice(0, 3).join(", ")}) — choose the same folder the photos were added from.`
+        ? ` ${r.missing.length} couldn't be found (e.g. ${r.missing.slice(0, 3).join(", ")}) — they may have been moved or renamed.`
         : "";
-      setResult({ text: `${r.copied} photo${r.copied === 1 ? "" : "s"} ready in ${r.folder} (Normal ${c.normal} · Big Size ${c.big}).${missing}`, tone: r.missing.length ? "warn" : "ok" });
+      setResult({
+        text: `✓ Created in ${r.folders.join(", ") || "the photo folder"}: Normal ${c.normal} · Big Size ${c.big}.${missing}`,
+        tone: r.missing.length ? "warn" : "ok",
+      });
     } catch (err) {
       if ((err as { name?: string }).name === "AbortError") return; // the owner closed the folder window
-      setResult({ text: extractErrorMessage(err, "Couldn't copy the photos. Please try again."), tone: "error" });
+      setResult({ text: extractErrorMessage(err, "Couldn't create the folders. Please try again."), tone: "error" });
     } finally {
       setBusy(false);
       setProgress(null);
@@ -193,19 +204,21 @@ function ComputerCopy({ gallery }: { gallery: OwnerGallery }) {
         <Pressable
           style={[styles.primaryButton, (!supported || !submitted || c.selected === 0 || busy) && styles.disabled]}
           disabled={!supported || !submitted || c.selected === 0 || busy}
-          onPress={copy}
+          onPress={create}
         >
-          <Text style={styles.primaryText}>{busy ? progress ?? "Choose the photo folder…" : "Copy Selected Photos to this computer"}</Text>
+          <Text style={styles.primaryText}>{busy ? progress ?? "Opening the photo folder…" : "Create Selected Photos"}</Text>
         </Pressable>
       </SubscriptionLock>
       <View style={{ width: "100%", gap: 6 }}>
         {!supported && (
-          <Text style={styles.warnText}>Copying needs Google Chrome or Microsoft Edge on a computer. You can still export the list below.</Text>
+          <Text style={styles.warnText}>
+            To create the Normal and Big Size folders on this computer, open Studio OS in Google Chrome or Microsoft Edge.
+          </Text>
         )}
         {supported && !submitted && <Text style={styles.hint}>Available once the customer submits their selection.</Text>}
         {supported && submitted && !result && (
           <Text style={styles.hint}>
-            You'll be asked to choose the folder the photos were added from; a “Customer Selection” folder with Normal and Big Size is made inside it. Originals are not moved.
+            Creates “Customer Selection” with Normal and Big Size folders inside the folder the photos were added from, and puts the customer's original photos in them.
           </Text>
         )}
         {!!result && (

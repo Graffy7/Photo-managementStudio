@@ -40,10 +40,47 @@ export interface PickedFolder {
   name: string;
   photos: PickedPhoto[];
   skipped: { videos: number; other: number; rawWithJpeg: number; examples: string[] };
+  handle?: DirHandle; // Chrome / Edge: the chosen folder itself, remembered for copying the picks back
 }
 
 // Opens the computer's folder window. Resolves null when the owner closes it without choosing.
-export function pickFolder(): Promise<PickedFolder | null> {
+// In Chrome / Edge the chosen folder is also remembered (see rememberFolder), so the customer's picks
+// can later be copied back into it without choosing it again.
+export async function pickFolder(): Promise<PickedFolder | null> {
+  if (canCopyOnThisComputer()) {
+    const started = Date.now();
+    let handle: DirHandle;
+    try {
+      // "readwrite" now, so creating the Customer Selection folders later needs no further question.
+      handle = await directoryPicker()({ id: "studio-photos", mode: "readwrite" });
+    } catch (err) {
+      // A real "Cancel" takes the owner a moment; an instant refusal means the window can't open here.
+      if ((err as { name?: string }).name === "AbortError" && Date.now() - started > 700) return null;
+      pickerBroken = true;
+      throw new FolderWindowUnavailableError("The folder window didn't open. Click the button again.");
+    }
+    const entries: { file: File; path: string }[] = [];
+    await walk(handle, "", entries);
+    return { ...sortEntries(entries, handle.name), handle };
+  }
+  const files = await pickFolderFiles();
+  return files ? sortFiles(files) : null;
+}
+
+async function walk(dir: DirHandle, prefix: string, out: { file: File; path: string }[], depth = 0) {
+  if (depth > 12 || !dir.entries) return;
+  for await (const [name, entry] of dir.entries()) {
+    if (entry.kind === "directory") {
+      // Our own "Customer Selection" copies are never imported again.
+      if (name.toLowerCase() !== SELECTION_FOLDER) await walk(entry as DirHandle, `${prefix}${name}/`, out, depth + 1);
+    } else {
+      out.push({ file: await (entry as FileHandle).getFile(), path: prefix + name });
+    }
+  }
+}
+
+// Every file in the folder the owner chooses (read-only; nothing is uploaded). Null when cancelled.
+function pickFolderFiles(): Promise<File[] | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
@@ -51,17 +88,17 @@ export function pickFolder(): Promise<PickedFolder | null> {
     (input as HTMLInputElement & { webkitdirectory: boolean }).webkitdirectory = true;
     input.style.display = "none";
     document.body.appendChild(input);
-    const finish = (value: PickedFolder | null) => {
+    const finish = (value: File[] | null) => {
       input.remove();
       resolve(value);
     };
-    input.addEventListener("change", () => finish(input.files && input.files.length > 0 ? sortFiles(Array.from(input.files)) : null));
+    input.addEventListener("change", () => finish(input.files && input.files.length > 0 ? Array.from(input.files) : null));
     input.addEventListener("cancel", () => finish(null));
     input.click();
   });
 }
 
-// Keeps JPEG and RAW photos; a RAW whose JPEG twin is in the same folder is left out (same photo).
+// Files from the classic folder window carry "Folder/sub/file.jpg" in webkitRelativePath.
 export function sortFiles(files: File[]): PickedFolder | null {
   if (files.length === 0) return null;
   const withPath = files.map((file) => {
@@ -69,15 +106,17 @@ export function sortFiles(files: File[]): PickedFolder | null {
     const slash = full.indexOf("/");
     return { file, folder: slash < 0 ? "" : full.slice(0, slash), path: slash < 0 ? full : full.slice(slash + 1) };
   });
-  const name = withPath[0].folder || "Photos";
+  return sortEntries(withPath, withPath[0].folder || "Photos");
+}
 
+// Keeps JPEG and RAW photos; a RAW whose JPEG twin is in the same folder is left out (same photo).
+function sortEntries(entries: { file: File; path: string }[], name: string): PickedFolder {
   const skipped = { videos: 0, other: 0, rawWithJpeg: 0, examples: [] as string[] };
   const note = (file: File) => { if (skipped.examples.length < 5) skipped.examples.push(file.name); };
   const candidates: { file: File; path: string; kind: "jpeg" | "raw" }[] = [];
 
-  for (const { file, path } of withPath) {
+  for (const { file, path } of entries) {
     const segments = path.split("/");
-    // Our own "Customer Selection" copies are never imported again.
     if (segments.slice(0, -1).some((s) => s.toLowerCase() === SELECTION_FOLDER)) continue;
     if (file.name.startsWith(".") || IGNORED.has(file.name.toLowerCase())) continue;
     const ext = extensionOf(file.name);
@@ -95,6 +134,53 @@ export function sortFiles(files: File[]): PickedFolder | null {
   }
   photos.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: "base" }));
   return { name, photos, skipped };
+}
+
+// ---- Remembering the photo folder (this computer only) --------------------------------------------
+// The browser keeps a reference to the folder the photos were added from, per event, in its own
+// storage on this computer. Nothing about the folder is sent to the server.
+
+const DB_NAME = "studio-os-photo-folders";
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("folders");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+const folderKey = (galleryId: number, folderName: string) => `${galleryId}|${folderName.toLowerCase()}`;
+
+export async function rememberFolder(galleryId: number, folderName: string, handle: DirHandle): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("folders", "readwrite");
+      tx.objectStore("folders").put(handle, folderKey(galleryId, folderName));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch {
+    // Private windows can block storage; the owner is simply asked for the folder when copying.
+  }
+}
+
+async function rememberedFolder(galleryId: number, folderName: string): Promise<DirHandle | null> {
+  try {
+    const db = await openDb();
+    const handle = await new Promise<DirHandle | null>((resolve, reject) => {
+      const req = db.transaction("folders").objectStore("folders").get(folderKey(galleryId, folderName));
+      req.onsuccess = () => resolve((req.result as DirHandle) ?? null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return handle;
+  } catch {
+    return null;
+  }
 }
 
 // ---- Making the preview ------------------------------------------------------------------------
@@ -335,36 +421,93 @@ export interface DeviceSelectionFile {
   selectionType: string; // "Normal" | "Big Size"
 }
 
+// Chrome / Edge can read and write a chosen folder. Some browsers inside other apps (Electron-based
+// ones) have the function but it cancels at once without showing anything - they use the classic
+// folder window and the ZIP download instead.
+let pickerBroken = false;
+
 export function canCopyOnThisComputer(): boolean {
-  return typeof window !== "undefined" && "showDirectoryPicker" in window;
+  if (typeof window === "undefined" || !("showDirectoryPicker" in window) || pickerBroken) return false;
+  return !/Electron|Claude\//.test(navigator.userAgent);
 }
 
-type DirHandle = {
-  name: string;
-  getDirectoryHandle: (name: string, o?: { create?: boolean }) => Promise<DirHandle>;
-  getFileHandle: (name: string, o?: { create?: boolean }) => Promise<{
-    getFile: () => Promise<File>;
-    createWritable: () => Promise<{ write: (d: Blob) => Promise<void>; close: () => Promise<void> }>;
-  }>;
-  removeEntry?: (name: string) => Promise<void>;
-  values?: () => AsyncIterable<{ kind: string; name: string }>;
+// Thrown when the folder window turned out not to work here; the next click uses the classic one.
+export class FolderWindowUnavailableError extends Error {}
+
+type FileHandle = {
+  kind: "file";
+  getFile: () => Promise<File>;
+  createWritable: () => Promise<{ write: (d: Blob) => Promise<void>; close: () => Promise<void> }>;
 };
 
-export interface CopyResult { copied: number; missing: string[]; folder: string }
+type DirHandle = {
+  kind: "directory";
+  name: string;
+  getDirectoryHandle: (name: string, o?: { create?: boolean }) => Promise<DirHandle>;
+  getFileHandle: (name: string, o?: { create?: boolean }) => Promise<FileHandle>;
+  removeEntry?: (name: string) => Promise<void>;
+  values?: () => AsyncIterable<{ kind: string; name: string }>;
+  entries?: () => AsyncIterable<[string, FileHandle | DirHandle]>;
+  queryPermission?: (o: { mode: "read" | "readwrite" }) => Promise<PermissionState>;
+  requestPermission?: (o: { mode: "read" | "readwrite" }) => Promise<PermissionState>;
+};
 
-// The owner points at the photo folder; the picks are copied into
-// "<that folder>\Customer Selection\Normal" and "...\Big Size". Files there that are no longer picked
-// are removed, so pressing it again after the customer changes their mind brings it up to date.
-export async function copySelectionOnThisComputer(files: DeviceSelectionFile[], onProgress: (done: number, total: number) => void): Promise<CopyResult> {
-  const picker = (window as unknown as { showDirectoryPicker: (o: object) => Promise<DirHandle> }).showDirectoryPicker;
-  const root = await picker({ id: "studio-photos", mode: "readwrite" });
-  const selection = await root.getDirectoryHandle("Customer Selection", { create: true });
-  const targets: Record<string, DirHandle> = {};
-  const wanted: Record<string, Set<string>> = {};
-  for (const type of ["Normal", "Big Size"]) {
-    targets[type] = await selection.getDirectoryHandle(type, { create: true });
-    wanted[type] = new Set();
+export type { DirHandle };
+
+function directoryPicker() {
+  return (window as unknown as { showDirectoryPicker: (o: object) => Promise<DirHandle> }).showDirectoryPicker;
+}
+
+export interface CopyResult { copied: number; missing: string[]; folders: string[]; asked: boolean }
+
+// The photo folder each source came from: the one remembered from "Add photos" (the browser may ask
+// "Allow editing?" once), otherwise the owner chooses it. Called straight from the button press,
+// since the browser only shows those questions right after a click.
+export async function openPhotoFolders(galleryId: number, sources: string[]): Promise<{ folders: Map<string, DirHandle>; asked: boolean }> {
+  const folders = new Map<string, DirHandle>();
+  let asked = false;
+  for (const source of sources) {
+    const remembered = await rememberedFolder(galleryId, source);
+    if (remembered?.requestPermission) {
+      const state = (await remembered.queryPermission?.({ mode: "readwrite" })) === "granted"
+        ? "granted"
+        : await remembered.requestPermission({ mode: "readwrite" }).catch(() => "denied" as PermissionState);
+      if (state === "granted") {
+        folders.set(source.toLowerCase(), remembered);
+        continue;
+      }
+    }
+    // Not remembered on this computer (another PC, or added before this existed): choose it once.
+    asked = true;
+    const chosen = await directoryPicker()({ id: "studio-photos", mode: "readwrite", ...(remembered ? { startIn: remembered } : {}) });
+    folders.set(source.toLowerCase(), chosen);
+    await rememberFolder(galleryId, source, chosen);
   }
+  return { folders, asked };
+}
+
+// The picks are copied into "<photo folder>\Customer Selection\Normal" and "...\Big Size". Files there
+// that are no longer picked are removed, so pressing it again after the customer changes their mind
+// brings it up to date.
+export async function copySelectionOnThisComputer(
+  folders: Map<string, DirHandle>,
+  files: DeviceSelectionFile[],
+  onProgress: (done: number, total: number) => void,
+): Promise<Omit<CopyResult, "asked">> {
+  const targets = new Map<DirHandle, { dirs: Record<string, DirHandle>; wanted: Record<string, Set<string>> }>();
+  const targetFor = async (root: DirHandle) => {
+    let t = targets.get(root);
+    if (!t) {
+      const selection = await root.getDirectoryHandle("Customer Selection", { create: true });
+      t = { dirs: {}, wanted: {} };
+      for (const type of ["Normal", "Big Size"]) {
+        t.dirs[type] = await selection.getDirectoryHandle(type, { create: true });
+        t.wanted[type] = new Set();
+      }
+      targets.set(root, t);
+    }
+    return t;
+  };
 
   const missing: string[] = [];
   let copied = 0;
@@ -372,12 +515,15 @@ export async function copySelectionOnThisComputer(files: DeviceSelectionFile[], 
   for (const f of files) {
     const type = f.selectionType === "Big Size" ? "Big Size" : "Normal";
     try {
-      // The chosen folder is normally the photo folder itself; if the owner chose the folder above it, look inside.
+      const root = folders.get(f.source.toLowerCase()) ?? [...folders.values()][0];
+      if (!root) throw new Error("No folder");
+      // Normally the photo folder itself; if the owner chose the folder above it, look inside.
       const base = f.source.toLowerCase() === root.name.toLowerCase() ? root : await root.getDirectoryHandle(f.source).catch(() => root);
       const original = await openRelative(base, f.relativePath);
+      const t = await targetFor(root);
       const outName = f.relativePath.split("/").pop() ?? f.fileName;
-      wanted[type].add(outName.toLowerCase());
-      const out = await targets[type].getFileHandle(outName, { create: true });
+      t.wanted[type].add(outName.toLowerCase());
+      const out = await t.dirs[type].getFileHandle(outName, { create: true });
       const existing = await out.getFile();
       if (existing.size !== original.size) {
         const writer = await out.createWritable();
@@ -392,16 +538,18 @@ export async function copySelectionOnThisComputer(files: DeviceSelectionFile[], 
   }
 
   // Photos the customer has since un-picked (or moved to the other size).
-  for (const type of Object.keys(targets)) {
-    const dir = targets[type];
-    if (!dir.values || !dir.removeEntry) continue;
-    const stale: string[] = [];
-    for await (const entry of dir.values()) {
-      if (entry.kind === "file" && !wanted[type].has(entry.name.toLowerCase())) stale.push(entry.name);
+  for (const t of targets.values()) {
+    for (const type of Object.keys(t.dirs)) {
+      const dir = t.dirs[type];
+      if (!dir.values || !dir.removeEntry) continue;
+      const stale: string[] = [];
+      for await (const entry of dir.values()) {
+        if (entry.kind === "file" && !t.wanted[type].has(entry.name.toLowerCase())) stale.push(entry.name);
+      }
+      for (const name of stale) await dir.removeEntry(name).catch(() => undefined);
     }
-    for (const name of stale) await dir.removeEntry(name).catch(() => undefined);
   }
-  return { copied, missing, folder: `${root.name}\\Customer Selection` };
+  return { copied, missing, folders: [...targets.keys()].map((r) => `${r.name}\\Customer Selection`) };
 }
 
 async function openRelative(root: DirHandle, relativePath: string): Promise<File> {

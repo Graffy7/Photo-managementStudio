@@ -11,7 +11,10 @@ import { FolderBrowserModal } from "../../components/FolderBrowserModal";
 import { DeliveryFolders } from "../../components/DeliveryFolders";
 import { SelectionCopyPanel } from "./SelectionCopyPanel";
 import { downloadBytes } from "../../utils/downloadFile";
-import { canPickFolder, importPickedFolder, isDeviceSource, pickFolder, type DeviceImportProgress } from "../../utils/devicePhotos";
+import {
+  canPickFolder, FolderWindowUnavailableError, importPickedFolder, isDeviceSource, pickFolder, rememberFolder,
+  type DeviceImportProgress,
+} from "../../utils/devicePhotos";
 import { useModules } from "../../hooks/useModules";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
 import type { OwnerGallery, OwnerPhoto, PhotoFilter, SkippedFiles } from "../../types/photoSelection";
@@ -236,7 +239,13 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
 
   const chooseOnComputer = async () => {
     clearNotes();
-    const picked = await pickFolder();
+    let picked;
+    try {
+      picked = await pickFolder();
+    } catch (err) {
+      setMessage(err instanceof FolderWindowUnavailableError ? err.message : extractErrorMessage(err, "Couldn't read that folder. Please try again."));
+      return;
+    }
     if (!picked) return;
     setSkippedNote(describeSkipped(picked.skipped));
     if (picked.photos.length === 0) {
@@ -244,6 +253,8 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
       return;
     }
     const id = gallery.galleryId;
+    // Remembered on this computer so "Copy Selected Photos" can write back into this same folder.
+    if (picked.handle) void rememberFolder(id, picked.name, picked.handle);
     setDevice({ folder: picked.name, progress: null });
     try {
       const result = await importPickedFolder(picked, {
