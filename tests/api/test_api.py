@@ -44,6 +44,10 @@ def ok(cond, label, detail=""):
     else:
         failed.append(label)
         print(f"  FAIL {label}  -> {str(detail)[:300]}")
+        if os.environ.get("GITHUB_ACTIONS"):
+            # Shows on the run's summary page as well as in the log.
+            text = f"{label} -> {str(detail)[:500]}".replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+            print(f"::error title=API check failed::{text}")
 
 
 def req(method, path, body=None, tok=None, raw=None, headers=None, base=API):
