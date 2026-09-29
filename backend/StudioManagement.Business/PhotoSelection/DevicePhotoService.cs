@@ -17,7 +17,8 @@ public interface IDevicePhotoService
     Task<List<string>?> GetPresentAsync(int studioId, int galleryId, string folderName, CancellationToken ct = default);
 
     // One photo, previewed by the studio's own browser from the original on their computer.
-    Task<DeviceUploadOutcome> AddAsync(int studioId, int galleryId, string folderName, string relativePath, Stream preview, CancellationToken ct = default);
+    // originalSize: the original file's size on the studio's computer, when the browser sent it.
+    Task<DeviceUploadOutcome> AddAsync(int studioId, int galleryId, string folderName, string relativePath, Stream preview, long? originalSize = null, CancellationToken ct = default);
 
     // Called once the browser has finished a folder: one audit line for the whole import.
     Task<bool> CompleteAsync(int studioId, int galleryId, string folderName, int added, int skipped, int failed, CancellationToken ct = default);
@@ -80,7 +81,7 @@ public class DevicePhotoService(
             .ToList();
     }
 
-    public async Task<DeviceUploadOutcome> AddAsync(int studioId, int galleryId, string folderName, string relativePath, Stream preview, CancellationToken ct = default)
+    public async Task<DeviceUploadOutcome> AddAsync(int studioId, int galleryId, string folderName, string relativePath, Stream preview, long? originalSize = null, CancellationToken ct = default)
     {
         var gallery = await galleryRepository.GetByIdAsync(studioId, galleryId, ct);
         if (gallery is null)
@@ -135,8 +136,8 @@ public class DevicePhotoService(
                 {
                     return DeviceUploadOutcome.GalleryNotFound;
                 }
-                photo.ThumbnailPath = generated.ThumbnailUrl;
-                photo.PreviewPath = generated.PreviewUrl;
+                photo.ThumbnailPath = generated.ThumbnailKey;
+                photo.PreviewPath = generated.PreviewKey;
                 photo.Width = generated.Width;
                 photo.Height = generated.Height;
                 await unitOfWork.SaveChangesAsync(ct);
@@ -152,9 +153,10 @@ public class DevicePhotoService(
                 FileName = relative[(relative.LastIndexOf('\\') + 1)..],
                 SourceFolder = source,
                 SourceRelativePath = relative,
+                FileSize = originalSize is > 0 ? originalSize : null,
                 PhotoFolderId = folderId,
-                ThumbnailPath = generated.ThumbnailUrl,
-                PreviewPath = generated.PreviewUrl,
+                ThumbnailPath = generated.ThumbnailKey,
+                PreviewPath = generated.PreviewKey,
                 Width = generated.Width,
                 Height = generated.Height,
                 IsActive = true,

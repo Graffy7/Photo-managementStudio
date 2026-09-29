@@ -342,7 +342,7 @@ export interface DeviceImportProgress {
 
 export interface DeviceImportApi {
   present: (folder: string) => Promise<string[]>;
-  upload: (folder: string, path: string, preview: Blob) => Promise<void>;
+  upload: (folder: string, path: string, preview: Blob, originalSize: number) => Promise<void>;
   done: (folder: string, added: number, skipped: number, failed: number) => Promise<void>;
 }
 
@@ -375,7 +375,7 @@ export async function importPickedFolder(
       try {
         const preview = await makePreview(photo.file);
         await previous;
-        await withRetry(() => api.upload(picked.name, photo.path, preview));
+        await withRetry(() => api.upload(picked.name, photo.path, preview, photo.file.size));
         progress.added++;
       } catch {
         await previous;

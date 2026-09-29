@@ -5,6 +5,7 @@ using StudioManagement.Business.Auth;
 using StudioManagement.Business.Billing;
 using StudioManagement.Business.Features;
 using StudioManagement.Business.Notifications;
+using StudioManagement.Business.Storage;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -20,6 +21,7 @@ public class PublicPhotoSelectionService(
     IAuditService auditService,
     IFeatureService featureService,
     IStudioAccessService accessService,
+    IFileUrlService fileUrls,
     IUnitOfWork unitOfWork) : IPublicPhotoSelectionService
 {
     private const string Module = "PhotoSelection";
@@ -274,13 +276,13 @@ public class PublicPhotoSelectionService(
         });
     }
 
-    private static PublicPhotoDto ToPublicPhoto(PhotoWithSelection p) => new()
+    private PublicPhotoDto ToPublicPhoto(PhotoWithSelection p) => new()
     {
         PhotoId = p.Photo.PhotoId,
         PhotoNumber = p.Photo.PhotoNumber,
         FileName = p.Photo.FileName,
-        ThumbnailUrl = p.Photo.ThumbnailPath,
-        PreviewUrl = p.Photo.PreviewPath,
+        ThumbnailUrl = fileUrls.GetUrl(p.Photo.ThumbnailPath),
+        PreviewUrl = fileUrls.GetUrl(p.Photo.PreviewPath),
         Width = p.Photo.Width,
         Height = p.Photo.Height,
         SelectionType = p.SelectionType,

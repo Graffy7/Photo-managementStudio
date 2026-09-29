@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StudioManagement.Business.Realtime;
 using StudioManagement.API.Realtime;
 using System.Text;
@@ -91,8 +92,15 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// The database address always comes from configuration: appsettings.Development.json on a
+// developer's PC, the ConnectionStrings__DefaultConnection environment variable on a server.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not configured. On a server set the environment variable ConnectionStrings__DefaultConnection.");
+}
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
@@ -144,7 +152,21 @@ builder.Services.AddScoped<IEventWorkerRepository, EventWorkerRepository>();
 builder.Services.AddScoped<IEventDeliveryRepository, EventDeliveryRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IStudioSettingRepository, StudioSettingRepository>();
-builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+// Uploaded files (photo previews, logos, signatures): where they live comes from "Storage" in the
+// configuration, so moving them to another folder, disk or provider never touches the code.
+var storageOptions = builder.Configuration.GetSection("Storage").Get<StorageOptions>() ?? new StorageOptions();
+builder.Services.AddSingleton(storageOptions);
+switch (storageOptions.Provider)
+{
+    case StorageOptions.LocalProvider:
+        builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+        break;
+    default:
+        throw new InvalidOperationException($"Unknown Storage:Provider '{storageOptions.Provider}' (supported: {StorageOptions.LocalProvider}).");
+}
+builder.Services.TryAddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<SignedFileUrlService>();
+builder.Services.AddSingleton<IFileUrlService>(sp => sp.GetRequiredService<SignedFileUrlService>());
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
@@ -408,7 +430,6 @@ app.UseSerilogRequestLogging();
 // Security headers on every response (API JSON, PDFs, uploaded images, errors). The API never
 // serves pages of its own, so its CSP allows nothing to run or embed it; Swagger's UI (development
 // only) needs its own scripts and styles, so it gets a looser policy.
-var uploadImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp" };
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
@@ -425,14 +446,6 @@ app.Use(async (context, next) =>
         headers.Remove("X-Powered-By");
         return Task.CompletedTask;
     });
-
-    // Only images are ever served from /uploads - never a script, page or anything executable,
-    // whatever ended up on disk.
-    if (path.StartsWithSegments("/uploads") && !uploadImageExtensions.Contains(Path.GetExtension(path.Value ?? "")))
-    {
-        context.Response.StatusCode = StatusCodes.Status404NotFound;
-        return;
-    }
 
     await next();
 });
@@ -455,20 +468,8 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 
-// Serves uploaded logos (wwwroot/uploads/...) as plain public image URLs — logos aren't
-// sensitive, so this sits ahead of auth rather than behind an authorized endpoint.
-app.UseStaticFiles(new StaticFileOptions
-{
-    // Photo previews have random, never-reused file names, so they can be cached for good — a
-    // customer scrolling back through hundreds of thumbnails re-downloads nothing.
-    OnPrepareResponse = ctx =>
-    {
-        if (ctx.Context.Request.Path.StartsWithSegments("/uploads/photo-gallery"))
-        {
-            ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
-        }
-    }
-});
+// Stored files are not served as a public folder: browsers load them only through signed,
+// expiring /media links (MediaEndpoints), handed out by endpoints that already checked access.
 
 app.UseCors("StudioAppClients");
 
@@ -490,6 +491,7 @@ app.Use(async (context, next) =>
 app.UseRateLimiter();
 
 app.MapControllers();
+app.MapMedia();
 // Live updates for a studio's devices. The connection closes when its access token expires, and
 // the app reconnects with a fresh one - a signed-out or expired session doesn't keep listening.
 app.MapHub<StudioHub>(StudioHub.Path, options => options.CloseOnAuthenticationExpiration = true);

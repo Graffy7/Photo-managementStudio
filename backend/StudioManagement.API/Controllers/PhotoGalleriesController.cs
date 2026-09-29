@@ -151,14 +151,14 @@ public class PhotoGalleriesController(
     [HttpPost("{id:int}/device-photos")]
     [SkipRealtime]
     [RequestSizeLimit(16 * 1024 * 1024)]
-    public async Task<IActionResult> AddDevicePhoto(int id, [FromForm] IFormFile? file, [FromForm] string? folder, [FromForm] string? path, CancellationToken ct)
+    public async Task<IActionResult> AddDevicePhoto(int id, [FromForm] IFormFile? file, [FromForm] string? folder, [FromForm] string? path, [FromForm] long? size, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
         {
             return BadRequest(new { message = "No image was uploaded." });
         }
         await using var stream = file.OpenReadStream();
-        var outcome = await devicePhotos.AddAsync(StudioId, id, folder ?? "", path ?? "", stream, ct);
+        var outcome = await devicePhotos.AddAsync(StudioId, id, folder ?? "", path ?? "", stream, size, ct);
         return outcome switch
         {
             DeviceUploadOutcome.GalleryNotFound => NotFound(),

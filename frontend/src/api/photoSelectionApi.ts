@@ -56,11 +56,12 @@ export const photoSelectionApi = {
   devicePresent: (galleryId: number, folder: string) =>
     apiClient.get<{ present: string[] }>(`/api/photo-galleries/${galleryId}/device-photos`, { params: { folder } }).then((r) => r.data.present),
 
-  addDevicePhoto: (galleryId: number, folder: string, path: string, preview: Blob) => {
+  addDevicePhoto: (galleryId: number, folder: string, path: string, preview: Blob, originalSize: number) => {
     const form = new FormData();
     form.append("file", preview, "preview.jpg");
     form.append("folder", folder);
     form.append("path", path);
+    form.append("size", String(originalSize));
     return apiClient.post<{ outcome: string }>(`/api/photo-galleries/${galleryId}/device-photos`, form).then(() => undefined);
   },
 
@@ -119,7 +120,7 @@ export function buildCustomerLink(token: string): string {
   return `${publicBaseUrl()}/photo-selection/${token}`;
 }
 
-// Preview/thumbnail URLs come back as "/uploads/..." — served by the API host.
+// Preview/thumbnail URLs come back as signed "/media/...?exp=&sig=" links, served by the API host.
 export function photoUrl(path: string | null | undefined): string | undefined {
   return path ? `${API_BASE_URL}${path}` : undefined;
 }

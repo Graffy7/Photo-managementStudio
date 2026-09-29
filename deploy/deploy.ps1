@@ -5,7 +5,9 @@
   Steps: build -> back up the database -> keep the running version -> install the new one
          -> health check -> put the previous version back if the check fails.
 
-  Uploaded files (studio logos, photo previews in wwwroot\uploads) are never touched.
+  Stored files (photo previews, logos, signatures) live in their own storage folder
+  (Storage__Local__RootPath, outside these folders) and are never touched; an older layout that
+  still keeps them in api\wwwroot\uploads is protected too.
   Secrets are NOT here: the API reads them from the server's environment variables
   (see deploy\SERVER-SETUP.md).
 

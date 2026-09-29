@@ -1,10 +1,11 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Auth;
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Storage;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
@@ -18,6 +19,7 @@ public partial class PhotoGalleryService(
     IPhotoCopyRepository copyRepository,
     IEventRepository eventRepository,
     ILinkTokenProtector tokenProtector,
+    IFileUrlService fileUrls,
     PhotoGalleryOptions options,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IPhotoGalleryService
@@ -195,8 +197,8 @@ public partial class PhotoGalleryService(
                 PhotoId = p.Photo.PhotoId,
                 PhotoNumber = p.Photo.PhotoNumber,
                 FileName = p.Photo.FileName,
-                ThumbnailUrl = gallery.PreviewsPurgedAt is null ? p.Photo.ThumbnailPath : null,
-                PreviewUrl = gallery.PreviewsPurgedAt is null ? p.Photo.PreviewPath : null,
+                ThumbnailUrl = gallery.PreviewsPurgedAt is null ? fileUrls.GetUrl(p.Photo.ThumbnailPath) : null,
+                PreviewUrl = gallery.PreviewsPurgedAt is null ? fileUrls.GetUrl(p.Photo.PreviewPath) : null,
                 Width = p.Photo.Width,
                 Height = p.Photo.Height,
                 SelectionType = p.SelectionType is { } t ? SelectionTypes.Label(t) : null,

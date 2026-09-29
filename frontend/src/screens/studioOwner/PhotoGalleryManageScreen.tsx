@@ -259,7 +259,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
     try {
       const result = await importPickedFolder(picked, {
         present: (f) => photoSelectionApi.devicePresent(id, f),
-        upload: (f, path, preview) => photoSelectionApi.addDevicePhoto(id, f, path, preview),
+        upload: (f, path, preview, size) => photoSelectionApi.addDevicePhoto(id, f, path, preview, size),
         done: (f, added, skipped, failed) => photoSelectionApi.deviceDone(id, f, added, skipped, failed),
       }, (progress) => setDevice({ folder: picked.name, progress }), cancelRef.current);
       const parts = [`${plural(result.added, "photo")} added from "${picked.name}".`];

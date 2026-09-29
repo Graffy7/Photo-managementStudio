@@ -17,6 +17,7 @@ public class StudioService(
     IPasswordHasher passwordHasher,
     IAuditService auditService,
     IFileStorage fileStorage,
+    IFileUrlService fileUrls,
     IUnitOfWork unitOfWork) : IStudioService
 {
     private const string Module = "Studios";
@@ -304,7 +305,7 @@ public class StudioService(
         return MapToDto(studio);
     }
 
-    private static StudioDto MapToDto(Studio studio)
+    private StudioDto MapToDto(Studio studio)
     {
         var subscription = studio.Subscriptions?.OrderByDescending(s => s.StartDate).FirstOrDefault();
 
@@ -321,7 +322,7 @@ public class StudioService(
             Pincode = studio.Pincode,
             GstNumber = studio.GstNumber,
             Website = studio.Website,
-            LogoUrl = studio.LogoUrl,
+            LogoUrl = fileUrls.GetUrl(studio.LogoUrl),
             IsActive = studio.IsActive,
             IsBlocked = studio.IsBlocked,
             CreatedAt = studio.CreatedAt,

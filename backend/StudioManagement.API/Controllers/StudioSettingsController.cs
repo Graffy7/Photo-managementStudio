@@ -21,6 +21,7 @@ public class StudioSettingsController(
     IValidator<PdfSettingsDto> pdfValidator,
     IQuotationPdfService pdfService,
     IFileStorage fileStorage,
+    IFileUrlService fileUrls,
     ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
@@ -76,7 +77,7 @@ public class StudioSettingsController(
 
     [HttpGet("pdf")]
     public async Task<IActionResult> GetPdf(CancellationToken ct) =>
-        Ok(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct));
+        Ok(WithSignatureLink(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)));
 
     [FeatureRequired(FeatureCodes.Settings)]
     [HttpPut("pdf")]
@@ -89,7 +90,7 @@ public class StudioSettingsController(
             return ValidationProblem(ModelState);
         }
 
-        return Ok(await studioSettingsService.UpdatePdfSettingsAsync(StudioId, request, ct));
+        return Ok(WithSignatureLink(await studioSettingsService.UpdatePdfSettingsAsync(StudioId, request, ct)));
     }
 
     // Renders a sample quotation with the settings as they are on screen (not saved). A preview
@@ -125,13 +126,10 @@ public class StudioSettingsController(
 
         var previous = (await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)).SignatureUrl;
         await using var clean = image.Content;
-        var url = await fileStorage.SaveAsync(clean, "signature" + image.Extension, $"signatures/{StudioId}", ct);
-        await studioSettingsService.SetPdfSignatureUrlAsync(StudioId, url, ct);
-        if (!string.IsNullOrWhiteSpace(previous) && previous.StartsWith($"/uploads/signatures/{StudioId}/", StringComparison.Ordinal))
-        {
-            fileStorage.Delete(previous);
-        }
-        return Ok(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct));
+        var key = await fileStorage.SaveAsync(clean, "signature" + image.Extension, $"signatures/{StudioId}", ct);
+        await studioSettingsService.SetPdfSignatureUrlAsync(StudioId, key, ct);
+        DeleteOwnSignature(previous);
+        return Ok(WithSignatureLink(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)));
     }
 
     [FeatureRequired(FeatureCodes.Settings)]
@@ -140,10 +138,23 @@ public class StudioSettingsController(
     {
         var previous = (await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)).SignatureUrl;
         await studioSettingsService.SetPdfSignatureUrlAsync(StudioId, null, ct);
-        if (!string.IsNullOrWhiteSpace(previous) && previous.StartsWith($"/uploads/signatures/{StudioId}/", StringComparison.Ordinal))
+        DeleteOwnSignature(previous);
+        return Ok(WithSignatureLink(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct)));
+    }
+
+    // The setting holds a storage key; the screen gets a signed link to show the image.
+    private PdfSettingsDto WithSignatureLink(PdfSettingsDto settings)
+    {
+        settings.SignatureUrl = fileUrls.GetUrl(settings.SignatureUrl);
+        return settings;
+    }
+
+    // Only ever deletes a file inside this studio's own signatures folder.
+    private void DeleteOwnSignature(string? previous)
+    {
+        if (StorageKey.Normalize(previous) is { } key && key.StartsWith($"signatures/{StudioId}/", StringComparison.Ordinal))
         {
-            fileStorage.Delete(previous);
+            fileStorage.Delete(key);
         }
-        return Ok(await studioSettingsService.GetPdfSettingsAsync(StudioId, ct));
     }
 }

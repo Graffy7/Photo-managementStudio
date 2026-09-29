@@ -1,4 +1,4 @@
-﻿namespace StudioManagement.Data.Entities;
+namespace StudioManagement.Data.Entities;
 
 public class Photo
 {
@@ -18,6 +18,9 @@ public class Photo
 
     // Path of the original relative to SourceFolder.
     public string SourceRelativePath { get; set; } = null!;
+    // Size of the original in bytes (null for photos added before this was recorded). The file type
+    // is its extension (FileName); the original itself stays in the studio's storage, never here.
+    public long? FileSize { get; set; }
 
     // Null once previews have been purged after the gallery expired; the row and any selection stay.
     public string? ThumbnailPath { get; set; }

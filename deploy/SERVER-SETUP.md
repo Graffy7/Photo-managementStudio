@@ -51,9 +51,15 @@ Restart the VPS after installing, so IIS picks up the Hosting Bundle.
 
 ```powershell
 New-Item -ItemType Directory -Force C:\StudioOS\api, C:\StudioOS\web, C:\StudioOS\backups, C:\StudioOS\releases
+# Photo storage (previews, thumbnails, logos, signatures) lives OUTSIDE the application folders,
+# so deploys and upgrades never touch it and it can be moved or backed up on its own.
+New-Item -ItemType Directory -Force C:\StudioOSData\storage
 # SQL Server writes the database backups itself, so it needs write access to the backups folder
 icacls C:\StudioOS\backups /grant "NT Service\MSSQL`$SQLEXPRESS:(OI)(CI)M"
 ```
+
+> If the VPS has a second data disk (e.g. `D:`), put the storage there instead
+> (`D:\StudioOSData\storage`) and use that path everywhere below.
 
 ## 4. Move your database
 
@@ -71,6 +77,12 @@ sqlcmd -S localhost\SQLEXPRESS -E -Q "RESTORE FILELISTONLY FROM DISK='C:\StudioO
 # Use the two logical names it prints (usually StudioManagementDb and StudioManagementDb_log):
 sqlcmd -S localhost\SQLEXPRESS -E -Q "RESTORE DATABASE StudioManagementDb FROM DISK='C:\StudioOS\backups\StudioManagementDb_for_server.bak' WITH MOVE 'StudioManagementDb' TO 'C:\Program Files\Microsoft SQL Server\MSSQL16.SQLEXPRESS\MSSQL\DATA\StudioManagementDb.mdf', MOVE 'StudioManagementDb_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL16.SQLEXPRESS\MSSQL\DATA\StudioManagementDb_log.ldf'"
 ```
+
+Now copy the **photo storage**: on your current PC it is the folder
+`F:\MSproject\backend\StudioManagement.API\wwwroot\uploads`. Copy **everything inside it**
+(the `logos`, `photo-gallery`, `signatures` folders) into `C:\StudioOSData\storage` on the VPS.
+The database only stores keys like `photo-gallery/12/abc.webp`, so the photos work again as soon
+as they're in the new storage folder.
 
 Give the website's IIS account access to the database (done after part 6 creates the app pool,
 come back to this):
@@ -91,6 +103,12 @@ Set-Secret ASPNETCORE_ENVIRONMENT "Production"
 Set-Secret ConnectionStrings__DefaultConnection "Server=localhost\SQLEXPRESS;Database=StudioManagementDb;Trusted_Connection=True;TrustServerCertificate=True"
 Set-Secret Database__MigrateOnStartup "true"          # new database changes apply themselves on deploy
 Set-Secret Cors__AllowedOrigins__0 "https://app.example.com"
+
+# Photo storage: where the files live (see part 3) and the secret that signs photo links
+Set-Secret Storage__Provider "Local"
+Set-Secret Storage__Local__RootPath "C:\StudioOSData\storage"
+$linkKey = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($linkKey)
+Set-Secret Storage__UrlSigningKey ([Convert]::ToBase64String($linkKey))
 
 # Sign-in token key: a NEW long random value just for the server (this makes one for you)
 $bytes = New-Object byte[] 64; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
@@ -136,6 +154,12 @@ New-Website -Name "StudioOS-API" -PhysicalPath C:\StudioOS\api -ApplicationPool 
 
 New-WebAppPool -Name "StudioOS-Web"
 New-Website -Name "StudioOS-Web" -PhysicalPath C:\StudioOS\web -ApplicationPool "StudioOS-Web" -HostHeader "app.example.com" -Port 80
+```
+
+The API needs to read and write the photo storage:
+
+```powershell
+icacls C:\StudioOSData\storage /grant "IIS APPPOOL\StudioOS-API:(OI)(CI)M"
 ```
 
 Now go back and run the database-access command at the end of part 4.
@@ -195,6 +219,28 @@ GitHub → **Actions → CI → Run workflow** (or push anything to `main`). Aft
 5. checks `https://api.example.com/health` – and **puts the previous version back** if it fails.
 
 Open `https://app.example.com` and sign in.
+
+---
+
+## 9. Daily backups (database + photos, separately)
+
+`deploy\backup.ps1` backs up the database to a `.bak` file and copies the photo storage folder.
+Schedule it once a day (PowerShell as Administrator, from the repository folder the runner checked
+out, e.g. `C:\actions-runner\_work\Photo-managementStudio\Photo-managementStudio`):
+
+```powershell
+$script = "C:\actions-runner\_work\Photo-managementStudio\Photo-managementStudio\deploy\backup.ps1"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`" -Destination D:\StudioOS-backup"
+New-Item -ItemType Directory -Force D:\StudioOS-backup\database | Out-Null
+icacls D:\StudioOS-backup\database /grant "NT Service\MSSQL`$SQLEXPRESS:(OI)(CI)M"
+[Environment]::SetEnvironmentVariable("STUDIOOS_SQL_SERVER", "localhost\SQLEXPRESS", "Machine")
+Register-ScheduledTask -TaskName "StudioOS daily backup" -Action $action -Trigger (New-ScheduledTaskTrigger -Daily -At 2am) -User "SYSTEM" -RunLevel Highest
+```
+
+Keep a copy **off the server** too (download it now and then, or sync `D:\StudioOS-backup` to
+cloud storage) – a backup on the same machine doesn't help if the machine is lost.
+
+Moving to another server later: see `deploy/MIGRATION.md`.
 
 ---
 

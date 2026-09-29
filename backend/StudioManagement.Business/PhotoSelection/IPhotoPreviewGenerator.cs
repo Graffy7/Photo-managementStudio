@@ -1,6 +1,7 @@
 namespace StudioManagement.Business.PhotoSelection;
 
-public record GeneratedPreview(string ThumbnailUrl, string PreviewUrl, int Width, int Height);
+// ThumbnailKey / PreviewKey are storage keys (see IFileStorage), not addresses.
+public record GeneratedPreview(string ThumbnailKey, string PreviewKey, int Width, int Height);
 
 public interface IPhotoPreviewGenerator
 {

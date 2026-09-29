@@ -2,58 +2,79 @@ using StudioManagement.Business.Storage;
 
 namespace StudioManagement.API.Infrastructure;
 
-// Saves under wwwroot/uploads/<folder>/<guid><ext> and serves it back via app.UseStaticFiles(),
-// so the returned "relativeUrl" is a plain public path like "/uploads/logos/3/abc123.png" — no
-// auth in front of it, since a studio's logo isn't sensitive. Kept behind IFileStorage so this
-// can be swapped for blob/S3 storage later without touching callers.
-public class LocalFileStorage(IWebHostEnvironment environment) : IFileStorage
+// Stores files in a folder on this server (Storage:Local:RootPath). Keys map to paths under that
+// folder; nothing outside it can ever be read, written or deleted. The folder is NOT served to the
+// web directly - browsers get files only through signed /media links (see MediaEndpoints).
+public class LocalFileStorage : IFileStorage
 {
-    private const string UploadsRoot = "uploads";
+    private readonly string root;
+
+    public LocalFileStorage(StorageOptions options, IWebHostEnvironment environment)
+    {
+        var configured = string.IsNullOrWhiteSpace(options.Local.RootPath) ? "wwwroot/uploads" : options.Local.RootPath;
+        root = Path.GetFullPath(Path.IsPathRooted(configured) ? configured : Path.Combine(environment.ContentRootPath, configured))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        Directory.CreateDirectory(root);
+    }
 
     public async Task<string> SaveAsync(Stream content, string fileName, string folder, CancellationToken ct = default)
     {
-        var extension = Path.GetExtension(fileName);
-        var storedName = $"{Guid.NewGuid():N}{extension}";
-        var relativeFolder = Path.Combine(UploadsRoot, folder);
-        var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
-        var absoluteFolder = Path.Combine(webRoot, relativeFolder);
-
-        Directory.CreateDirectory(absoluteFolder);
-
-        var absolutePath = Path.Combine(absoluteFolder, storedName);
-        await using (var fileStream = File.Create(absolutePath))
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var key = StorageKey.Normalize($"{folder}/{Guid.NewGuid():N}{extension}")
+            ?? throw new ArgumentException($"'{folder}' can't be used as a storage folder.", nameof(folder));
+        var path = PathFor(key)!;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using (var file = File.Create(path))
         {
-            await content.CopyToAsync(fileStream, ct);
+            await content.CopyToAsync(file, ct);
         }
-
-        return "/" + Path.Combine(relativeFolder, storedName).Replace('\\', '/');
+        return key;
     }
 
-    public void Delete(string relativeUrl)
+    public Task<Stream?> OpenReadAsync(string key, CancellationToken ct = default)
     {
-        var absolutePath = ResolveAbsolutePath(relativeUrl);
-        if (File.Exists(absolutePath))
+        var path = PathFor(key);
+        Stream? stream = path is not null && File.Exists(path)
+            ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true)
+            : null;
+        return Task.FromResult(stream);
+    }
+
+    public async Task<byte[]?> ReadAsync(string key, CancellationToken ct = default)
+    {
+        var path = PathFor(key);
+        return path is not null && File.Exists(path) ? await File.ReadAllBytesAsync(path, ct) : null;
+    }
+
+    public void Delete(string key)
+    {
+        var path = PathFor(key);
+        if (path is not null && File.Exists(path))
         {
-            File.Delete(absolutePath);
+            File.Delete(path);
         }
     }
 
-    public async Task<byte[]?> ReadAsync(string relativeUrl, CancellationToken ct = default)
+    public long GetSize(string key)
     {
-        var absolutePath = ResolveAbsolutePath(relativeUrl);
-        return File.Exists(absolutePath) ? await File.ReadAllBytesAsync(absolutePath, ct) : null;
-    }
-
-    public long GetSize(string relativeUrl)
-    {
-        var info = new FileInfo(ResolveAbsolutePath(relativeUrl));
+        var path = PathFor(key);
+        if (path is null)
+        {
+            return 0;
+        }
+        var info = new FileInfo(path);
         return info.Exists ? info.Length : 0;
     }
 
-    private string ResolveAbsolutePath(string relativeUrl)
+    // Null for anything that isn't a clean key or would resolve outside the storage folder.
+    private string? PathFor(string key)
     {
-        var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
-        var relativePath = relativeUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(webRoot, relativePath);
+        var clean = StorageKey.Normalize(key);
+        if (clean is null)
+        {
+            return null;
+        }
+        var full = Path.GetFullPath(Path.Combine(root, clean.Replace('/', Path.DirectorySeparatorChar)));
+        return full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ? full : null;
     }
 }

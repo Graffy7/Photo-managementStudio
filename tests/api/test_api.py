@@ -262,10 +262,36 @@ ok(c == 409 and b.get("code") == "CHOOSE_FOLDER_AGAIN", "rebuild asks to choose 
 c, ph, _ = req("GET", f"/photo-galleries/{gid}/photos?page=1&pageSize=50", tok=Q)
 photos = items(ph)
 ok(len(photos) == 3, "owner photo list", ph)
-preview = next((p.get("previewUrl") or p.get("previewPath") or p.get("thumbnailUrl") for p in photos), None)
-if preview:
-    c, img, _ = req("GET", preview, base=ROOT)
-    ok(c == 200 and len(img) > 500, "preview image is served", c)
+preview = next((p.get("previewUrl") for p in photos), None) or ""
+ok(preview.startswith("/media/") and "sig=" in preview and "exp=" in preview, "previews come as signed, expiring links", preview)
+c, img, h = req("GET", preview, base=ROOT)
+ok(c == 200 and img[:4] == b"RIFF" and h.get("Content-Type") == "image/webp", "a signed link serves the preview", (c, h.get("Content-Type")))
+ok("private" in (h.get("Cache-Control") or ""), "only the viewer's own browser may cache it", h.get("Cache-Control"))
+
+area("Protected file links")
+path_part, _, query = preview.partition("?")
+params = dict(kv.split("=", 1) for kv in query.split("&"))
+key = path_part[len("/media/"):]
+sig = params["sig"]
+bad_sig = ("A" if sig[0] != "A" else "B") + sig[1:]
+ok(req("GET", f"{path_part}?exp={params['exp']}&sig={bad_sig}", base=ROOT)[0] == 403, "an altered signature is refused")
+ok(req("GET", path_part, base=ROOT)[0] == 403, "a link without a signature is refused")
+ok(req("GET", f"{path_part}?exp={int(params['exp']) + 3600}&sig={sig}", base=ROOT)[0] == 403, "changing the expiry breaks the link")
+ok(req("GET", f"{path_part}?exp={int(time.time()) - 60}&sig={sig}", base=ROOT)[0] == 403, "an expired link is refused")
+other = photos[1]["previewUrl"]
+ok(req("GET", f"/media/{other.split('?')[0][len('/media/'):]}?exp={params['exp']}&sig={sig}", base=ROOT)[0] == 403,
+   "one photo's signature doesn't open another photo")
+for trick in ["/media/../appsettings.json", "/media/..%2Fappsettings.json", "/media/%2E%2E/%2E%2E/appsettings.json"]:
+    c, _, _ = req("GET", f"{trick}?exp={params['exp']}&sig={sig}", base=ROOT)
+    ok(c in (400, 403, 404), f"path trick refused: {trick} -> {c}")
+ok(req("GET", f"/uploads/{key}", base=ROOT)[0] == 404, "the old public /uploads address no longer serves files")
+
+raw, hdrs = multipart({}, "file", "logo.jpg", PHOTO, "image/jpeg")
+c, prof, _ = req("POST", "/studio-profile/logo", raw=raw, headers=hdrs, tok=Q)
+logo = (prof or {}).get("logoUrl") if isinstance(prof, dict) else None
+ok(c == 200 and logo and logo.startswith("/media/logos/") and "sig=" in logo, "studio logo comes back as a signed link", (c, prof))
+if logo:
+    ok(req("GET", logo, base=ROOT)[0] == 200, "the logo link opens")
 
 area("Customer link and selection")
 c, link, _ = req("POST", f"/photo-galleries/{gid}/link", {"expiresInDays": 5}, Q)

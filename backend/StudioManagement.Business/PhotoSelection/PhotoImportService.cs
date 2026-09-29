@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Storage;
@@ -417,9 +417,10 @@ public class PhotoImportService(
                                 FileName = Path.GetFileName(chunk[i].FullPath),
                                 SourceFolder = job.SourceFolder,
                                 SourceRelativePath = chunk[i].Relative,
+                                FileSize = new FileInfo(chunk[i].FullPath).Length,
                                 PhotoFolderId = FolderIdFor(chunk[i].Relative, folders),
-                                ThumbnailPath = preview.ThumbnailUrl,
-                                PreviewPath = preview.PreviewUrl,
+                                ThumbnailPath = preview.ThumbnailKey,
+                                PreviewPath = preview.PreviewKey,
                                 Width = preview.Width,
                                 Height = preview.Height,
                                 IsActive = true,
@@ -489,8 +490,8 @@ public class PhotoImportService(
                     try
                     {
                         var preview = await previewGenerator.GenerateAsync(original, job.PhotoGalleryId, token);
-                        photo.ThumbnailPath = preview.ThumbnailUrl;
-                        photo.PreviewPath = preview.PreviewUrl;
+                        photo.ThumbnailPath = preview.ThumbnailKey;
+                        photo.PreviewPath = preview.PreviewKey;
                         photo.Width = preview.Width;
                         photo.Height = preview.Height;
                         Interlocked.Increment(ref rebuilt);
