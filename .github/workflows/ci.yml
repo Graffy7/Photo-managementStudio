@@ -106,3 +106,31 @@ jobs:
 
       - name: Build the website
         run: npx expo export --platform web --output-dir dist
+
+  # Installs main on the production server once both checks pass. It runs on the server itself (a
+  # GitHub self-hosted runner labelled "studio-os"), so the server needs no open ports and no server
+  # passwords are stored in GitHub. Switched off until the repository variable DEPLOY_ENABLED is
+  # "true" - see deploy/SERVER-SETUP.md.
+  deploy:
+    name: Deploy to the server
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: [self-hosted, windows, studio-os]
+    environment:
+      name: production
+      url: ${{ vars.STUDIOOS_APP_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Deploy
+        shell: powershell
+        env:
+          STUDIOOS_API_URL: ${{ vars.STUDIOOS_API_URL }}
+          STUDIOOS_ROOT: ${{ vars.STUDIOOS_ROOT }}
+          STUDIOOS_SQL_SERVER: ${{ vars.STUDIOOS_SQL_SERVER }}
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File deploy\deploy.ps1
