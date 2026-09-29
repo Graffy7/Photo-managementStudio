@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +15,11 @@ import { MiniDatePicker } from "../components/MiniDatePicker";
 import { DATE_RANGE_PRESET_LABELS, type DateRangePreset } from "../types/studioDashboard";
 import { useRefetchOnFocus } from "../hooks/useRefetchOnFocus";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
+import { StatusPill, eventStatusTone } from "../components/StatusPill";
+import { Button } from "../ui/Button";
+import { Skeleton } from "../ui/Skeleton";
+import { useBreakpoint } from "../ui/useBreakpoint";
+import { colors, radius, space, touch, type } from "../ui/theme";
 
 // The full DATE_RANGE_PRESETS list is shared with Reports, which still shows every preset —
 // the Dashboard's chip row only surfaces the longer-range ones plus a manual custom range.
@@ -27,19 +32,12 @@ const NATIVE_NAV_ROUTES = [
 
 const NATIVE_NAV_LABELS: Partial<Record<(typeof NATIVE_NAV_ROUTES)[number], string>> = {
   DayBoard: "Day Board",
-  PhotoSelection: "Photo Selection",
+  PhotoSelection: "Photo Delivery",
 };
 
-const TIPS = [
-  "Keep your customer details updated for better communication and personalized service.",
-  "Send quotations within 24 hours of an enquiry to improve conversion.",
-  "Assign workers on the Day Board a day ahead so nobody finds out about a shoot last minute.",
-  "Mark payments as soon as they land — outstanding balances stay accurate for every report.",
-  "Review your top services each month to see what your studio should be pitching more.",
-];
-
 function formatCurrency(value: number): string {
-  return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const amount = Math.abs(value).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return `${value < 0 ? "-" : ""}₹${amount}`;
 }
 
 function formatCurrencyShort(value: number): string {
@@ -72,63 +70,30 @@ function greeting(): string {
   return "Good evening";
 }
 
-// The backend compares against the immediately preceding range of equal length — name that
-// range precisely where it has a natural name, and fall back to "previous period" otherwise
-// (e.g. PreviousMonth's comparison range is "the month before last", which has no clean name).
-function comparisonLabel(preset: DateRangePreset): string {
-  switch (preset) {
-    case "ThisMonth":
-      return "vs last month";
-    case "ThisYear":
-      return "vs last year";
-    default:
-      return "vs last period";
-  }
-}
-
-// Names the selected range itself (not what it's compared against) — used in stat card titles
-// like "Events This Month" / "Revenue This Year" instead of a generic "This Period".
-function periodLabel(preset: DateRangePreset): string {
-  switch (preset) {
-    case "ThisMonth":
-      return "This Month";
-    case "PreviousMonth":
-      return "Last Month";
-    case "ThisYear":
-      return "This Year";
-    case "PreviousYear":
-      return "Last Year";
-    default:
-      return "This Period";
-  }
-}
-
-function Delta({ percent, preset }: { percent: number | null; preset: DateRangePreset }) {
-  if (percent === null) {
-    return <Text style={styles.deltaNeutral}>No comparison yet</Text>;
-  }
-  const isUp = percent >= 0;
+function StatTile({ icon, label, value, hint, onPress }: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string | number | null;
+  hint?: string;
+  onPress?: () => void;
+}) {
   return (
-    <View style={styles.deltaRow}>
-      <Ionicons name={isUp ? "arrow-up" : "arrow-down"} size={11} color={isUp ? "#4cc493" : "#ff7a72"} />
-      <Text style={[styles.delta, { color: isUp ? "#4cc493" : "#ff7a72" }]}>{Math.abs(percent)}%</Text>
-      <Text style={styles.deltaLabel}>{comparisonLabel(preset)}</Text>
-    </View>
-  );
-}
-
-function StatCard({
-  icon, iconColor, label, value, percent, preset,
-}: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; label: string; value: string | number; percent: number | null; preset: DateRangePreset }) {
-  return (
-    <View style={styles.statCard}>
-      <View style={[styles.statIcon, { backgroundColor: `${iconColor}22` }]}>
-        <Ionicons name={icon} size={18} color={iconColor} />
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={`${label}: ${value ?? "loading"}`}
+    >
+      <View style={styles.tileTop}>
+        <Ionicons name={icon} size={18} color={colors.textMuted} />
+        <Text style={styles.tileLabel} numberOfLines={1}>{label}</Text>
       </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Delta percent={percent} preset={preset} />
-    </View>
+      {value === null ? <Skeleton width="60%" height={26} style={{ marginTop: 6 }} /> : (
+        <Text style={styles.tileValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      )}
+      <Text style={styles.tileHint} numberOfLines={1}>{hint ?? " "}</Text>
+    </Pressable>
   );
 }
 
@@ -144,17 +109,24 @@ function Panel({ title, action, children }: { title: string; action?: ReactNode;
   );
 }
 
+function RowsSkeleton({ rows }: { rows: number }) {
+  return (
+    <View style={{ gap: space.md }}>
+      {Array.from({ length: rows }).map((_, i) => <Skeleton key={i} height={44} />)}
+    </View>
+  );
+}
+
 export function HomeScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const narrow = useWindowDimensions().width < 600;
+  const { isPhone, isDesktop } = useBreakpoint();
 
   const [preset, setPreset] = useState<DateRangePreset>("ThisMonth");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const tip = useMemo(() => TIPS[dayOfYear() % TIPS.length], []);
 
   const customRangeReady = customStart.length > 0 && customEnd.length > 0;
   // Modules the platform admin switched off are neither fetched nor shown.
@@ -167,13 +139,20 @@ export function HomeScreen() {
     enabled: isOn("NOTIFICATIONS"),
   });
 
+  // The key figures always describe this month; the overview further down follows the period chips.
+  const { data: month, refetch: refetchMonth } = useQuery({
+    queryKey: ["studio-dashboard-summary", "ThisMonth", "", ""],
+    queryFn: () => studioDashboardApi.getSummary("ThisMonth"),
+    enabled: dashboardOn,
+  });
+
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["studio-dashboard-summary", preset, customStart, customEnd],
     queryFn: () => studioDashboardApi.getSummary(preset, customStart, customEnd),
     enabled: dashboardOn && (preset !== "Custom" || customRangeReady),
   });
 
-  const { data: dayBoard, refetch: refetchDayBoard } = useQuery({
+  const { data: dayBoard, isPending: dayBoardPending, refetch: refetchDayBoard } = useQuery({
     queryKey: ["day-board", today],
     queryFn: () => dayBoardApi.getDayBoard(today),
     enabled: dashboardOn && isOn("DAY_BOARD"),
@@ -185,13 +164,13 @@ export function HomeScreen() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, []);
 
-  const { data: upcoming, refetch: refetchUpcoming } = useQuery({
+  const { data: upcoming, isPending: upcomingPending, refetch: refetchUpcoming } = useQuery({
     queryKey: ["events-upcoming", localToday],
     queryFn: () => eventsApi.search({ upcomingFrom: localToday, page: 1, pageSize: 5 }),
     enabled: dashboardOn && isOn("EVENTS"),
   });
 
-  const { data: recentLeads, refetch: refetchRecentLeads } = useQuery({
+  const { data: recentLeads, isPending: leadsPending, refetch: refetchRecentLeads } = useQuery({
     queryKey: ["leads-recent"],
     queryFn: () => leadsApi.search({ page: 1, pageSize: 4 }),
     enabled: dashboardOn && isOn("LEADS"),
@@ -199,11 +178,12 @@ export function HomeScreen() {
 
   const refetchAll = useCallback(() => {
     refetchUnreadCount();
+    refetchMonth();
     refetch();
     refetchDayBoard();
     refetchUpcoming();
     refetchRecentLeads();
-  }, [refetchUnreadCount, refetch, refetchDayBoard, refetchUpcoming, refetchRecentLeads]);
+  }, [refetchUnreadCount, refetchMonth, refetch, refetchDayBoard, refetchUpcoming, refetchRecentLeads]);
   useRefetchOnFocus(refetchAll);
 
   const revenuePoints = (data?.revenueTrend ?? []).map((p) => ({
@@ -222,320 +202,263 @@ export function HomeScreen() {
     },
   }));
 
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, narrow && styles.contentNarrow]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>
-            {greeting()}, <Text style={styles.greetingName}>{user?.fullName?.split(" ")[0] ?? "there"}</Text> 👋
-          </Text>
-          <Text style={styles.subtitle}>Here's what's happening with your studio today.</Text>
-        </View>
+  // Layout: tiles 2 per row on phones, 4 on wider screens; lists side by side from desktop width.
+  const pad = isPhone ? space.lg : space.xl;
+  const tileColumns = isPhone ? 2 : 4;
+  const todayLabel = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
-        <View style={styles.headerRight}>
-          {data && (
-            <View style={styles.rangeChip}>
-              <Ionicons name="calendar-outline" size={14} color="#7fc0e6" />
-              <Text style={styles.rangeChipText}>{formatDateRange(data.rangeStart, data.rangeEnd)}</Text>
-            </View>
-          )}
-          {isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
-            <Ionicons name="notifications-outline" size={18} color="#a7b7cb" />
-            {!!unreadCount && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-              </View>
-            )}
-          </Pressable>}
+  const tiles = [
+    isOn("EVENTS") && { key: "upcoming", icon: "calendar-outline" as const, label: "Upcoming events", value: upcoming ? upcoming.totalCount : null, hint: "from today", route: "Events" },
+    isOn("PAYMENTS") && { key: "pending", icon: "wallet-outline" as const, label: "Pending payments", value: month ? formatCurrency(month.outstandingBalance) : null, hint: "still to collect", route: "Payments" },
+    isOn("LEADS") && { key: "leads", icon: "person-add-outline" as const, label: "New enquiries", value: month ? month.totalLeads : null, hint: "this month", route: "Leads" },
+    isOn("CUSTOMERS") && { key: "customers", icon: "people-outline" as const, label: "Customers", value: month ? month.totalCustomers : null, hint: "this month", route: "Customers" },
+  ].filter(Boolean) as { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; value: string | number | null; hint: string; route: string }[];
+
+  const todayPanel = isOn("DAY_BOARD") && (
+    <Panel
+      title={dayBoard && dayBoard.events.length > 0 ? `Today · ${dayBoard.events.length} event${dayBoard.events.length === 1 ? "" : "s"}` : "Today"}
+      action={<Button label="Day board" variant="link" onPress={() => navigation.navigate("DayBoard")} />}
+    >
+      {dayBoardPending ? <RowsSkeleton rows={2} /> : !dayBoard || dayBoard.events.length === 0 ? (
+        <View style={styles.emptyRow}>
+          <Ionicons name="sunny-outline" size={20} color={colors.textFaint} />
+          <Text style={styles.empty}>No events today.</Text>
+          {isOn("EVENTS") && <Button label="New event" icon="add" variant="link" onPress={() => navigation.navigate("Events", { create: true })} />}
         </View>
+      ) : (
+        <View style={styles.rows}>
+          {dayBoard.events.map((e) => (
+            <Pressable key={e.eventId} style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              onPress={() => navigation.navigate("Events", { eventId: e.eventId })} accessibilityRole="button">
+              <Text style={styles.time}>{e.startTime ? e.startTime.slice(0, 5) : "All day"}</Text>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.rowTitle} numberOfLines={1}>{e.customerName}</Text>
+                <Text style={styles.rowSub} numberOfLines={1}>{e.eventTypeName ?? "Event"}{e.venue ? ` · ${e.venue}` : ""}</Text>
+              </View>
+              <StatusPill label={e.eventStatus} tone={eventStatusTone(e.eventStatus)} />
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </Panel>
+  );
+
+  const upcomingPanel = isOn("EVENTS") && (
+    <Panel title="Upcoming events" action={<Button label="All events" variant="link" onPress={() => navigation.navigate("Events")} />}>
+      {upcomingPending ? <RowsSkeleton rows={3} /> : !upcoming || upcoming.items.length === 0 ? (
+        <View style={styles.emptyRow}>
+          <Text style={styles.empty}>No upcoming events.</Text>
+          <Button label="New event" icon="add" variant="link" onPress={() => navigation.navigate("Events", { create: true })} />
+        </View>
+      ) : (
+        <View style={styles.rows}>
+          {upcoming.items.map((e) => {
+            const date = new Date(e.eventDate);
+            return (
+              <Pressable
+                key={e.eventId}
+                style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                onPress={() => navigation.navigate("Events", { eventId: e.eventId })}
+                accessibilityRole="button"
+                accessibilityLabel={`${e.eventTypeName ?? "Event"} for ${e.customerName} on ${date.toDateString()}`}
+              >
+                <View style={styles.dateBadge}>
+                  <Text style={styles.dateDay}>{date.getDate()}</Text>
+                  <Text style={styles.dateMonth}>{date.toLocaleDateString("en-IN", { month: "short" })}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{e.customerName}</Text>
+                  <Text style={styles.rowSub} numberOfLines={1}>
+                    {e.eventTypeName ?? "Event"} · {daysAway(e.eventDate, localToday)}{e.startTime ? ` · ${e.startTime.slice(0, 5)}` : ""}
+                  </Text>
+                </View>
+                {!isPhone && <StatusPill label={e.eventStatus} tone={eventStatusTone(e.eventStatus)} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </Panel>
+  );
+
+  const leadsPanel = isOn("LEADS") && (
+    <Panel title="New enquiries" action={<Button label="All enquiries" variant="link" onPress={() => navigation.navigate("Leads")} />}>
+      {leadsPending ? <RowsSkeleton rows={3} /> : !recentLeads || recentLeads.items.length === 0 ? (
+        <Text style={styles.empty}>No enquiries yet.</Text>
+      ) : (
+        <View style={styles.rows}>
+          {recentLeads.items.map((lead) => (
+            <Pressable key={lead.leadId} style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              onPress={() => navigation.navigate("Leads")} accessibilityRole="button">
+              <View style={styles.avatar}><Text style={styles.avatarText}>{lead.fullName.charAt(0).toUpperCase()}</Text></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.rowTitle} numberOfLines={1}>{lead.fullName}</Text>
+                <Text style={styles.rowSub} numberOfLines={1}>{lead.eventTypeName ?? "General enquiry"}</Text>
+              </View>
+              <Text style={styles.rowMeta}>{timeAgo(lead.createdAt)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </Panel>
+  );
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { padding: pad }]}>
+      <View style={styles.header}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.greeting} numberOfLines={1}>{greeting()}, {user?.fullName?.split(" ")[0] ?? "there"}</Text>
+          <Text style={styles.subtitle}>{todayLabel}</Text>
+        </View>
+        {/* On phones and tablets the bell lives in the top bar. */}
+        {isDesktop && isOn("NOTIFICATIONS") && (
+          <Pressable style={styles.bell} onPress={() => navigation.navigate("Notifications")} accessibilityRole="button" accessibilityLabel="Notifications">
+            <Ionicons name="notifications-outline" size={20} color={colors.textMuted} />
+            {!!unreadCount && (
+              <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text></View>
+            )}
+          </Pressable>
+        )}
       </View>
 
       {Platform.OS !== "web" && (
-        // Native has no sidebar (that's a web-only layout for now), so it keeps this
-        // in-page nav row as its only way to reach every other module.
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nativeNavRow} contentContainerStyle={styles.nativeNavRowContent}>
+        // Native has no web shell, so it keeps this in-page row as its way to reach every module.
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.lg }} contentContainerStyle={{ gap: space.sm }}>
           {NATIVE_NAV_ROUTES.filter((route) => isOn(ROUTE_MODULES[route] ?? "")).map((route) => (
-            <Pressable key={route} style={styles.nativeNavButton} onPress={() => navigation.navigate(route)}>
-              <Text style={styles.nativeNavButtonText}>{NATIVE_NAV_LABELS[route] ?? route}</Text>
-            </Pressable>
+            <Button key={route} label={NATIVE_NAV_LABELS[route] ?? route} onPress={() => navigation.navigate(route)} />
           ))}
-          <Pressable style={styles.nativeNavButton} onPress={() => logout()}>
-            <Text style={[styles.nativeNavButtonText, { color: "#ff7a72" }]}>Sign out</Text>
-          </Pressable>
+          <Button label="Sign out" variant="danger" onPress={() => logout()} />
         </ScrollView>
       )}
 
       {!dashboardOn ? (
-        <View style={styles.welcomeCard}>
-          <Ionicons name="grid-outline" size={22} color="#7fc0e6" />
-          <Text style={styles.welcomeTitle}>Welcome back</Text>
-          <Text style={styles.welcomeText}>Choose where to start from the menu.</Text>
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Welcome back</Text>
+          <Text style={styles.empty}>Choose where to start from the menu.</Text>
         </View>
-      ) : (<>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetRow} contentContainerStyle={styles.presetRowContent}>
-        {DASHBOARD_PRESETS.map((p) => (
-          <Pressable key={p} style={[styles.presetChip, preset === p && styles.presetChipSelected]} onPress={() => setPreset(p)}>
-            <Text style={[styles.presetChipText, preset === p && styles.presetChipTextSelected]}>{DATE_RANGE_PRESET_LABELS[p]}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {preset === "Custom" && (
-        <View style={styles.customRangeRow}>
-          <MiniDatePicker label="From" value={customStart} onChange={setCustomStart} />
-          <Ionicons name="arrow-forward" size={14} color="#6f83a0" style={{ marginTop: 20 }} />
-          <MiniDatePicker label="To" value={customEnd} onChange={setCustomEnd} />
-        </View>
-      )}
-
-      {preset === "Custom" && !customRangeReady ? (
-        <Text style={styles.empty}>Enter both dates above to load this range.</Text>
-      ) : isPending ? (
-        <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />
-      ) : isError || !data ? (
-        <Text style={styles.error}>Couldn't load the dashboard.</Text>
       ) : (
-        <>
-          <View style={styles.statRow}>
-            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#7fc0e6" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} />}
-            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#4cc493" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} />}
-            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#f2bd5c" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} />}
-            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#ff9a4d" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} />}
-          </View>
+        <View style={{ gap: space.lg }}>
+          {todayPanel}
 
-          <View style={styles.columns}>
-            <View style={styles.mainColumn}>
-              {isOn("PAYMENTS") && (
-<Panel title="Overview">
-                <LineChart points={revenuePoints} formatValue={formatCurrencyShort} />
-                <View style={styles.overviewStats}>
-                  <View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Revenue</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#4cc493" }]}>{formatCurrency(data.collectedRevenue)}</Text>
-                  </View>
-                  {isOn("EXPENSES") && (
-<View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Expenses</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#ff7a72" }]}>{formatCurrency(data.totalExpenses)}</Text>
-                  </View>
-)}
-                  {isOn("EXPENSES") && (
-<View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Profit</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#4cc493" }]}>{formatCurrency(data.cashProfit)}</Text>
-                  </View>
-)}
-                  {isOn("EXPENSES") && (
-<View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Margin</Text>
-                    <Text style={styles.overviewStatValue}>
-                      {data.collectedRevenue === 0 ? "—" : `${Math.round((data.cashProfit / data.collectedRevenue) * 100)}%`}
-                    </Text>
-                  </View>
-)}
+          {tiles.length > 0 && (
+            // Fixed rows of equal-width tiles (empty slots keep the last row's tiles the same size).
+            <View style={{ gap: space.md }}>
+              {Array.from({ length: Math.ceil(tiles.length / tileColumns) }).map((_, r) => (
+                <View key={r} style={styles.tileRow}>
+                  {Array.from({ length: tileColumns }).map((__, c) => {
+                    const t = tiles[r * tileColumns + c];
+                    return (
+                      <View key={c} style={styles.tileSlot}>
+                        {t && <StatTile icon={t.icon} label={t.label} value={t.value} hint={t.hint} onPress={() => navigation.navigate(t.route)} />}
+                      </View>
+                    );
+                  })}
                 </View>
-              </Panel>
-)}
-
-              {(isOn("QUOTATIONS") || isOn("PAYMENTS") || isOn("EXPENSES")) && (
-<Panel title="Financial Summary">
-                <View style={styles.financeGrid}>
-                  {isOn("QUOTATIONS") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Quotation Value</Text>
-                    <Text style={styles.financeValue}>{formatCurrency(data.quotationValue)}</Text>
-                  </View>
-)}
-                  {isOn("PAYMENTS") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Collected Revenue</Text>
-                    <Text style={[styles.financeValue, { color: "#4cc493" }]}>{formatCurrency(data.collectedRevenue)}</Text>
-                  </View>
-)}
-                  {isOn("PAYMENTS") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Outstanding</Text>
-                    <Text style={[styles.financeValue, { color: data.outstandingBalance > 0 ? "#f2bd5c" : "#e8edf3" }]}>{formatCurrency(data.outstandingBalance)}</Text>
-                  </View>
-)}
-                  {isOn("EXPENSES") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Expenses</Text>
-                    <Text style={[styles.financeValue, { color: "#ff7a72" }]}>{formatCurrency(data.totalExpenses)}</Text>
-                  </View>
-)}
-                  {isOn("QUOTATIONS") && isOn("EXPENSES") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Expected Profit</Text>
-                    <Text style={[styles.financeValue, { color: data.expectedProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>{formatCurrency(data.expectedProfit)}</Text>
-                  </View>
-)}
-                  {isOn("PAYMENTS") && isOn("EXPENSES") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Cash Profit</Text>
-                    <Text style={[styles.financeValue, { color: data.cashProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>{formatCurrency(data.cashProfit)}</Text>
-                  </View>
-)}
-                </View>
-              </Panel>
-)}
+              ))}
             </View>
+          )}
 
-            <View style={styles.sideColumn}>
-              {isOn("EVENTS") && (
-<Panel title="Events Summary">
-                <DonutChart
-                  centerLabel="Total"
-                  centerValue={data.totalEvents}
-                  segments={[
-                    { label: "Upcoming", value: data.upcomingEvents, color: "#f2bd5c" },
-                    { label: "Completed", value: data.completedEvents, color: "#4cc493" },
-                    { label: "Cancelled", value: data.cancelledEvents, color: "#ff7a72" },
-                  ]}
-                />
-              </Panel>
-)}
-
-              {isOn("QUOTATIONS") && (
-<Panel title="Top Services">
-                {data.topServices.length === 0 ? (
-                  <Text style={styles.empty}>No quotations in this period yet.</Text>
-                ) : (
-                  <View style={{ gap: 14 }}>
-                    {data.topServices.map((s) => (
-                      <View key={s.serviceName}>
-                        <View style={styles.topServiceRow}>
-                          <Text style={styles.topServiceName} numberOfLines={1}>{s.serviceName}</Text>
-                          <Text style={styles.topServiceMeta}>{s.usageCount} ({s.percentage}%)</Text>
-                        </View>
-                        <View style={styles.progressTrack}>
-                          <View style={[styles.progressFill, { width: `${s.percentage}%` }]} />
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Panel>
-)}
-            </View>
-
-            <View style={styles.sideColumn}>
-              {isOn("DAY_BOARD") && (
-              <Panel
-                title="Today's Schedule"
-                action={
-                  <Pressable onPress={() => navigation.navigate("DayBoard")}>
-                    <Text style={styles.panelLink}>View Full Day Board →</Text>
-                  </Pressable>
-                }
-              >
-                {!dayBoard || dayBoard.events.length === 0 ? (
-                  <Text style={styles.empty}>Nothing scheduled for today.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {dayBoard.events.map((e) => (
-                      <View key={e.eventId} style={styles.scheduleRow}>
-                        <Text style={styles.scheduleTime}>{e.startTime ? e.startTime.slice(0, 5) : "—"}</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.scheduleTitle} numberOfLines={1}>{e.eventTypeName ?? "Event"} — {e.customerName}</Text>
-                          <Text style={styles.scheduleSubtitle} numberOfLines={1}>{e.venue ?? "No venue set"}</Text>
-                        </View>
-                        <View style={styles.statusPill}>
-                          <Text style={styles.statusPillText}>{e.eventStatus}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Panel>
-              )}
-
-              {isOn("EVENTS") && (
-              <Panel
-                title="Upcoming Events"
-                action={
-                  <Pressable onPress={() => navigation.navigate("Events")}>
-                    <Text style={styles.panelLink}>View All →</Text>
-                  </Pressable>
-                }
-              >
-                {!upcoming || upcoming.items.length === 0 ? (
-                  <Text style={styles.empty}>No upcoming events.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {upcoming.items.map((e) => {
-                      const date = new Date(e.eventDate);
-                      return (
-                        <Pressable
-                          key={e.eventId}
-                          style={styles.upcomingRow}
-                          onPress={() => navigation.navigate("Events", { eventId: e.eventId })}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${e.eventTypeName ?? "Event"} for ${e.customerName} on ${date.toDateString()}`}
-                        >
-                          <View style={styles.dateBadge}>
-                            <Text style={styles.dateBadgeDay}>{date.getDate()}</Text>
-                            <Text style={styles.dateBadgeMonth}>{date.toLocaleDateString("en-IN", { month: "short" })}</Text>
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.scheduleTitle} numberOfLines={1}>{e.eventTypeName ?? "Event"} — {e.customerName}</Text>
-                            <Text style={styles.scheduleSubtitle} numberOfLines={1}>
-                              {daysAway(e.eventDate, localToday)}
-                              {e.startTime ? ` · ${e.startTime.slice(0, 5)}` : ""}
-                              {e.venue ? ` · ${e.venue}` : ""}
-                            </Text>
-                          </View>
-                          <View style={styles.statusPill}>
-                            <Text style={styles.statusPillText}>{e.eventStatus}</Text>
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </Panel>
-              )}
-
-              {isOn("LEADS") && (
-              <Panel
-                title="Recent Enquiries"
-                action={
-                  <Pressable onPress={() => navigation.navigate("Leads")}>
-                    <Text style={styles.panelLink}>View All →</Text>
-                  </Pressable>
-                }
-              >
-                {!recentLeads || recentLeads.items.length === 0 ? (
-                  <Text style={styles.empty}>No enquiries yet.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {recentLeads.items.map((lead) => (
-                      <View key={lead.leadId} style={styles.leadRow}>
-                        <View style={styles.leadAvatar}>
-                          <Text style={styles.leadAvatarText}>{lead.fullName.charAt(0).toUpperCase()}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.leadName} numberOfLines={1}>{lead.fullName}</Text>
-                          <Text style={styles.leadSubtitle} numberOfLines={1}>{lead.eventTypeName ?? "General enquiry"}</Text>
-                        </View>
-                        <Text style={styles.leadTime}>{timeAgo(lead.createdAt)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Panel>
-              )}
-            </View>
+          {/* ---- Business overview: money and trends for a chosen period ---------------------- */}
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>Business overview</Text>
+            {data && <Text style={styles.sectionSub}>{formatDateRange(data.rangeStart, data.rangeEnd)}</Text>}
           </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            {DASHBOARD_PRESETS.map((p) => {
+              const on = preset === p;
+              return (
+                <Pressable key={p} style={[styles.chip, on && styles.chipOn]} onPress={() => setPreset(p)} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{DATE_RANGE_PRESET_LABELS[p]}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          {preset === "Custom" && (
+            <View style={styles.customRange}>
+              <MiniDatePicker label="From" value={customStart} onChange={setCustomStart} />
+              <MiniDatePicker label="To" value={customEnd} onChange={setCustomEnd} />
+            </View>
+          )}
 
-          <View style={styles.tipBanner}>
-            <Ionicons name="star" size={16} color="#7fc0e6" />
-            <Text style={styles.tipText}><Text style={styles.tipLabel}>Tip of the day: </Text>{tip}</Text>
+          {preset === "Custom" && !customRangeReady ? (
+            <Text style={styles.empty}>Choose both dates to see this period.</Text>
+          ) : isPending ? (
+            <Skeleton height={300} rounded={radius.card} />
+          ) : isError || !data ? (
+            <View style={styles.panel}>
+              <Text style={styles.error}>Couldn't load the overview. Check your connection and try again.</Text>
+              <Button label="Try again" onPress={() => refetch()} style={{ alignSelf: "flex-start" }} />
+            </View>
+          ) : (
+            <View style={[styles.columns, isDesktop && styles.columnsWide]}>
+              <View style={[{ gap: space.lg }, isDesktop && { flex: 2, minWidth: 0 }]}>
+                {isOn("PAYMENTS") && (
+                  <Panel title="Revenue">
+                    <LineChart points={revenuePoints} formatValue={formatCurrencyShort} />
+                    <View style={styles.figures}>
+                      <Figure label="Collected" value={formatCurrency(data.collectedRevenue)} tone={colors.success} />
+                      {isOn("EXPENSES") && <Figure label="Expenses" value={formatCurrency(data.totalExpenses)} />}
+                      {isOn("EXPENSES") && <Figure label="Profit" value={formatCurrency(data.cashProfit)} tone={data.cashProfit >= 0 ? colors.success : colors.danger} />}
+                      {isOn("QUOTATIONS") && <Figure label="Quoted" value={formatCurrency(data.quotationValue)} />}
+                      <Figure label="Still to collect" value={formatCurrency(data.outstandingBalance)} tone={data.outstandingBalance > 0 ? colors.warning : undefined} />
+                    </View>
+                  </Panel>
+                )}
+              </View>
+              <View style={[{ gap: space.lg }, isDesktop && { flex: 1, minWidth: 0 }]}>
+                {isOn("EVENTS") && (
+                  <Panel title="Events">
+                    <DonutChart
+                      centerLabel="Total"
+                      centerValue={data.totalEvents}
+                      segments={[
+                        { label: "Upcoming", value: data.upcomingEvents, color: colors.info },
+                        { label: "Completed", value: data.completedEvents, color: colors.success },
+                        { label: "Cancelled", value: data.cancelledEvents, color: colors.danger },
+                      ]}
+                    />
+                  </Panel>
+                )}
+                {isOn("QUOTATIONS") && (
+                  <Panel title="Top services">
+                    {data.topServices.length === 0 ? (
+                      <Text style={styles.empty}>No quotations in this period.</Text>
+                    ) : (
+                      <View style={{ gap: space.md }}>
+                        {data.topServices.map((s) => (
+                          <View key={s.serviceName}>
+                            <View style={styles.serviceRow}>
+                              <Text style={styles.serviceName} numberOfLines={1}>{s.serviceName}</Text>
+                              <Text style={styles.rowMeta}>{s.usageCount} ({s.percentage}%)</Text>
+                            </View>
+                            <View style={styles.track}><View style={[styles.fill, { width: `${s.percentage}%` }]} /></View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </Panel>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* ---- Under the graphs: what's coming up and who has asked ------------------------- */}
+          <View style={[styles.columns, isDesktop && styles.columnsWide]}>
+            {upcomingPanel && <View style={isDesktop ? styles.col : undefined}>{upcomingPanel}</View>}
+            {leadsPanel && <View style={isDesktop ? styles.col : undefined}>{leadsPanel}</View>}
           </View>
-        </>
+        </View>
       )}
-      </>)}
     </ScrollView>
+  );
+}
+
+function Figure({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <View style={styles.figure}>
+      <Text style={styles.figureLabel}>{label}</Text>
+      <Text style={[styles.figureValue, tone ? { color: tone } : null]}>{value}</Text>
+    </View>
   );
 }
 
@@ -547,119 +470,74 @@ function daysAway(eventDate: string, today: string): string {
   return `In ${days} days`;
 }
 
-function dayOfYear(): number {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  return Math.floor((now.getTime() - start.getTime()) / 86400000);
-}
+const MAX_WIDTH = 1280;
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  content: { padding: 28, maxWidth: 1400, width: "100%", alignSelf: "center" },
-  contentNarrow: { padding: 16 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 16, flexWrap: "wrap" },
-  // On a phone there isn't room for the greeting beside the date and bell, so they wrap below it.
-  headerLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 260 },
-  greeting: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  greetingName: { color: "#7fc0e6" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  rangeChip: {
-    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#23405c",
-    borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#132540",
-  },
-  rangeChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  iconButton: {
-    width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderColor: "#23405c", backgroundColor: "#132540",
+  screen: { flex: 1, backgroundColor: colors.page },
+  content: { maxWidth: MAX_WIDTH, width: "100%", alignSelf: "center", paddingBottom: space.xxl },
+  pressed: { backgroundColor: colors.cardRaised },
+  header: { flexDirection: "row", alignItems: "center", gap: space.md, marginBottom: space.lg },
+  greeting: { ...type.title, color: colors.text },
+  subtitle: { ...type.small, color: colors.textMuted, marginTop: 2 },
+  bell: {
+    width: touch, height: touch, borderRadius: radius.control, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
     alignItems: "center", justifyContent: "center",
   },
   badge: {
-    position: "absolute", top: -5, right: -5, backgroundColor: "#ff7a72", borderRadius: 100,
-    minWidth: 16, height: 16, paddingHorizontal: 3, alignItems: "center", justifyContent: "center",
+    position: "absolute", top: 4, right: 4, backgroundColor: colors.danger, borderRadius: radius.pill,
+    minWidth: 18, height: 18, paddingHorizontal: 4, alignItems: "center", justifyContent: "center",
   },
-  badgeText: { color: "#0d1826", fontSize: 9, fontWeight: "700" },
-  nativeNavRow: { marginBottom: 14 },
-  nativeNavRowContent: { gap: 8, paddingRight: 8 },
-  nativeNavButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: "#132540" },
-  nativeNavButtonText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  presetRow: { marginBottom: 18 },
-  presetRowContent: { gap: 8, paddingRight: 8 },
-  customRangeRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18, flexWrap: "wrap" },
-  presetChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  presetChipSelected: { borderColor: "#7fc0e6", backgroundColor: "rgba(127, 192, 230, 0.14)" },
-  presetChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  presetChipTextSelected: { color: "#7fc0e6" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
-  empty: { color: "#6f83a0", fontSize: 13, paddingVertical: 8 },
+  badgeText: { color: colors.page, fontSize: 10, fontWeight: "700" },
 
-  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginBottom: 18 },
-  statCard: {
-    flexGrow: 1, minWidth: 200, backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18,
+  tileRow: { flexDirection: "row", gap: space.md },
+  tileSlot: { flex: 1, minWidth: 0 },
+  tile: {
+    height: 104, backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border,
+    padding: space.md, justifyContent: "space-between",
   },
-  statIcon: { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  statValue: { fontSize: 24, fontWeight: "700", color: "#e8edf3", fontVariant: ["tabular-nums"] },
-  statLabel: { fontSize: 12, color: "#a7b7cb", marginTop: 2 },
-  deltaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 },
-  delta: { fontSize: 12, fontWeight: "700" },
-  deltaLabel: { fontSize: 11, color: "#6f83a0" },
-  deltaNeutral: { fontSize: 11, color: "#6f83a0", marginTop: 8 },
+  tileTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tileLabel: { ...type.small, color: colors.textMuted, flex: 1 },
+  tileValue: { fontSize: 24, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
+  tileHint: { ...type.caption, color: colors.textFaint },
 
-  columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
-  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 420, minWidth: 0, gap: 16 },
-  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
+  columns: { gap: space.lg },
+  columnsWide: { flexDirection: "row", alignItems: "flex-start" },
+  col: { flex: 1, minWidth: 0 },
 
-  panel: { backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18 },
-  panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  panelTitle: { fontSize: 15, fontWeight: "700", color: "#e8edf3" },
-  panelLink: { fontSize: 12, color: "#7fc0e6", fontWeight: "600" },
+  panel: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg },
+  panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: space.sm, minHeight: 32 },
+  panelTitle: { ...type.heading, color: colors.text, flex: 1 },
+  rows: { gap: 2, marginHorizontal: -space.sm },
+  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 56, paddingHorizontal: space.sm, borderRadius: radius.control },
+  rowTitle: { ...type.body, fontWeight: "600", color: colors.text },
+  rowSub: { ...type.small, color: colors.textMuted },
+  rowMeta: { ...type.caption, color: colors.textFaint },
+  time: { ...type.small, fontWeight: "700", color: colors.link, width: 52 },
+  dateBadge: { width: 44, alignItems: "center", paddingVertical: 4, borderRadius: radius.control, backgroundColor: colors.infoSoft },
+  dateDay: { fontSize: 16, fontWeight: "700", color: colors.text, lineHeight: 19 },
+  dateMonth: { fontSize: 11, fontWeight: "600", color: colors.info, textTransform: "uppercase" },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.cardRaised, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: colors.text, fontWeight: "700" },
+  emptyRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap", minHeight: 44 },
+  empty: { ...type.body, color: colors.textMuted },
+  error: { ...type.body, color: colors.danger, marginBottom: space.md },
 
-  overviewStats: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: "#1b2c42", paddingTop: 16 },
-  overviewStat: { minWidth: 90 },
-  overviewStatLabel: { fontSize: 11, color: "#6f83a0" },
-  overviewStatValue: { fontSize: 16, fontWeight: "700", color: "#e8edf3", marginTop: 2 },
+  sectionHead: { flexDirection: "row", alignItems: "baseline", gap: space.md, flexWrap: "wrap", marginTop: space.lg },
+  sectionTitle: { ...type.heading, fontSize: 19, color: colors.text },
+  sectionSub: { ...type.small, color: colors.textMuted },
+  chips: { gap: space.sm },
+  chip: { minHeight: 36, justifyContent: "center", borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill, paddingHorizontal: 14, backgroundColor: colors.card },
+  chipOn: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  chipText: { ...type.small, color: colors.textMuted, fontWeight: "600" },
+  chipTextOn: { color: colors.primary },
+  customRange: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
 
-  financeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  financeTile: { flexGrow: 1, minWidth: 130, backgroundColor: "#0f1e30", borderRadius: 8, padding: 12 },
-  financeLabel: { fontSize: 11, color: "#6f83a0" },
-  financeValue: { fontSize: 15, fontWeight: "700", color: "#e8edf3", marginTop: 3, fontVariant: ["tabular-nums"] },
-
-  topServiceRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
-  topServiceName: { color: "#e8edf3", fontSize: 13, fontWeight: "600", flex: 1, marginRight: 8 },
-  topServiceMeta: { color: "#a7b7cb", fontSize: 12 },
-  progressTrack: { height: 6, borderRadius: 3, backgroundColor: "#0f1e30", overflow: "hidden" },
-  progressFill: { height: 6, borderRadius: 3, backgroundColor: "#7fc0e6" },
-
-  scheduleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  scheduleTime: { color: "#7fc0e6", fontSize: 12, fontWeight: "700", width: 44 },
-  scheduleTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
-  scheduleSubtitle: { color: "#6f83a0", fontSize: 11, marginTop: 1 },
-  upcomingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  dateBadge: {
-    width: 40, alignItems: "center", paddingVertical: 4, borderRadius: 8,
-    backgroundColor: "rgba(127, 192, 230, 0.10)", borderWidth: 1, borderColor: "#23405c",
-  },
-  dateBadgeDay: { color: "#e8edf3", fontSize: 14, fontWeight: "700", lineHeight: 16 },
-  dateBadgeMonth: { color: "#7fc0e6", fontSize: 10, fontWeight: "600", textTransform: "uppercase" },
-  statusPill: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 3, paddingHorizontal: 8 },
-  statusPillText: { color: "#7fc0e6", fontSize: 10, fontWeight: "700" },
-
-  leadRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  leadAvatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#23405c", alignItems: "center", justifyContent: "center" },
-  leadAvatarText: { color: "#e8edf3", fontWeight: "700", fontSize: 12 },
-  leadName: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
-  leadSubtitle: { color: "#6f83a0", fontSize: 11, marginTop: 1 },
-  leadTime: { color: "#6f83a0", fontSize: 11 },
-
-  welcomeCard: {
-    alignItems: "center", gap: 6, paddingVertical: 40, paddingHorizontal: 20, borderRadius: 12,
-    borderWidth: 1, borderColor: "#1b2c42", backgroundColor: "#0f1e30",
-  },
-  welcomeTitle: { color: "#e8edf3", fontSize: 17, fontWeight: "700" },
-  welcomeText: { color: "#6f83a0", fontSize: 13 },
-  tipBanner: {
-    flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#132540", borderWidth: 1,
-    borderColor: "#23405c", borderRadius: 12, padding: 16, marginTop: 16,
-  },
-  tipText: { color: "#a7b7cb", fontSize: 13, flex: 1 },
-  tipLabel: { color: "#e8edf3", fontWeight: "700" },
+  figures: { flexDirection: "row", flexWrap: "wrap", gap: space.lg, marginTop: space.lg, paddingTop: space.lg, borderTopWidth: 1, borderTopColor: colors.border },
+  figure: { minWidth: 110 },
+  figureLabel: { ...type.caption, color: colors.textMuted },
+  figureValue: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
+  serviceRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, gap: space.sm },
+  serviceName: { ...type.small, fontWeight: "600", color: colors.text, flex: 1 },
+  track: { height: 6, borderRadius: 3, backgroundColor: colors.bar, overflow: "hidden" },
+  fill: { height: 6, borderRadius: 3, backgroundColor: colors.link },
 });

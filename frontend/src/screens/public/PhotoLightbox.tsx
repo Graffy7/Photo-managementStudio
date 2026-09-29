@@ -233,7 +233,8 @@ export function PhotoLightbox({ photos, index, total, hasMore, disabled, effecti
             <Text style={styles.counter}>{(index ?? 0) + 1} of {total}</Text>
           </View>
 
-          <View style={styles.zoomGroup}>
+          {/* Phones pinch to zoom, so the buttons stay off their small screen. */}
+          {width >= 600 && <View style={styles.zoomGroup}>
             <Pressable
               style={[styles.iconButton, zoomPercent <= 100 && styles.iconDisabled]}
               onPress={() => zoomTo(scaleRef.current - STEP)}
@@ -259,7 +260,7 @@ export function PhotoLightbox({ photos, index, total, hasMore, disabled, effecti
             >
               <Text style={styles.textButtonLabel}>Reset</Text>
             </Pressable>
-          </View>
+          </View>}
 
           <Pressable style={styles.closeButton} onPress={onClose} accessibilityLabel="Close">
             <Text style={styles.iconText}>✕</Text>
@@ -310,7 +311,7 @@ export function PhotoLightbox({ photos, index, total, hasMore, disabled, effecti
           )}
 
           <Text style={styles.hint}>
-            {zoomed ? "Drag to move around · Reset to fit" : "Scroll or pinch to zoom in"}
+            {zoomed ? (width >= 600 ? "Drag to move around · Reset to fit" : "Drag to move around") : width >= 600 ? "Scroll or pinch to zoom in" : "Pinch to zoom in"}
           </Text>
         </View>
 

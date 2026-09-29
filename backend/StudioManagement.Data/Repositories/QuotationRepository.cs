@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using StudioManagement.Data.Common;
+using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
 
@@ -13,7 +14,7 @@ public class QuotationRepository(AppDbContext context) : IQuotationRepository
             .Include(q => q.Items).ThenInclude(i => i.Service)
             .FirstOrDefaultAsync(q => q.StudioId == studioId && q.QuotationId == quotationId, ct);
 
-    public async Task<(List<Quotation> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? status, int? customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Quotation> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? status, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         var query = context.Quotations
             .AsNoTracking()
@@ -39,8 +40,16 @@ public class QuotationRepository(AppDbContext context) : IQuotationRepository
         }
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderByDescending(q => q.QuotationDate)
+        var desc = sort?.Descending ?? false;
+        var ordered = sort?.Key switch
+        {
+            "customer" => query.OrderByDirection(q => q.Customer.FullName, desc),
+            "total" => query.OrderByDirection(q => q.GrandTotal, desc),
+            "date" => query.OrderByDirection(q => q.QuotationDate, desc),
+            _ => query.OrderByDescending(q => q.QuotationDate),
+        };
+        var items = await ordered
+            .ThenByDescending(q => q.QuotationId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

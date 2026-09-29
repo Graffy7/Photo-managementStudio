@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { eventsApi } from "../../api/eventsApi";
 import { lookupApis } from "../../api/lookupsApi";
@@ -10,6 +10,8 @@ import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { MiniTimePicker } from "../../components/MiniTimePicker";
 import { LookupTypeField } from "../../components/LookupTypeField";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from "../../types/payment";
+import { FormScreen, FormSection, FieldRow, Field, TextField, ChoiceChips, FormNote } from "../../ui/Form";
+import { colors, radius, space, type } from "../../ui/theme";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -44,6 +46,11 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
   const [fileLocation, setFileLocation] = useState(event?.fileLocation ?? "");
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
+  // Missing required fields are pointed out once Save has been pressed.
+  const [tried, setTried] = useState(false);
+
+  const budgetAmount = Number(budget) || 0;
+  const advanceAmount = Number(advancePaid) || 0;
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -69,17 +76,15 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
       queryClient.invalidateQueries({ queryKey: ["events"] });
       onDone();
     },
-    onError: (err) => setError(extractErrorMessage(err)),
+    onError: (err) => setError(extractErrorMessage(err, "Couldn't save the event. Please try again.")),
   });
 
-  const budgetAmount = Number(budget) || 0;
-  const advanceAmount = Number(advancePaid) || 0;
   // New event: the advance being typed. Editing: what's already been paid (payments are managed
   // from Payments/Calendar, so it's shown read-only here).
   const paidSoFar = isEdit ? event!.amountPaid : advanceAmount;
   const balance = budgetAmount - paidSoFar;
   const advanceError = !isEdit && advanceAmount > 0 && advanceAmount > budgetAmount
-    ? (budgetAmount > 0 ? "Advance can't be more than the budget." : "Enter the budget first.")
+    ? (budgetAmount > 0 ? "The advance can't be more than the total." : "Enter the total first.")
     : null;
 
   // What's already been paid sets a floor on the total (the server checks this too) - otherwise the
@@ -88,171 +93,142 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
     ? `${formatCurrency(event!.amountPaid)} has already been paid, so the total can't be less than that. To lower it, record a refund first.`
     : null;
 
+  const customerError = tried && !customer ? "Choose the customer for this event." : null;
+  const dateError = tried && !eventDate.trim() ? "Choose the event date." : null;
   const canSave = customer !== null && eventDate.trim().length > 0 && !advanceError && !totalError;
 
+  const submit = () => {
+    setTried(true);
+    if (!canSave) {
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+    setError(null);
+    mutation.mutate();
+  };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEdit ? "Edit event" : "New event"}</Text>
+    <FormScreen
+      title={isEdit ? "Edit event" : "New event"}
+      subtitle={isEdit ? `${event!.eventTypeName ?? "Event"} · ${event!.customerName}` : "Customer and date are needed; everything else can be added later."}
+      onCancel={onCancel}
+      onSave={submit}
+      saveLabel={isEdit ? "Save changes" : "Create event"}
+      saving={mutation.isPending}
+      error={error}
+    >
+      <FormSection title="Customer and event">
+        <Field label="Customer" required error={customerError}>
+          <CustomerPicker selected={customer} onSelect={(c) => { setCustomer(c); setError(null); }} />
+        </Field>
+        <LookupTypeField
+          label="Event type"
+          noun="event type"
+          queryKey={["lookups", "eventTypes"]}
+          api={lookupApis.eventTypes}
+          selectedId={eventTypeId}
+          onSelect={setEventTypeId}
+        />
+      </FormSection>
 
-      <Text style={styles.label}>Customer</Text>
-      <CustomerPicker selected={customer} onSelect={setCustomer} />
+      <FormSection title="Date and place">
+        <Field label="Event date" required error={dateError}>
+          <MiniDatePicker variant="form" value={eventDate} onChange={(v) => { setEventDate(v); setError(null); }} placeholder="Select event date" />
+        </Field>
+        <FieldRow>
+          <Field label="Start time" flex>
+            <MiniTimePicker clearable value={startTime} onChange={setStartTime} placeholder="Start time" />
+          </Field>
+          <Field label="End time" flex>
+            <MiniTimePicker clearable value={endTime} onChange={setEndTime} placeholder="End time" />
+          </Field>
+        </FieldRow>
+        <FieldRow>
+          <Field label="Venue" flex>
+            <TextField value={venue} onChangeText={setVenue} placeholder="Grand Palace Hall" />
+          </Field>
+          <Field label="Venue address" flex>
+            <TextField value={venueAddress} onChangeText={setVenueAddress} placeholder="Anna Nagar, Chennai" />
+          </Field>
+        </FieldRow>
+      </FormSection>
 
-      <LookupTypeField
-        label="Event type"
-        noun="event type"
-        queryKey={["lookups", "eventTypes"]}
-        api={lookupApis.eventTypes}
-        selectedId={eventTypeId}
-        onSelect={setEventTypeId}
-      />
-
-      <Text style={styles.label}>Event date</Text>
-      <MiniDatePicker variant="form" value={eventDate} onChange={setEventDate} placeholder="Select event date" />
-
-      <View style={styles.timeRow}>
-        <View style={styles.timeField}>
-          <Text style={styles.label}>Start time</Text>
-          <MiniTimePicker clearable value={startTime} onChange={setStartTime} placeholder="Start time" />
-        </View>
-        <View style={styles.timeField}>
-          <Text style={styles.label}>End time</Text>
-          <MiniTimePicker clearable value={endTime} onChange={setEndTime} placeholder="End time" />
-        </View>
-      </View>
-
-      <Text style={styles.label}>Venue</Text>
-      <TextInput style={styles.input} value={venue} onChangeText={setVenue} placeholder="Optional" placeholderTextColor="#6f83a0" />
-
-      <Text style={styles.label}>Venue address</Text>
-      <TextInput style={styles.input} value={venueAddress} onChangeText={setVenueAddress} placeholder="Optional" placeholderTextColor="#6f83a0" />
-
-      <Text style={styles.label}>Budget</Text>
-      <TextInput
-        style={styles.input}
-        value={budget}
-        onChangeText={(v) => setBudget(v.replace(/[^0-9.]/g, ""))}
-        placeholder="Optional"
-        placeholderTextColor="#6f83a0"
-        keyboardType="numeric"
-      />
-      {totalError ? <Text style={[styles.error, { marginTop: 6 }]}>{totalError}</Text> : null}
-
-      {!isEdit && (
-        <>
-          <Text style={styles.label}>Advance paid</Text>
-          <TextInput
-            style={[styles.input, advanceError ? styles.inputInvalid : null]}
-            value={advancePaid}
-            onChangeText={(v) => setAdvancePaid(v.replace(/[^0-9.]/g, ""))}
-            placeholder="Optional"
-            placeholderTextColor="#6f83a0"
-            keyboardType="numeric"
-          />
-          {advanceError ? <Text style={styles.error}>{advanceError}</Text> : null}
-          {advanceAmount > 0 && !advanceError && (
-            <View style={[styles.chipRow, { marginTop: 10 }]}>
-              {PAYMENT_METHODS.map((m) => (
-                <Pressable key={m} style={[styles.chip, advanceMethod === m && styles.chipSelected]} onPress={() => setAdvanceMethod(m)}>
-                  <Text style={[styles.chipText, advanceMethod === m && styles.chipTextSelected]}>{PAYMENT_METHOD_LABELS[m]}</Text>
-                </Pressable>
-              ))}
-            </View>
+      <FormSection title="Money" description={isEdit ? "Payments for this event are recorded under Payments." : undefined}>
+        <FieldRow>
+          <Field label="Total amount" error={totalError} flex>
+            <TextField
+              invalid={!!totalError}
+              value={budget}
+              onChangeText={(v) => setBudget(v.replace(/[^0-9.]/g, ""))}
+              placeholder="85000"
+              keyboardType="numeric"
+            />
+          </Field>
+          {!isEdit && (
+            <Field label="Advance paid now" error={advanceError} flex>
+              <TextField
+                invalid={!!advanceError}
+                value={advancePaid}
+                onChangeText={(v) => setAdvancePaid(v.replace(/[^0-9.]/g, ""))}
+                placeholder="20000"
+                keyboardType="numeric"
+              />
+            </Field>
           )}
-        </>
-      )}
-
-      {(budgetAmount > 0 || paidSoFar > 0) && (
-        <View style={styles.moneyCard}>
-          <View style={styles.moneyItem}>
-            <Text style={styles.moneyLabel}>Budget</Text>
-            <Text style={styles.moneyValue}>{formatCurrency(budgetAmount)}</Text>
+        </FieldRow>
+        {!isEdit && advanceAmount > 0 && !advanceError && (
+          <Field label="Advance paid by" required>
+            <ChoiceChips
+              options={PAYMENT_METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }))}
+              value={advanceMethod}
+              onChange={setAdvanceMethod}
+            />
+          </Field>
+        )}
+        {(budgetAmount > 0 || paidSoFar > 0) && (
+          <View style={styles.money}>
+            <Money label="Total" value={formatCurrency(budgetAmount)} />
+            <Money label={isEdit ? "Paid so far" : "Advance"} value={formatCurrency(paidSoFar)} />
+            <Money label={balance < 0 ? "Overpaid" : "Balance"} value={formatCurrency(Math.abs(balance))} tone={balance > 0 ? colors.warning : balance < 0 ? colors.danger : colors.success} />
           </View>
-          <View style={styles.moneyItem}>
-            <Text style={styles.moneyLabel}>Advance paid</Text>
-            <Text style={styles.moneyValue}>{formatCurrency(paidSoFar)}</Text>
-          </View>
-          <View style={styles.moneyItem}>
-            <Text style={styles.moneyLabel}>Balance</Text>
-            <Text style={[styles.moneyValue, { color: balance > 0 ? "#f2bd5c" : "#4cc493" }]}>{formatCurrency(balance)}</Text>
-          </View>
-        </View>
-      )}
+        )}
+      </FormSection>
 
-      <Text style={styles.label}>Status</Text>
-      <View style={styles.chipRow}>
-        {EVENT_STATUSES.map((s) => (
-          <Pressable key={s} style={[styles.chip, eventStatus === s && styles.chipSelected]} onPress={() => setEventStatus(s)}>
-            <Text style={[styles.chipText, eventStatus === s && styles.chipTextSelected]}>{EVENT_STATUS_LABELS[s]}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {eventStatus === "Completed" && (
-        <>
-          <Text style={styles.label}>File stored location</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={fileLocation}
-            onChangeText={setFileLocation}
-            placeholder="Where this event's photos and videos are kept, e.g. G:\Weddings\Rahul"
-            placeholderTextColor="#6f83a0"
-            multiline
-            numberOfLines={2}
+      <FormSection title="Status and notes">
+        <Field label="Status" required>
+          <ChoiceChips
+            options={EVENT_STATUSES.map((s) => ({ value: s, label: EVENT_STATUS_LABELS[s] }))}
+            value={eventStatus}
+            onChange={setEventStatus}
           />
-        </>
-      )}
+        </Field>
+        {eventStatus === "Completed" && (
+          <Field label="Where the files are stored" hint="So anyone in the studio can find this event's photos and videos.">
+            <TextField value={fileLocation} onChangeText={setFileLocation} placeholder="G:\Weddings\Rahul" multiline numberOfLines={2} />
+          </Field>
+        )}
+        {eventStatus === "Cancelled" && isEdit && event!.amountPaid > 0 && (
+          <FormNote>{formatCurrency(event!.amountPaid)} was paid for this event. Record a refund under Payments if it's being returned.</FormNote>
+        )}
+        <Field label="Notes">
+          <TextField value={notes} onChangeText={setNotes} placeholder="Two photographers; drone at the reception" multiline numberOfLines={3} />
+        </Field>
+      </FormSection>
+    </FormScreen>
+  );
+}
 
-      <Text style={styles.label}>Notes</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        value={notes}
-        onChangeText={setNotes}
-        placeholder="Optional"
-        placeholderTextColor="#6f83a0"
-        multiline
-        numberOfLines={3}
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.buttonRow}>
-        <Pressable style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
-        <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create event"}</Text>}
-        </Pressable>
-      </View>
-    </ScrollView>
+function Money({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={styles.moneyLabel}>{label}</Text>
+      <Text style={[styles.moneyValue, tone ? { color: tone } : null]}>{value}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
-  title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
-  input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#132540",
-  },
-  textArea: { minHeight: 72, textAlignVertical: "top" },
-  timeRow: { flexDirection: "row", gap: 12 },
-  timeField: { flex: 1 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#ff9a4d" },
-  inputInvalid: { borderColor: "#ff7a72" },
-  moneyCard: { flexDirection: "row", gap: 12, marginTop: 14, backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 14 },
-  moneyItem: { flex: 1, gap: 2 },
-  moneyLabel: { color: "#6f83a0", fontSize: 10.5 },
-  moneyValue: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
-  error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#a7b7cb", fontWeight: "600" },
-  saveButton: { flex: 2, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  saveText: { color: "#0d1826", fontWeight: "700" },
+  money: { flexDirection: "row", gap: space.md, backgroundColor: colors.page, borderRadius: radius.control, padding: space.md },
+  moneyLabel: { ...type.caption, color: colors.textMuted },
+  moneyValue: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
 });

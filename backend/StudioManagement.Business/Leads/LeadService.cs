@@ -18,12 +18,12 @@ public class LeadService(
     private const string Module = "Enquiry";
 
     public async Task<PagedResult<LeadDto>> SearchAsync(
-        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default)
+        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await leadRepository.SearchAsync(studioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct);
+        var (items, totalCount) = await leadRepository.SearchAsync(studioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct, sort);
         return new PagedResult<LeadDto>
         {
             Items = items.Select(MapToDto).ToList(),

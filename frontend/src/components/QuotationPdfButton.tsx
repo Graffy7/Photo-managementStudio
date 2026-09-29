@@ -78,8 +78,8 @@ export function QuotationPdfButton({ quotation, onError }: { quotation: Quotatio
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(4,9,16,0.6)", alignItems: "center", justifyContent: "center", padding: 16 },
-  button: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, minWidth: 54, justifyContent: "center" },
-  buttonText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
+  button: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, minHeight: 40, minWidth: 64, justifyContent: "center" },
+  buttonText: { color: "#8cc8f0", fontSize: 14, fontWeight: "600" },
   menu: {
     width: "100%", maxWidth: 360, backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c",
     borderRadius: 12, paddingVertical: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.45)",

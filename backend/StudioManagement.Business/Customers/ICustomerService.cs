@@ -1,10 +1,11 @@
+using StudioManagement.Data.Common;
 using StudioManagement.Business.Common;
 
 namespace StudioManagement.Business.Customers;
 
 public interface ICustomerService
 {
-    Task<PagedResult<CustomerDto>> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<CustomerDto>> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null);
     Task<CustomerDto?> GetByIdAsync(int studioId, int customerId, CancellationToken ct = default);
     // Another customer of this studio already using this mobile number (null = free to use).
     Task<CustomerDto?> FindMobileDuplicateAsync(int studioId, string mobileNumber, int? excludeCustomerId, CancellationToken ct = default);

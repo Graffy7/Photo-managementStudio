@@ -1,3 +1,4 @@
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 
 namespace StudioManagement.Data.Repositories;
@@ -5,7 +6,7 @@ namespace StudioManagement.Data.Repositories;
 public interface IPaymentRepository
 {
     Task<Payment?> GetByIdAsync(int studioId, int paymentId, CancellationToken ct = default);
-    Task<(List<Payment> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default);
+    Task<(List<Payment> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null);
     Task<List<Payment>> GetForEventAsync(int studioId, int eventId, CancellationToken ct = default);
     // Completed advance payments per event (see Payment.IsAdvance).
     Task<Dictionary<int, decimal>> GetCompletedAdvanceTotalsByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);

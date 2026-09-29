@@ -27,8 +27,10 @@ public class PaymentsController(
         [FromQuery] int? customerId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDesc = false,
         CancellationToken ct = default) =>
-        Ok(await paymentService.SearchAsync(StudioId, search, paymentStatus, customerId, page, pageSize, ct));
+        Ok(await paymentService.SearchAsync(StudioId, search, paymentStatus, customerId, page, pageSize, ct, new ListSort(sortBy, sortDesc)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

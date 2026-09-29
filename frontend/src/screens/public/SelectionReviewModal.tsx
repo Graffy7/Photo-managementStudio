@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, FlatList, Modal, StyleSheet, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { publicPhotoSelectionApi } from "../../api/photoSelectionApi";
 import { PublicPhotoCard, BIG_COLOR, NORMAL_COLOR } from "./PublicPhotoCard";
 import type { GalleryCounts, PublicPhoto, SelectionType } from "../../types/photoSelection";
+import { Button } from "../../ui/Button";
+import { Skeleton } from "../../ui/Skeleton";
+import { colors, radius, space, touch, type } from "../../ui/theme";
 
 interface Props {
   visible: boolean;
@@ -46,9 +50,9 @@ export function SelectionReviewModal({ visible, token, counts, locked, effective
     [data, effective]
   );
 
-  const columns = width < 560 ? 2 : width < 860 ? 3 : 4;
+  const columns = width < 600 ? 2 : width < 900 ? 3 : 4;
   const gap = 10;
-  const padding = 14;
+  const padding = width < 600 ? space.lg : space.xl;
   const cardWidth = Math.floor((Math.min(width, 1200) - padding * 2 - gap * (columns - 1)) / columns);
 
   const close = () => {
@@ -75,44 +79,49 @@ export function SelectionReviewModal({ visible, token, counts, locked, effective
       <View style={styles.screen}>
         {step === "done" ? (
           <View style={styles.doneWrap}>
-            <View style={styles.doneIcon}><Text style={styles.doneCheck}>✓</Text></View>
-            <Text style={styles.doneTitle}>Selection submitted</Text>
-            <Text style={styles.doneText}>Your photo selection has been sent to the studio.</Text>
+            <View style={styles.doneIcon}><Ionicons name="checkmark" size={40} color={colors.success} /></View>
+            <Text style={styles.doneTitle}>Sent to the studio</Text>
+            <Text style={styles.doneText}>The studio now has your photo selection.</Text>
             <Text style={styles.doneCounts}>
               {counts.selected} photos · {counts.normal} Normal · {counts.big} Big
             </Text>
             {!locked && (
-              <Text style={styles.doneHint}>You can still make changes until the studio locks your selection.</Text>
+              <Text style={styles.doneHint}>You can still change it until the studio locks your selection.</Text>
             )}
-            <Pressable style={styles.primary} onPress={close}>
-              <Text style={styles.primaryText}>Back to photos</Text>
-            </Pressable>
+            <Button label="Back to photos" variant="primary" onPress={close} style={{ minWidth: 220 }} />
           </View>
         ) : (
           <>
             <View style={styles.header}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.title}>Review your selection</Text>
+              <Pressable onPress={close} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Back to photos" hitSlop={6}>
+                <Ionicons name="chevron-back" size={22} color={colors.text} />
+              </Pressable>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.title}>Your selection</Text>
                 <Text style={styles.summary}>
                   {counts.selected} selected · <Text style={{ color: NORMAL_COLOR }}>{counts.normal} Normal</Text> ·{" "}
                   <Text style={{ color: BIG_COLOR }}>{counts.big} Big</Text>
                 </Text>
               </View>
-              <Pressable style={styles.secondary} onPress={close}>
-                <Text style={styles.secondaryText}>Back</Text>
-              </Pressable>
             </View>
 
             {isPending ? (
-              <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
+              <View style={[styles.grid, { padding, gap }]}>
+                {Array.from({ length: columns * 2 }).map((_, i) => (
+                  <Skeleton key={i} width={cardWidth} height={Math.round(cardWidth * 0.75) + 56} rounded={radius.card} />
+                ))}
+              </View>
             ) : isError ? (
               <View style={styles.center}>
-                <Text style={styles.errorText}>Couldn't load your selection.</Text>
-                <Pressable style={styles.secondary} onPress={() => refetch()}><Text style={styles.secondaryText}>Try again</Text></Pressable>
+                <Text style={styles.errorText}>Couldn't load your selection. Check your internet connection.</Text>
+                <Button label="Try again" onPress={() => refetch()} />
               </View>
             ) : photos.length === 0 ? (
               <View style={styles.center}>
-                <Text style={styles.emptyText}>You haven't selected any photos yet.</Text>
+                <Ionicons name="images-outline" size={36} color={colors.textFaint} />
+                <Text style={styles.emptyTitle}>No photos selected yet</Text>
+                <Text style={styles.emptyText}>Open a folder and tap Select on the photos you like.</Text>
+                <Button label="Choose photos" onPress={close} />
               </View>
             ) : (
               <FlatList
@@ -139,39 +148,31 @@ export function SelectionReviewModal({ visible, token, counts, locked, effective
             )}
 
             <View style={styles.footer}>
-              {locked ? (
-                <Text style={styles.lockedText}>
-                  🔒 Selection Locked. Please contact the studio if you need to make changes.
-                </Text>
-              ) : (
-                <>
-                  {error && <Text style={styles.errorText}>{error}</Text>}
-                  <Pressable
-                    style={[styles.primary, counts.selected === 0 && styles.disabled]}
-                    disabled={counts.selected === 0}
-                    onPress={() => setStep("confirm")}
-                  >
-                    <Text style={styles.primaryText}>Submit selection ({counts.selected})</Text>
-                  </Pressable>
-                </>
-              )}
+              <View style={styles.footerInner}>
+                {locked ? (
+                  <Text style={styles.lockedText}>The studio has locked your selection. Contact the studio if you need to change it.</Text>
+                ) : (
+                  <>
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+                    {counts.selected > 0 && (
+                      <Button label={`Send ${counts.selected} photo${counts.selected === 1 ? "" : "s"} to the studio`} variant="primary" onPress={() => setStep("confirm")} full />
+                    )}
+                  </>
+                )}
+              </View>
             </View>
 
             {step === "confirm" && (
               <View style={styles.dialogOverlay}>
                 <View style={styles.dialog}>
-                  <Text style={styles.dialogTitle}>Submit your selection?</Text>
+                  <Text style={styles.dialogTitle}>Send your selection?</Text>
                   <Text style={styles.dialogText}>
-                    You've chosen {counts.selected} photos: {counts.normal} Normal and {counts.big} Big. The studio will be notified.
-                    You can still make changes until the studio locks your selection.
+                    {counts.selected} photos: {counts.normal} Normal and {counts.big} Big. The studio will be told right away.
+                    You can still change it until the studio locks your selection.
                   </Text>
                   <View style={styles.dialogActions}>
-                    <Pressable style={styles.secondary} disabled={submitting} onPress={() => setStep("review")}>
-                      <Text style={styles.secondaryText}>Keep editing</Text>
-                    </Pressable>
-                    <Pressable style={[styles.primary, styles.dialogPrimary, submitting && styles.disabled]} disabled={submitting} onPress={submit}>
-                      {submitting ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.primaryText}>Yes, submit</Text>}
-                    </Pressable>
+                    <Button label="Keep editing" onPress={() => setStep("review")} disabled={submitting} />
+                    <Button label="Yes, send" variant="primary" onPress={submit} loading={submitting} />
                   </View>
                 </View>
               </View>
@@ -184,33 +185,34 @@ export function SelectionReviewModal({ visible, token, counts, locked, effective
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: "#1b2c42" },
-  title: { color: "#e8edf3", fontSize: 18, fontWeight: "700" },
-  summary: { color: "#a7b7cb", fontSize: 13, marginTop: 2 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
-  emptyText: { color: "#6f83a0", fontSize: 14, textAlign: "center" },
-  errorText: { color: "#ff7a72", fontSize: 13, textAlign: "center", marginBottom: 8 },
-  lockedText: { color: "#f2bd5c", fontSize: 13, textAlign: "center", fontWeight: "600" },
-  footer: { padding: 14, borderTopWidth: 1, borderTopColor: "#1b2c42", backgroundColor: "#0f1e30", alignItems: "center" },
-  primary: { backgroundColor: "#ff9a4d", borderRadius: 10, paddingVertical: 13, paddingHorizontal: 26, alignItems: "center", minWidth: 180 },
-  primaryText: { color: "#0d1826", fontWeight: "800", fontSize: 14 },
-  secondary: { backgroundColor: "#132540", borderRadius: 10, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: "#23405c" },
-  secondaryText: { color: "#7fc0e6", fontWeight: "700", fontSize: 13 },
-  disabled: { opacity: 0.45 },
-  dialogOverlay: {
-    position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(5,10,18,0.78)", alignItems: "center", justifyContent: "center", padding: 20,
+  screen: { flex: 1, backgroundColor: colors.page },
+  header: {
+    flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.sm,
+    borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.bar,
   },
-  dialog: { backgroundColor: "#132540", borderRadius: 14, padding: 20, width: "100%", maxWidth: 420, borderWidth: 1, borderColor: "#23405c" },
-  dialogTitle: { color: "#e8edf3", fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  dialogText: { color: "#a7b7cb", fontSize: 14, lineHeight: 20 },
-  dialogActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 18 },
-  dialogPrimary: { minWidth: 120, paddingVertical: 11 },
-  doneWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 10 },
-  doneIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(76,196,147,0.16)", alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  doneCheck: { color: "#4cc493", fontSize: 38, fontWeight: "800" },
-  doneTitle: { color: "#e8edf3", fontSize: 22, fontWeight: "700" },
-  doneText: { color: "#a7b7cb", fontSize: 15, textAlign: "center" },
-  doneCounts: { color: "#7fc0e6", fontSize: 14, fontWeight: "600", marginTop: 4 },
-  doneHint: { color: "#6f83a0", fontSize: 13, textAlign: "center", marginBottom: 14 },
+  backButton: { width: touch, height: touch, alignItems: "center", justifyContent: "center", marginLeft: -10 },
+  title: { ...type.heading, color: colors.text },
+  summary: { ...type.small, color: colors.textMuted },
+  grid: { flexDirection: "row", flexWrap: "wrap", alignSelf: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.sm, padding: space.xl },
+  emptyTitle: { ...type.heading, color: colors.text, textAlign: "center" },
+  emptyText: { ...type.body, color: colors.textMuted, textAlign: "center", marginBottom: space.sm },
+  errorText: { ...type.small, color: colors.danger, textAlign: "center", marginBottom: space.sm },
+  lockedText: { ...type.small, color: colors.warning, textAlign: "center", fontWeight: "600" },
+  footer: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.bar, padding: space.lg },
+  footerInner: { width: "100%", maxWidth: 480, alignSelf: "center" },
+  dialogOverlay: {
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(5,10,18,0.78)",
+    alignItems: "center", justifyContent: "center", padding: space.xl,
+  },
+  dialog: { backgroundColor: colors.card, borderRadius: 14, padding: space.xl, width: "100%", maxWidth: 420, borderWidth: 1, borderColor: colors.border },
+  dialogTitle: { ...type.heading, fontSize: 19, color: colors.text, marginBottom: space.sm },
+  dialogText: { ...type.body, color: colors.textMuted },
+  dialogActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: space.sm, marginTop: space.xl },
+  doneWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: space.sm },
+  doneIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.successSoft, alignItems: "center", justifyContent: "center", marginBottom: space.sm },
+  doneTitle: { ...type.title, color: colors.text, textAlign: "center" },
+  doneText: { ...type.body, color: colors.textMuted, textAlign: "center" },
+  doneCounts: { ...type.body, color: colors.link, fontWeight: "600" },
+  doneHint: { ...type.small, color: colors.textFaint, textAlign: "center", marginBottom: space.lg, maxWidth: 320 },
 });

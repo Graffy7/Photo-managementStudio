@@ -1,12 +1,12 @@
 import { View, TextInput, Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, radius, space, touch } from "../ui/theme";
 
 interface SearchInputProps {
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
-  // The list screens each style their own search box; that style is applied to the wrapper so the
-  // box keeps its usual width, spacing and border.
+  // Applied to the wrapper, for width and spacing on the screen that uses it.
   style?: StyleProp<ViewStyle>;
 }
 
@@ -15,12 +15,14 @@ interface SearchInputProps {
 export function SearchInput({ value, onChangeText, placeholder, style }: SearchInputProps) {
   return (
     <View style={[styles.wrapper, style]}>
+      <Ionicons name="search" size={18} color={colors.textFaint} style={styles.icon} />
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor={colors.textFaint}
+        accessibilityLabel={placeholder}
       />
       {value.length > 0 && (
         <Pressable
@@ -30,7 +32,7 @@ export function SearchInput({ value, onChangeText, placeholder, style }: SearchI
           accessibilityLabel="Clear search"
           hitSlop={8}
         >
-          <Ionicons name="close-circle" size={16} color="#6f83a0" />
+          <Ionicons name="close-circle" size={18} color={colors.textFaint} />
         </Pressable>
       )}
     </View>
@@ -38,7 +40,11 @@ export function SearchInput({ value, onChangeText, placeholder, style }: SearchI
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flexDirection: "row", alignItems: "center" },
-  input: { flex: 1, color: "#e8edf3", fontSize: 14, outlineStyle: "none" } as any,
-  clear: { paddingLeft: 8 },
+  wrapper: {
+    flexDirection: "row", alignItems: "center", minHeight: touch, borderWidth: 1, borderColor: colors.borderStrong,
+    borderRadius: radius.control, backgroundColor: colors.card,
+  },
+  icon: { marginLeft: space.md },
+  input: { flex: 1, minWidth: 0, color: colors.text, fontSize: 15, paddingHorizontal: space.sm, paddingVertical: 10 },
+  clear: { paddingHorizontal: space.md, height: touch, justifyContent: "center" },
 });

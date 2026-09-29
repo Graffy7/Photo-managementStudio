@@ -3,7 +3,7 @@ import type { PagedResult } from "../types/studio";
 import type { CreateQuotationRequest, PriceDisplay, Quotation, QuotationStatus, UpdateQuotationRequest } from "../types/quotation";
 
 export const quotationsApi = {
-  search: (params: { search?: string; status?: string; customerId?: number; page?: number; pageSize?: number }) =>
+  search: (params: { search?: string; status?: string; customerId?: number; page?: number; pageSize?: number; sortBy?: string; sortDesc?: boolean }) =>
     apiClient.get<PagedResult<Quotation>>("/api/quotations", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<Quotation>(`/api/quotations/${id}`).then((res) => res.data),

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
 import { servicesApi } from "../../api/servicesApi";
@@ -8,6 +8,9 @@ import type { PriceDisplay, Quotation } from "../../types/quotation";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { FormScreen, FormSection, FieldRow, Field, TextField, FormNote } from "../../ui/Form";
+import { Button } from "../../ui/Button";
+import { colors, radius, space, type } from "../../ui/theme";
 
 interface Props {
   quotation?: Quotation;
@@ -27,6 +30,12 @@ interface ItemDraft {
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+// Today on this device (not UTC) - a new quotation is dated today unless changed.
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 let keySeq = 0;
@@ -58,7 +67,7 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
   const [customer, setCustomer] = useState<PickedCustomer | null>(
     quotation ? { customerId: quotation.customerId, fullName: quotation.customerName, mobileNumber: quotation.customerMobileNumber } : null
   );
-  const [quotationDate, setQuotationDate] = useState(quotation?.quotationDate?.slice(0, 10) ?? "");
+  const [quotationDate, setQuotationDate] = useState(quotation?.quotationDate?.slice(0, 10) ?? localToday());
   const [validUntil, setValidUntil] = useState(quotation?.validUntil?.slice(0, 10) ?? "");
   const [discount, setDiscount] = useState(quotation ? String(quotation.discount) : "0");
   const [taxAmount, setTaxAmount] = useState(quotation ? String(quotation.taxAmount) : "0");
@@ -145,7 +154,7 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       onDone();
     },
-    onError: (err) => setError(extractErrorMessage(err)),
+    onError: (err) => setError(extractErrorMessage(err, "Couldn't save the quotation. Please try again.")),
   });
 
   const canSave =
@@ -155,244 +164,210 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
     items.every((i) => Number(i.quantity) > 0 && Number(i.unitPrice) >= 0 && i.unitPrice.trim() !== "" && (i.serviceId != null || i.serviceName.trim().length > 0)) &&
     (manualTotalNum == null || manualTotalNum > 0);
 
+  const [tried, setTried] = useState(false);
+  const itemProblem = (i: ItemDraft): string | null => {
+    if (i.serviceId == null && !i.serviceName.trim()) return "Give this item a name.";
+    if (!(Number(i.quantity) > 0)) return "Quantity must be at least 1.";
+    if (i.unitPrice.trim() === "" || Number(i.unitPrice) < 0) return "Enter the price.";
+    return null;
+  };
+  const customerError = tried && !customer ? "Choose the customer." : null;
+  const dateError = tried && !quotationDate.trim() ? "Choose the quotation date." : null;
+  const itemsError = tried && items.length === 0 ? "Add at least one item." : null;
+  const manualTotalError = manualTotalNum != null && !(manualTotalNum > 0) ? "Enter an amount above zero, or leave it empty." : null;
+
+  const submit = () => {
+    setTried(true);
+    if (!canSave) {
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+    setError(null);
+    mutation.mutate();
+  };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEdit ? `Edit ${quotation!.quotationNumber}` : "New quotation"}</Text>
-
-      {historyWarning && (
-        <View style={styles.warning}>
-          <Text style={styles.warningTitle}>This quotation is part of a permanent record</Text>
-          <Text style={styles.warningText}>{historyWarning}</Text>
-          <Text style={styles.warningText}>
-            If the price has changed, raise a new quotation for this event instead — it becomes the next
-            version and the old one stays exactly as the customer received it.
-          </Text>
+    <FormScreen
+      title={isEdit ? `Edit ${quotation!.quotationNumber}` : "New quotation"}
+      subtitle={isEdit ? quotation!.customerName : "Pick the customer, add the services, and the PDF is ready."}
+      onCancel={onCancel}
+      onSave={submit}
+      saveLabel={isEdit ? "Save changes" : "Create quotation"}
+      saving={mutation.isPending}
+      error={error}
+      above={historyWarning ? (
+        <View style={{ marginTop: space.lg }}>
+          <FormNote>
+            This quotation is part of a permanent record. {historyWarning} If the price has changed, raise a new quotation
+            for this event instead — it becomes the next version and the old one stays exactly as the customer received it.
+          </FormNote>
         </View>
-      )}
+      ) : undefined}
+    >
+      <FormSection title="Customer and dates">
+        <Field label="Customer" required error={customerError}>
+          <CustomerPicker selected={customer} onSelect={(c) => { setCustomer(c); setError(null); }} />
+        </Field>
+        <FieldRow>
+          <Field label="Quotation date" required error={dateError} flex>
+            <MiniDatePicker variant="form" value={quotationDate} onChange={(v) => { setQuotationDate(v); setError(null); }} placeholder="Select date" />
+          </Field>
+          <Field label="Valid until" flex>
+            <MiniDatePicker variant="form" clearable value={validUntil} onChange={setValidUntil} placeholder="Select date" />
+          </Field>
+        </FieldRow>
+      </FormSection>
 
-      <Text style={styles.label}>Customer</Text>
-      <CustomerPicker selected={customer} onSelect={setCustomer} />
-
-      <Text style={styles.label}>Quotation date</Text>
-      <MiniDatePicker variant="form" value={quotationDate} onChange={setQuotationDate} placeholder="Select quotation date" />
-
-      <Text style={styles.label}>Valid until</Text>
-      <MiniDatePicker variant="form" clearable value={validUntil} onChange={setValidUntil} placeholder="Select date (optional)" />
-
-      <Text style={styles.sectionLabel}>Line items</Text>
-
-      {items.map((item) => (
-        <View key={item.key} style={styles.itemCard}>
-          <View style={styles.itemHeader}>
-            {item.serviceId == null ? (
-              <View style={styles.customNameRow}>
-                <Text style={styles.customTag}>Custom</Text>
-                <TextInput
-                  style={[styles.input, styles.customNameInput]}
-                  value={item.serviceName}
-                  onChangeText={(v) => updateItem(item.key, { serviceName: v })}
-                  placeholder="Item name, e.g. Travel & stay"
-                  placeholderTextColor="#6f83a0"
-                  maxLength={200}
-                />
+      <FormSection title="Items" description="Services from your list, or your own lines (travel, prints…).">
+        {items.map((item) => {
+          const problem = tried ? itemProblem(item) : null;
+          return (
+            <View key={item.key} style={[styles.item, problem && { borderColor: colors.danger }]}>
+              <View style={styles.itemHeader}>
+                {item.serviceId == null ? (
+                  <TextField
+                    style={{ flex: 1 }}
+                    value={item.serviceName}
+                    onChangeText={(v) => updateItem(item.key, { serviceName: v })}
+                    placeholder="Item name, e.g. Travel and stay"
+                    maxLength={200}
+                    accessibilityLabel="Custom item name"
+                  />
+                ) : (
+                  <Text style={styles.itemName} numberOfLines={2}>{item.serviceName}</Text>
+                )}
+                <Button label="Remove" variant="link" onPress={() => removeItem(item.key)} accessibilityLabel={`Remove ${item.serviceName || "item"}`} />
               </View>
-            ) : (
-              <Text style={styles.itemServiceName}>{item.serviceName}</Text>
-            )}
-            <Pressable onPress={() => removeItem(item.key)}>
-              <Text style={styles.removeLink}>Remove</Text>
-            </Pressable>
-          </View>
-          <View style={styles.itemRow}>
-            <View style={styles.itemField}>
-              <Text style={styles.smallLabel}>Quantity</Text>
-              <TextInput
-                style={styles.input}
-                value={item.quantity}
-                onChangeText={(v) => updateItem(item.key, { quantity: v })}
-                keyboardType="numeric"
-              />
+              <View style={styles.itemRow}>
+                <Field label="Qty" required flex>
+                  <TextField value={item.quantity} onChangeText={(v) => updateItem(item.key, { quantity: v.replace(/[^0-9.]/g, "") })} keyboardType="numeric" />
+                </Field>
+                <Field label="Price" required flex>
+                  <TextField value={item.unitPrice} onChangeText={(v) => updateItem(item.key, { unitPrice: v.replace(/[^0-9.]/g, "") })} keyboardType="numeric" placeholder="25000" />
+                </Field>
+                <View style={styles.lineTotalBox}>
+                  <Text style={styles.lineTotalLabel}>Line total</Text>
+                  <Text style={styles.lineTotal}>{formatCurrency(lineTotal(item))}</Text>
+                </View>
+              </View>
+              <TextField value={item.notes} onChangeText={(v) => updateItem(item.key, { notes: v })} placeholder="Note for this line (optional)" />
+              {problem && <Text style={styles.itemError}>{problem}</Text>}
             </View>
-            <View style={styles.itemField}>
-              <Text style={styles.smallLabel}>Unit price</Text>
-              <TextInput
-                style={styles.input}
-                value={item.unitPrice}
-                onChangeText={(v) => updateItem(item.key, { unitPrice: v })}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-          <Text style={styles.lineTotal}>{formatCurrency(lineTotal(item))}</Text>
-          <TextInput
-            style={styles.input}
-            value={item.notes}
-            onChangeText={(v) => updateItem(item.key, { notes: v })}
-            placeholder="Notes (optional)"
-            placeholderTextColor="#6f83a0"
-          />
-        </View>
-      ))}
+          );
+        })}
+        {itemsError && <Text style={styles.itemError}>{itemsError}</Text>}
 
-      {showServicePicker ? (
-        <View style={styles.servicePickerCard}>
-          <Text style={styles.smallLabel}>Choose a service, or add your own line</Text>
-          <View style={styles.chipRow}>
-            <Pressable style={[styles.chip, styles.customChip]} onPress={addCustomItem}>
-              <Text style={[styles.chipText, { color: "#ff9a4d" }]}>+ Custom item</Text>
-            </Pressable>
-            {(services?.items ?? []).map((s) => (
-              <Pressable key={s.serviceId} style={styles.chip} onPress={() => addItem(s)}>
-                <Text style={styles.chipText}>{s.serviceName}</Text>
+        {showServicePicker ? (
+          <View style={styles.picker}>
+            <Text style={styles.pickerTitle}>Choose a service, or add your own line</Text>
+            <View style={styles.chips}>
+              <Pressable style={[styles.chip, styles.chipCustom]} onPress={addCustomItem} accessibilityRole="button">
+                <Text style={[styles.chipText, { color: colors.primary }]}>+ Your own item</Text>
               </Pressable>
-            ))}
-            {services?.items.length === 0 && <Text style={styles.pickerEmpty}>No active services — add one under Services first.</Text>}
+              {(services?.items ?? []).map((s) => (
+                <Pressable key={s.serviceId} style={styles.chip} onPress={() => addItem(s)} accessibilityRole="button">
+                  <Text style={styles.chipText}>{s.serviceName} · {formatCurrency(s.defaultPrice)}</Text>
+                </Pressable>
+              ))}
+              {services?.items.length === 0 && <Text style={styles.hint}>No active services yet. Add them under Services.</Text>}
+            </View>
+            <Button label="Cancel" variant="link" onPress={() => setShowServicePicker(false)} style={{ alignSelf: "flex-start", marginLeft: -10 }} />
           </View>
-          <Pressable onPress={() => setShowServicePicker(false)} style={{ marginTop: 10 }}>
-            <Text style={styles.removeLink}>Cancel</Text>
-          </Pressable>
+        ) : (
+          <Button label="Add item" icon="add" onPress={() => setShowServicePicker(true)} style={{ alignSelf: "flex-start" }} />
+        )}
+      </FormSection>
+
+      <FormSection title="Price and PDF">
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Items add up to</Text>
+          <Text style={styles.totalValue}>{formatCurrency(subtotal)}</Text>
         </View>
-      ) : (
-        <Pressable style={styles.addItemTrigger} onPress={() => setShowServicePicker(true)}>
-          <Text style={styles.addItemTriggerText}>+ Add line item</Text>
-        </Pressable>
-      )}
+        <FieldRow>
+          <Field label="Discount" flex>
+            <TextField value={discount} onChangeText={(v) => setDiscount(v.replace(/[^0-9.]/g, ""))} placeholder="0" keyboardType="numeric" />
+          </Field>
+          <Field label="Tax amount" flex>
+            <TextField value={taxAmount} onChangeText={(v) => setTaxAmount(v.replace(/[^0-9.]/g, ""))} placeholder="0" keyboardType="numeric" />
+          </Field>
+        </FieldRow>
 
-      <View style={styles.divider} />
+        <Field label="Prices on the PDF" required hint="Every line and price is still saved — this only changes what the PDF shows.">
+          <View style={styles.options}>
+            {([
+              ["Detailed", "Detailed prices", "Each service with its price"],
+              ["TotalOnly", "Total only", "Services listed, one total amount"],
+            ] as const).map(([key, title, text]) => {
+              const on = priceDisplay === key;
+              return (
+                <Pressable key={key} style={[styles.option, on && styles.optionOn]} onPress={() => setPriceDisplay(key)} accessibilityRole="radio" accessibilityState={{ checked: on }}>
+                  <Text style={[styles.optionTitle, on && { color: colors.primary }]}>{title}</Text>
+                  <Text style={styles.optionText}>{text}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Field>
 
-      <View style={styles.totalsRow}>
-        <Text style={styles.totalsLabel}>Subtotal</Text>
-        <Text style={styles.totalsValue}>{formatCurrency(subtotal)}</Text>
-      </View>
+        {priceDisplay === "TotalOnly" && (
+          <Field
+            label="Total amount to quote"
+            error={manualTotalError}
+            hint="Becomes this quotation's total everywhere — the approved amount, the event's balance and reports."
+          >
+            <TextField
+              invalid={!!manualTotalError}
+              value={manualTotal}
+              onChangeText={(v) => setManualTotal(v.replace(/[^0-9.]/g, ""))}
+              placeholder={`Leave empty to use ${formatCurrency(calculatedTotal)}`}
+              keyboardType="numeric"
+            />
+          </Field>
+        )}
 
-      <Text style={styles.label}>Discount</Text>
-      <TextInput style={styles.input} value={discount} onChangeText={setDiscount} placeholder="0" placeholderTextColor="#6f83a0" keyboardType="numeric" />
+        <View style={styles.grand}>
+          <Text style={styles.grandLabel}>{manualTotalNum != null && manualTotalNum > 0 ? "Total amount" : "Grand total"}</Text>
+          <Text style={styles.grandValue}>{formatCurrency(grandTotal)}</Text>
+        </View>
+        {manualTotalNum != null && manualTotalNum > 0 && manualTotalNum !== calculatedTotal && (
+          <Text style={styles.hint}>Entered by hand · the items add up to {formatCurrency(calculatedTotal)}</Text>
+        )}
+      </FormSection>
 
-      <Text style={styles.label}>Tax amount</Text>
-      <TextInput style={styles.input} value={taxAmount} onChangeText={setTaxAmount} placeholder="0" placeholderTextColor="#6f83a0" keyboardType="numeric" />
-
-      <Text style={styles.label}>Prices on the PDF</Text>
-      <View style={styles.priceDisplayRow}>
-        {([
-          ["Detailed", "Detailed prices", "Each service with its price"],
-          ["TotalOnly", "Total only", "Services listed, one total amount"],
-        ] as const).map(([key, title, text]) => (
-          <Pressable key={key} style={[styles.priceOption, priceDisplay === key && styles.priceOptionOn]} onPress={() => setPriceDisplay(key)}
-            accessibilityRole="radio" accessibilityState={{ checked: priceDisplay === key }}>
-            <Text style={[styles.priceOptionTitle, priceDisplay === key && { color: "#ff9a4d" }]}>{title}</Text>
-            <Text style={styles.priceOptionText}>{text}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <Text style={styles.priceNote}>Every line and price is still saved — this only changes what the PDF shows.</Text>
-
-      {priceDisplay === "TotalOnly" && (
-        <>
-          <Text style={styles.label}>Total amount</Text>
-          <TextInput
-            style={styles.input}
-            value={manualTotal}
-            onChangeText={(v) => setManualTotal(v.replace(/[^0-9.]/g, ""))}
-            placeholder={`Leave empty to use ${formatCurrency(calculatedTotal)}`}
-            placeholderTextColor="#6f83a0"
-            keyboardType="numeric"
-          />
-          <Text style={styles.priceNote}>
-            Type the amount to quote the customer. It becomes this quotation's total everywhere — the approved amount, the event's
-            balance and reports.
-          </Text>
-        </>
-      )}
-
-      <View style={styles.grandTotalRow}>
-        <Text style={styles.grandTotalLabel}>{manualTotalNum != null && manualTotalNum > 0 ? "Total amount" : "Grand total"}</Text>
-        <Text style={styles.grandTotalValue}>{formatCurrency(grandTotal)}</Text>
-      </View>
-      {manualTotalNum != null && manualTotalNum > 0 && manualTotalNum !== calculatedTotal && (
-        <Text style={styles.priceNote}>Entered by hand · the lines add up to {formatCurrency(calculatedTotal)}</Text>
-      )}
-
-      <Text style={styles.label}>Terms & conditions</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        value={termsAndConditions}
-        onChangeText={setTermsAndConditions}
-        placeholder="Optional"
-        placeholderTextColor="#6f83a0"
-        multiline
-        numberOfLines={3}
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.buttonRow}>
-        <Pressable style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
-        <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create quotation"}</Text>}
-        </Pressable>
-      </View>
-    </ScrollView>
+      <FormSection title="Terms">
+        <Field label="Terms and conditions">
+          <TextField value={termsAndConditions} onChangeText={setTermsAndConditions} placeholder="50% advance to confirm the date; balance on delivery" multiline numberOfLines={3} />
+        </Field>
+      </FormSection>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  content: { padding: 24, maxWidth: 520, width: "100%", alignSelf: "center" },
-  title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
-  warning: {
-    borderWidth: 1, borderColor: "rgba(242, 189, 92, 0.45)", backgroundColor: "rgba(242, 189, 92, 0.08)",
-    borderRadius: 10, padding: 14, marginBottom: 20, gap: 6,
-  },
-  warningTitle: { color: "#f2bd5c", fontSize: 13, fontWeight: "700" },
-  warningText: { color: "#a7b7cb", fontSize: 12, lineHeight: 18 },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
-  smallLabel: { fontSize: 11, color: "#6f83a0", marginBottom: 4 },
-  sectionLabel: {
-    fontSize: 12, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5,
-    marginTop: 22, marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#132540",
-  },
-  textArea: { minHeight: 72, textAlignVertical: "top" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  customNameRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 10 },
-  customTag: { color: "#ff9a4d", fontSize: 10, fontWeight: "800", borderWidth: 1, borderColor: "rgba(255,154,77,0.5)", borderRadius: 100, paddingHorizontal: 7, paddingVertical: 1 },
-  customNameInput: { flex: 1, paddingVertical: 7 },
-  customChip: { borderColor: "rgba(255,154,77,0.6)" },
-  priceDisplayRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  priceOption: { flexGrow: 1, flexBasis: 180, borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 12, backgroundColor: "#132540", gap: 2 },
-  priceOptionOn: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.08)" },
-  priceOptionTitle: { color: "#e8edf3", fontSize: 13.5, fontWeight: "700" },
-  priceOptionText: { color: "#6f83a0", fontSize: 12 },
-  priceNote: { color: "#6f83a0", fontSize: 11.5, marginTop: 6 },
-  itemCard: { borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", padding: 14, marginBottom: 10, gap: 8 },
-  itemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  itemServiceName: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },
-  removeLink: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
-  itemRow: { flexDirection: "row", gap: 10 },
-  itemField: { flex: 1 },
-  lineTotal: { color: "#7fc0e6", fontSize: 13, fontWeight: "700" },
-  servicePickerCard: { borderWidth: 1, borderColor: "#23405c", borderStyle: "dashed", borderRadius: 10, padding: 14, marginBottom: 10 },
-  pickerEmpty: { color: "#6f83a0", fontSize: 12 },
-  addItemTrigger: { borderWidth: 1, borderColor: "#23405c", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center", marginBottom: 10 },
-  addItemTriggerText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
-  divider: { height: 1, backgroundColor: "#1b2c42", marginVertical: 14 },
-  totalsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  totalsLabel: { color: "#a7b7cb", fontSize: 13 },
-  totalsValue: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
-  grandTotalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 4 },
-  grandTotalLabel: { color: "#7fc0e6", fontSize: 15, fontWeight: "700" },
-  grandTotalValue: { color: "#e8edf3", fontSize: 20, fontWeight: "700" },
-  error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#a7b7cb", fontWeight: "600" },
-  saveButton: { flex: 2, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  saveText: { color: "#0d1826", fontWeight: "700" },
+  item: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, backgroundColor: colors.page, padding: space.md, gap: space.md },
+  itemHeader: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  itemName: { ...type.body, fontWeight: "600", color: colors.text, flex: 1 },
+  itemRow: { flexDirection: "row", gap: space.md, alignItems: "flex-end" },
+  lineTotalBox: { flex: 1, minWidth: 0, paddingBottom: 12 },
+  lineTotalLabel: { ...type.caption, color: colors.textMuted },
+  lineTotal: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
+  itemError: { ...type.small, color: colors.danger },
+  picker: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: space.md, gap: space.sm, backgroundColor: colors.page },
+  pickerTitle: { ...type.small, fontWeight: "600", color: colors.textMuted },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  chip: { minHeight: 40, justifyContent: "center", borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill, paddingHorizontal: space.md, backgroundColor: colors.card },
+  chipCustom: { borderColor: colors.primary },
+  chipText: { ...type.small, fontWeight: "600", color: colors.text },
+  hint: { ...type.caption, color: colors.textFaint },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  totalLabel: { ...type.body, color: colors.textMuted },
+  totalValue: { ...type.body, fontWeight: "600", color: colors.text, fontVariant: ["tabular-nums"] },
+  options: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  option: { flexGrow: 1, flexBasis: 200, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.card, padding: space.md, backgroundColor: colors.page, gap: 2 },
+  optionOn: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  optionTitle: { ...type.body, fontWeight: "700", color: colors.text },
+  optionText: { ...type.small, color: colors.textMuted },
+  grand: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md },
+  grandLabel: { ...type.heading, color: colors.text },
+  grandValue: { fontSize: 22, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
 });

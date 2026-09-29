@@ -30,7 +30,7 @@ export function CustomerPicker({
   const { data } = useQuery({
     queryKey: ["customers-picker", query],
     queryFn: () => customersApi.search({ search: query || undefined, page: 1, pageSize: 8 }),
-    enabled: open && !creating,
+    enabled: open && !creating && query.trim().length > 0,
   });
 
   const createMutation = useMutation({
@@ -123,15 +123,26 @@ export function CustomerPicker({
     );
   }
 
+  // Matches appear once something is typed, so the form below doesn't get pushed down by a long list.
+  const searching = query.trim().length > 0;
   return (
     <View>
       <TextInput
         style={styles.input}
         value={query}
         onChangeText={setQuery}
-        placeholder="Search customer by name or mobile number"
+        placeholder="Type a name or mobile number"
         placeholderTextColor="#6f83a0"
+        accessibilityLabel="Search customer by name or mobile number"
       />
+      {!searching ? (
+        <View style={styles.hintRow}>
+          <Text style={styles.hintText}>Start typing to find the customer, or</Text>
+          <Pressable onPress={() => setCreating(true)} accessibilityRole="button" hitSlop={8}>
+            <Text style={styles.newCustomerText}>+ add a new customer</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={styles.pickerList}>
         <Pressable style={styles.newCustomerRow} onPress={() => setCreating(true)}>
           <Text style={styles.newCustomerText}>+ Add new customer</Text>
@@ -151,15 +162,18 @@ export function CustomerPicker({
         ))}
         {data?.items.length === 0 && <Text style={styles.pickerEmpty}>No customers match.</Text>}
       </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#132540",
+    minHeight: 44, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, color: "#e8edf3", backgroundColor: "#0b1522",
   },
+  hintRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 8 },
+  hintText: { color: "#6f83a0", fontSize: 13 },
   pickedRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#132540",

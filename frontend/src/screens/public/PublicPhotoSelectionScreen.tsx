@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  View, Text, TextInput, Pressable, FlatList, ScrollView, ActivityIndicator, StyleSheet, useWindowDimensions,
+  View, Text, TextInput, Pressable, FlatList, ScrollView, ActivityIndicator, StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { publicPhotoSelectionApi, toPublicError } from "../../api/photoSelectionApi";
-import type { PhotoFilter, PhotoFolder, PublicGallery } from "../../types/photoSelection";
-import { PublicPhotoCard, BIG_COLOR, NORMAL_COLOR } from "./PublicPhotoCard";
+import type { GalleryCounts, PhotoFilter, PhotoFolder, PublicGallery } from "../../types/photoSelection";
+import { PublicPhotoCard } from "./PublicPhotoCard";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { SelectionReviewModal } from "./SelectionReviewModal";
 import { useSelectionSaver } from "./useSelectionSaver";
+import { Button } from "../../ui/Button";
+import { Skeleton } from "../../ui/Skeleton";
+import { useBreakpoint } from "../../ui/useBreakpoint";
+import { colors, radius, space, touch, type } from "../../ui/theme";
 
 const PAGE_SIZE = 48;
 const GAP = 10;
-const PADDING = 12;
-const MAX_CONTENT_WIDTH = 1400;
+const MAX_CONTENT_WIDTH = 1200;
+const BOTTOM_BAR_HEIGHT = 76;
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -40,11 +45,7 @@ export function PublicPhotoSelectionScreen({ token }: { token: string }) {
   });
 
   if (isPending) {
-    return (
-      <View style={styles.centerScreen}>
-        <ActivityIndicator color="#ff9a4d" size="large" />
-      </View>
-    );
+    return <GallerySkeleton />;
   }
 
   if (error || !gallery) {
@@ -55,32 +56,43 @@ export function PublicPhotoSelectionScreen({ token }: { token: string }) {
   return <Gallery token={token} gallery={gallery} />;
 }
 
+// Same shape as the real page (header, steps, folder rows, bottom bar), so nothing jumps when it loads.
+function GallerySkeleton() {
+  return (
+    <View style={styles.screen}>
+      <View style={[styles.inner, styles.pagePad]}>
+        <Skeleton width={120} height={14} />
+        <Skeleton width="70%" height={28} style={{ marginTop: 10 }} />
+        <Skeleton width="45%" height={16} style={{ marginTop: 8 }} />
+        <Skeleton height={64} rounded={radius.card} style={{ marginTop: space.xl }} />
+        {[0, 1, 2].map((i) => <Skeleton key={i} height={72} rounded={radius.card} style={{ marginTop: space.md }} />)}
+      </View>
+    </View>
+  );
+}
+
 function StateScreen({ kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) {
   const title =
     kind === "expired" ? "This link has expired"
     : kind === "invalid" ? "This link isn't valid"
-    : kind === "offline" ? "You appear to be offline"
+    : kind === "offline" ? "You're offline"
     : "Something went wrong";
-  const icon = kind === "expired" ? "⏳" : kind === "offline" ? "📡" : "🔗";
+  const icon: keyof typeof Ionicons.glyphMap = kind === "expired" ? "time-outline" : kind === "offline" ? "cloud-offline-outline" : "link-outline";
 
   return (
     <View style={styles.centerScreen}>
       <View style={styles.stateCard}>
-        <Text style={styles.stateIcon}>{icon}</Text>
+        <Ionicons name={icon} size={40} color={colors.textMuted} />
         <Text style={styles.stateTitle}>{title}</Text>
         <Text style={styles.stateText}>{message}</Text>
-        {onRetry && (
-          <Pressable style={styles.primaryButton} onPress={onRetry}>
-            <Text style={styles.primaryButtonText}>Try again</Text>
-          </Pressable>
-        )}
+        {onRetry && <Button label="Try again" variant="primary" onPress={onRetry} full />}
       </View>
     </View>
   );
 }
 
 function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) {
-  const { width } = useWindowDimensions();
+  const { width, isPhone } = useBreakpoint();
 
   const [filter, setFilter] = useState<PhotoFilter>("All");
   // The customer picks a folder first; null means they are still on the folder screen.
@@ -96,8 +108,6 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   const [changedSinceSubmit, setChangedSinceSubmit] = useState(gallery.changedSinceSubmit);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
-  // Only offer Back when there is somewhere to go back to (a link opened in a fresh tab has no history).
-  const [canGoBack] = useState(() => typeof window !== "undefined" && window.history.length > 1);
 
   // A saved change after the customer has already submitted means the studio's copy is out of date.
   const submittedRef = useRef(submitted);
@@ -116,6 +126,7 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
     queryKey: ["public-folders", token, counts.selected],
     queryFn: () => publicPhotoSelectionApi.folders(token),
     refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 
   const { data, isPending, isFetchingNextPage, isError, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
@@ -132,14 +143,25 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   const photos = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
   const totalMatching = data?.pages[0]?.totalCount ?? 0;
 
-  // Responsive grid: 2 columns on phones, 3 on tablets, 4–5 on desktop.
-  const columns = width < 560 ? 2 : width < 860 ? 3 : width < 1180 ? 4 : 5;
+  // Photo grid: 2 columns on phones, 3 on tablets, 4-5 on desktop.
+  const pad = isPhone ? space.lg : space.xl;
+  const columns = width < 600 ? 2 : width < 900 ? 3 : width < 1180 ? 4 : 5;
   const contentWidth = Math.min(width, MAX_CONTENT_WIDTH);
-  const cardWidth = Math.floor((contentWidth - PADDING * 2 - GAP * (columns - 1)) / columns);
+  const cardWidth = Math.floor((contentWidth - pad * 2 - GAP * (columns - 1)) / columns);
+  // Folders: one full-width row each on phones, then equal-width columns (2 on tablets, 3 on desktop).
+  const folderColumns = isPhone ? 1 : width < 1024 ? 2 : 3;
+  const folderWidth = Math.floor((contentWidth - pad * 2 - space.md * (folderColumns - 1)) / folderColumns);
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const openFolder = (f: PhotoFolder) => {
+    setFolder(f);
+    setFilter("All");
+    setSearchText("");
+    setSearchOpen(false);
+  };
 
   const handleSubmit = async (): Promise<{ ok: true } | { ok: false; message: string }> => {
     try {
@@ -154,7 +176,7 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
       const failure = toPublicError(err);
       if (failure.kind === "locked") setLocked(true);
       if (failure.kind === "invalid" || failure.kind === "expired") setLost(failure.kind);
-      return { ok: false, message: failure.kind === "offline" ? "Unable to submit. Please check your internet connection." : failure.message };
+      return { ok: false, message: failure.kind === "offline" ? "Couldn't send. Check your internet connection and try again." : failure.message };
     }
   };
 
@@ -164,198 +186,216 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
       : "This link is not valid. Please contact the studio for a new link."} />;
   }
 
-  const filters: { key: PhotoFilter; label: string; count: number }[] = [
-    { key: "All", label: "All", count: counts.total },
-    { key: "Selected", label: "Selected", count: counts.selected },
-    { key: "NotSelected", label: "Not selected", count: counts.notSelected },
-    { key: "Normal", label: "Normal", count: counts.normal },
-    { key: "Big", label: "Big", count: counts.big },
+  const filters: { key: PhotoFilter; label: string }[] = [
+    { key: "All", label: "All" },
+    { key: "Selected", label: "Selected" },
+    { key: "NotSelected", label: "Not selected" },
+    { key: "Normal", label: "Normal" },
+    { key: "Big", label: "Big" },
   ];
 
-  const submitLabel = submitted && !changedSinceSubmit ? "Submitted ✓" : submitted ? "Submit changes" : "Submit";
+  const banners = (
+    <>
+      {locked && (
+        <Banner tone="warning" icon="lock-closed-outline" title="Selection locked"
+          text="The studio has locked your selection. Contact the studio if you need to change anything." />
+      )}
+      {!locked && submitted && folder === null && (
+        <Banner
+          tone={changedSinceSubmit ? "warning" : "success"}
+          icon={changedSinceSubmit ? "create-outline" : "checkmark-circle-outline"}
+          text={changedSinceSubmit
+            ? "You've changed your selection since sending it. Tap “Review and send update” below."
+            : `Sent to the studio${submittedAt ? ` on ${formatDate(submittedAt)}` : ""}. You can still change it until the studio locks it.`}
+        />
+      )}
+      {error && (
+        <View style={[styles.banner, styles.bannerDanger]}>
+          <Text style={[styles.bannerText, { color: colors.danger }]}>{error.message}</Text>
+          <View style={styles.bannerActions}>
+            {error.retry && <Button label="Retry" variant="link" onPress={error.retry} />}
+            <Button label="Dismiss" variant="link" onPress={dismissError} />
+          </View>
+        </View>
+      )}
+    </>
+  );
 
   return (
     <View style={styles.screen}>
-      {/* Header + summary + filters stay pinned; only the photo grid scrolls under them. */}
-      <View style={styles.sticky}>
-        <View style={[styles.inner, { maxWidth: MAX_CONTENT_WIDTH }]}>
-          <View style={styles.headerRow}>
-            {folder !== null ? (
-              <Pressable
-                style={styles.backButton}
-                onPress={() => setFolder(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Back to folders"
-              >
-                <Text style={styles.backText}>‹ Folders</Text>
-              </Pressable>
-            ) : canGoBack ? (
-              <Pressable style={styles.backButton} onPress={() => window.history.back()} accessibilityRole="button" accessibilityLabel="Go back">
-                <Text style={styles.backText}>‹ Back</Text>
-              </Pressable>
-            ) : null}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.studio} numberOfLines={1}>{folder?.name ?? gallery.studioName}</Text>
-              <Text style={styles.headline} numberOfLines={1}>
-                {gallery.customerName} · {gallery.title} · {formatDate(gallery.eventDate)}
-              </Text>
-            </View>
-            <Text style={styles.photoCount}>{folder?.photoCount ?? counts.total} photos</Text>
-          </View>
-
-          <View style={styles.summaryBar}>
-            <View style={styles.counters}>
-              <Counter label="Selected" value={counts.selected} color="#e8edf3" />
-              <Counter label="Normal" value={counts.normal} color={NORMAL_COLOR} />
-              <Counter label="Big" value={counts.big} color={BIG_COLOR} />
-            </View>
-            <View style={styles.summaryActions}>
-              <Pressable style={styles.secondaryButton} onPress={() => setReviewOpen(true)}>
-                <Text style={styles.secondaryButtonText}>Review</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.primaryButton, styles.submitButton, (counts.selected === 0 || locked || (submitted && !changedSinceSubmit)) && styles.disabled]}
-                disabled={counts.selected === 0 || locked || (submitted && !changedSinceSubmit)}
-                onPress={() => setReviewOpen(true)}
-              >
-                <Text style={styles.primaryButtonText}>{submitLabel}</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {folder !== null && <View style={styles.filterRow}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-              {filters.map((f) => (
-                <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipSelected]} onPress={() => setFilter(f.key)}>
-                  {/* The counts are gallery-wide; inside a folder they would contradict the
-                      photos on screen, so only the labels are shown there. */}
-                  <Text style={[styles.chipText, filter === f.key && styles.chipTextSelected]}>{f.label}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-            <Pressable style={styles.searchToggle} onPress={() => setSearchOpen((o) => !o)} accessibilityLabel="Search photos">
-              <Text style={styles.searchToggleText}>{searchOpen ? "✕" : "🔍"}</Text>
-            </Pressable>
-          </View>}
-
-          {folder !== null && searchOpen && (
-            <TextInput
-              style={styles.search}
-              value={searchText}
-              onChangeText={setSearchText}
-              placeholder="Search by file name or photo number"
-              placeholderTextColor="#6f83a0"
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          )}
-        </View>
-      </View>
-
-      <View style={[styles.inner, { maxWidth: MAX_CONTENT_WIDTH, flex: 1 }]}>
-        {locked && (
-          <View style={[styles.banner, styles.bannerWarn]}>
-            <Text style={styles.bannerTitleWarn}>🔒 Selection Locked</Text>
-            <Text style={styles.bannerTextWarn}>Your studio has locked this selection. Please contact the studio if you need to make changes.</Text>
-          </View>
-        )}
-        {!locked && submitted && (
-          <View style={[styles.banner, styles.bannerGood]}>
-            <Text style={styles.bannerTextGood}>
-              {changedSinceSubmit
-                ? "You've made changes since you submitted. Tap “Submit changes” to send the update to the studio."
-                : `✓ Your selection was sent to the studio${submittedAt ? ` on ${formatDate(submittedAt)}` : ""}. You can still make changes until the studio locks it.`}
+      {folder === null ? (
+        // ---- Home: event, how it works, folders -------------------------------------------------
+        <ScrollView contentContainerStyle={{ paddingBottom: BOTTOM_BAR_HEIGHT + space.xl }}>
+          <View style={[styles.inner, { paddingHorizontal: pad, paddingTop: space.xl }]}>
+            <Text style={styles.studio}>{gallery.studioName}</Text>
+            <Text style={styles.eventTitle}>{gallery.customerName}</Text>
+            <Text style={styles.eventMeta}>
+              {[gallery.title, formatDate(gallery.eventDate), `${counts.total} photos`].filter(Boolean).join("  ·  ")}
             </Text>
-          </View>
-        )}
-        {error && (
-          <View style={[styles.banner, styles.bannerBad]}>
-            <Text style={styles.bannerTextBad}>{error.message}</Text>
-            <View style={styles.bannerActions}>
-              {error.retry && (
-                <Pressable onPress={error.retry}><Text style={styles.bannerLink}>Retry</Text></Pressable>
-              )}
-              <Pressable onPress={dismissError}><Text style={styles.bannerLinkMuted}>Dismiss</Text></Pressable>
-            </View>
-          </View>
-        )}
+            {gallery.expiresAt && !submitted && !locked && (
+              <Text style={styles.deadline}>Please choose your photos by {formatDate(gallery.expiresAt)}</Text>
+            )}
 
-        {folder === null ? (
-          foldersPending ? (
-            <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
-          ) : (
-            <ScrollView contentContainerStyle={styles.folderScroll}>
-              <Text style={styles.folderIntro}>
-                Your event photos have been organised into folders. Tap a folder to see the photos inside it.
-              </Text>
-              <View style={styles.folderGrid}>
+            <View style={{ marginTop: space.lg, gap: space.md }}>{banners}</View>
+
+            {!locked && (
+              <View style={styles.steps}>
+                <Step n={1} text="Open a folder" />
+                <Step n={2} text="Tap Select on the photos you like" />
+                <Step n={3} text="Review and send to the studio" />
+              </View>
+            )}
+
+            <Text style={styles.sectionTitle}>Your photos</Text>
+            {foldersPending ? (
+              [0, 1, 2].map((i) => <Skeleton key={i} height={72} rounded={radius.card} style={{ marginBottom: space.md }} />)
+            ) : folders.length === 0 ? (
+              <View style={styles.empty}>
+                <Ionicons name="images-outline" size={36} color={colors.textFaint} />
+                <Text style={styles.emptyTitle}>No photos yet</Text>
+                <Text style={styles.emptyText}>The studio hasn't added your photos yet. Please check back later.</Text>
+              </View>
+            ) : (
+              <View style={[styles.folderList, !isPhone && styles.folderGrid]}>
                 {folders.map((f) => (
                   <Pressable
                     key={f.folderId}
-                    style={styles.folderCard}
-                    onPress={() => { setFolder(f); setFilter("All"); setSearchText(""); setSearchOpen(false); }}
+                    onPress={() => openFolder(f)}
+                    style={({ pressed }) => [styles.folderRow, !isPhone && { width: folderWidth }, pressed && styles.pressed]}
                     accessibilityRole="button"
-                    accessibilityLabel={`${f.name}, ${f.photoCount} photos`}
+                    accessibilityLabel={`${f.name}, ${f.photoCount} photos${f.selectedCount ? `, ${f.selectedCount} selected` : ""}`}
                   >
-                    <Text style={styles.folderIcon}>📁</Text>
-                    <Text style={styles.folderName} numberOfLines={2}>{f.name}</Text>
-                    <Text style={styles.folderCount}>{f.photoCount} Photos</Text>
-                    {f.selectedCount > 0 && <Text style={styles.folderChosen}>{f.selectedCount} selected</Text>}
+                    <View style={styles.folderIcon}>
+                      <Ionicons name="folder-open-outline" size={24} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.folderName} numberOfLines={2}>{f.name}</Text>
+                      <Text style={styles.folderMeta}>
+                        {f.photoCount} photo{f.photoCount === 1 ? "" : "s"}
+                        {f.selectedCount > 0 && <Text style={styles.folderChosen}>  ·  {f.selectedCount} selected</Text>}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textFaint} />
                   </Pressable>
                 ))}
               </View>
-              {folders.length === 0 && <Text style={styles.emptyText}>No photos here yet.</Text>}
-            </ScrollView>
-          )
-        ) : isPending ? (
-          <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
-        ) : isError ? (
-          <View style={styles.center}>
-            <Text style={styles.errorText}>Couldn't load the photos. Please check your internet connection.</Text>
-            <Pressable style={styles.secondaryButton} onPress={() => refetch()}>
-              <Text style={styles.secondaryButtonText}>Try again</Text>
-            </Pressable>
+            )}
           </View>
-        ) : photos.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>
-              {search ? "No photos match your search." : filter === "All" ? "No photos here yet." : "Nothing in this view."}
-            </Text>
+        </ScrollView>
+      ) : (
+        // ---- One folder: photos ------------------------------------------------------------------
+        <View style={{ flex: 1 }}>
+          <View style={styles.folderHeaderWrap}>
+            <View style={[styles.inner, { paddingHorizontal: pad }]}>
+              <View style={styles.folderHeader}>
+                <Pressable onPress={() => setFolder(null)} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Back to all folders" hitSlop={6}>
+                  <Ionicons name="chevron-back" size={22} color={colors.text} />
+                </Pressable>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.folderTitle} numberOfLines={1}>{folder.name}</Text>
+                  <Text style={styles.folderSub} numberOfLines={1}>{gallery.customerName} · {folder.photoCount} photos</Text>
+                </View>
+                <Pressable onPress={() => setSearchOpen((o) => !o)} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={searchOpen ? "Close search" : "Search photos"}>
+                  <Ionicons name={searchOpen ? "close" : "search"} size={20} color={colors.textMuted} />
+                </Pressable>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+                {filters.map((f) => {
+                  const on = filter === f.key;
+                  return (
+                    <Pressable key={f.key} style={[styles.chip, on && styles.chipOn]} onPress={() => setFilter(f.key)} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{f.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              {searchOpen && (
+                <TextInput
+                  style={styles.search}
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  placeholder="Photo number or file name"
+                  placeholderTextColor={colors.textFaint}
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              )}
+            </View>
           </View>
-        ) : (
-          <FlatList
-            key={columns}
-            data={photos}
-            numColumns={columns}
-            keyExtractor={(p) => String(p.photoId)}
-            contentContainerStyle={{ padding: PADDING, gap: GAP }}
-            columnWrapperStyle={{ gap: GAP }}
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.8}
-            initialNumToRender={columns * 4}
-            windowSize={7}
-            maxToRenderPerBatch={columns * 3}
-            removeClippedSubviews
-            extraData={effective}
-            ListFooterComponent={
-              isFetchingNextPage ? <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 16 }} /> : hasNextPage ? null : (
-                <Text style={styles.endText}>{totalMatching} photo{totalMatching === 1 ? "" : "s"}</Text>
-              )
-            }
-            renderItem={({ item, index }) => (
-              <PublicPhotoCard
-                photo={item}
-                selection={effective(item)}
-                width={cardWidth}
-                disabled={locked}
-                onOpen={() => setLightboxIndex(index)}
-                onChange={setSelection}
+
+          {/* Inside a folder only what blocks the customer is shown; the "sent" note lives on the home view. */}
+          {(locked || error) && (
+            <View style={[styles.inner, { paddingHorizontal: pad, paddingTop: space.md, gap: space.sm }]}>{banners}</View>
+          )}
+
+          <View style={[styles.inner, { flex: 1 }]}>
+            {isPending ? (
+              <View style={[styles.gridSkeleton, { padding: pad, gap: GAP }]}>
+                {Array.from({ length: columns * 3 }).map((_, i) => (
+                  <Skeleton key={i} width={cardWidth} height={Math.round(cardWidth * 0.75) + 56} rounded={radius.card} />
+                ))}
+              </View>
+            ) : isError ? (
+              <View style={styles.empty}>
+                <Ionicons name="cloud-offline-outline" size={36} color={colors.textFaint} />
+                <Text style={styles.emptyTitle}>Couldn't load the photos</Text>
+                <Text style={styles.emptyText}>Check your internet connection and try again.</Text>
+                <Button label="Try again" onPress={() => refetch()} />
+              </View>
+            ) : photos.length === 0 ? (
+              <View style={styles.empty}>
+                <Ionicons name={search ? "search-outline" : "images-outline"} size={36} color={colors.textFaint} />
+                <Text style={styles.emptyTitle}>
+                  {search ? "No photos match" : filter === "All" ? "No photos in this folder yet" : filter === "Selected" ? "Nothing selected here yet" : "No photos in this view"}
+                </Text>
+                {filter !== "All" && <Button label="Show all photos" variant="link" onPress={() => { setFilter("All"); setSearchText(""); }} />}
+              </View>
+            ) : (
+              <FlatList
+                key={columns}
+                data={photos}
+                numColumns={columns}
+                keyExtractor={(p) => String(p.photoId)}
+                contentContainerStyle={{ padding: pad, gap: GAP, paddingBottom: BOTTOM_BAR_HEIGHT + space.xl }}
+                columnWrapperStyle={{ gap: GAP }}
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.8}
+                initialNumToRender={columns * 4}
+                windowSize={7}
+                maxToRenderPerBatch={columns * 3}
+                removeClippedSubviews
+                extraData={effective}
+                ListFooterComponent={
+                  <View style={styles.footer}>
+                    {isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : !hasNextPage && (
+                      <Text style={styles.endText}>{totalMatching} photo{totalMatching === 1 ? "" : "s"}</Text>
+                    )}
+                  </View>
+                }
+                renderItem={({ item, index }) => (
+                  <PublicPhotoCard
+                    photo={item}
+                    selection={effective(item)}
+                    width={cardWidth}
+                    disabled={locked}
+                    onOpen={() => setLightboxIndex(index)}
+                    onChange={setSelection}
+                  />
+                )}
               />
             )}
-          />
-        )}
-      </View>
+          </View>
+        </View>
+      )}
+
+      <SelectionBar
+        counts={counts}
+        locked={locked}
+        submitted={submitted}
+        changedSinceSubmit={changedSinceSubmit}
+        onReview={() => setReviewOpen(true)}
+      />
 
       <PhotoLightbox
         photos={photos}
@@ -384,90 +424,141 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
   );
 }
 
-function Counter({ label, value, color }: { label: string; value: number; color: string }) {
+// Always at the bottom, always the same height: how many are chosen, and the one next step.
+function SelectionBar({ counts, locked, submitted, changedSinceSubmit, onReview }: {
+  counts: GalleryCounts;
+  locked: boolean;
+  submitted: boolean;
+  changedSinceSubmit: boolean;
+  onReview: () => void;
+}) {
+  const sent = submitted && !changedSinceSubmit;
+  const label = locked ? "View selection" : sent ? "View selection" : submitted ? "Review and send update" : "Review and send";
   return (
-    <View style={styles.counter}>
-      <Text style={[styles.counterValue, { color }]}>{value}</Text>
-      <Text style={styles.counterLabel}>{label}</Text>
+    <View style={styles.bar}>
+      <View style={[styles.inner, styles.barInner]}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.barCount} numberOfLines={1}>
+            {counts.selected} selected
+          </Text>
+          <Text style={styles.barSplit} numberOfLines={1}>
+            <Text style={{ color: colors.normal }}>Normal {counts.normal}</Text>
+            {"   "}
+            <Text style={{ color: colors.big }}>Big {counts.big}</Text>
+            {sent && <Text style={{ color: colors.success }}>{"   "}Sent ✓</Text>}
+          </Text>
+        </View>
+        {counts.selected > 0 ? (
+          <Button label={label} variant={sent || locked ? "secondary" : "primary"} onPress={onReview} />
+        ) : (
+          <Text style={styles.barHint}>Tap Select on a photo</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function Step({ n, text }: { n: number; text: string }) {
+  return (
+    <View style={styles.step}>
+      <View style={styles.stepNum}><Text style={styles.stepNumText}>{n}</Text></View>
+      <Text style={styles.stepText}>{text}</Text>
+    </View>
+  );
+}
+
+function Banner({ tone, icon, title, text }: { tone: "success" | "warning"; icon: keyof typeof Ionicons.glyphMap; title?: string; text: string }) {
+  const color = tone === "success" ? colors.success : colors.warning;
+  return (
+    <View style={[styles.banner, { backgroundColor: tone === "success" ? colors.successSoft : colors.warningSoft }]}>
+      <Ionicons name={icon} size={20} color={color} />
+      <View style={{ flex: 1 }}>
+        {title && <Text style={[styles.bannerTitle, { color }]}>{title}</Text>}
+        <Text style={[styles.bannerText, { color: colors.text }]}>{text}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  centerScreen: { flex: 1, backgroundColor: "#0d1826", alignItems: "center", justifyContent: "center", padding: 24 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
+  screen: { flex: 1, backgroundColor: colors.page },
+  inner: { width: "100%", maxWidth: MAX_CONTENT_WIDTH, alignSelf: "center" },
+  pagePad: { paddingHorizontal: space.lg, paddingTop: space.xl },
+  pressed: { backgroundColor: colors.cardRaised },
+  centerScreen: { flex: 1, backgroundColor: colors.page, alignItems: "center", justifyContent: "center", padding: space.xl },
   stateCard: {
-    backgroundColor: "#132540", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%",
-    alignItems: "center", gap: 10, borderWidth: 1, borderColor: "#23405c",
+    backgroundColor: colors.card, borderRadius: 16, padding: 28, maxWidth: 420, width: "100%",
+    alignItems: "center", gap: space.md, borderWidth: 1, borderColor: colors.border,
   },
-  stateIcon: { fontSize: 38 },
-  stateTitle: { color: "#e8edf3", fontSize: 20, fontWeight: "700", textAlign: "center" },
-  stateText: { color: "#a7b7cb", fontSize: 14, textAlign: "center", lineHeight: 20 },
+  stateTitle: { ...type.heading, fontSize: 20, color: colors.text, textAlign: "center" },
+  stateText: { ...type.body, color: colors.textMuted, textAlign: "center", marginBottom: space.sm },
 
-  sticky: { backgroundColor: "#0f1e30", borderBottomWidth: 1, borderBottomColor: "#1b2c42", zIndex: 5 },
-  inner: { width: "100%", alignSelf: "center" },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: PADDING, paddingTop: 10 },
-  backButton: { backgroundColor: "#132540", borderRadius: 9, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: "#23405c" },
-  backText: { color: "#7fc0e6", fontWeight: "700", fontSize: 13 },
-  studio: { color: "#7fc0e6", fontSize: 11, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
-  headline: { color: "#e8edf3", fontSize: 15, fontWeight: "700", marginTop: 1 },
-  photoCount: { color: "#6f83a0", fontSize: 12 },
-
-  summaryBar: {
-    flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
-    gap: 8, paddingHorizontal: PADDING, paddingVertical: 8,
+  // Home
+  studio: { ...type.small, color: colors.textMuted, fontWeight: "600" },
+  eventTitle: { fontSize: 26, lineHeight: 32, fontWeight: "700", color: colors.text, marginTop: space.xs },
+  eventMeta: { ...type.body, color: colors.textMuted, marginTop: space.xs },
+  deadline: { ...type.small, color: colors.warning, marginTop: space.sm },
+  steps: {
+    marginTop: space.xl, backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border,
+    padding: space.lg, gap: space.md,
   },
-  counters: { flexDirection: "row", gap: 16 },
-  counter: { alignItems: "flex-start" },
-  counterValue: { fontSize: 20, fontWeight: "800", lineHeight: 22 },
-  counterLabel: { color: "#6f83a0", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 },
-  summaryActions: { flexDirection: "row", gap: 8 },
-  primaryButton: { backgroundColor: "#ff9a4d", borderRadius: 9, paddingVertical: 10, paddingHorizontal: 18, alignItems: "center" },
-  submitButton: { minWidth: 96 },
-  primaryButtonText: { color: "#0d1826", fontWeight: "800", fontSize: 13 },
-  secondaryButton: { backgroundColor: "#132540", borderRadius: 9, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c" },
-  secondaryButtonText: { color: "#7fc0e6", fontWeight: "700", fontSize: 13 },
-  disabled: { opacity: 0.45 },
-
-  filterRow: { flexDirection: "row", alignItems: "center", paddingLeft: PADDING, paddingBottom: 10 },
-
-  folderScroll: { padding: PADDING, gap: 16 },
-  folderIntro: { color: "#a7b7cb", fontSize: 13, lineHeight: 19 },
-  folderGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  folderCard: {
-    width: 150, minHeight: 120, borderWidth: 1, borderColor: "#23405c", borderRadius: 12,
-    backgroundColor: "#132540", padding: 14, gap: 4, justifyContent: "center",
+  step: { flexDirection: "row", alignItems: "center", gap: space.md },
+  stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
+  stepNumText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
+  stepText: { ...type.body, color: colors.text, flex: 1 },
+  sectionTitle: { ...type.heading, color: colors.text, marginTop: space.xl, marginBottom: space.md },
+  folderList: { gap: space.md },
+  folderGrid: { flexDirection: "row", flexWrap: "wrap" },
+  folderRow: {
+    flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 72,
+    backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border,
+    paddingVertical: space.md, paddingHorizontal: space.lg,
   },
-  folderIcon: { fontSize: 22 },
-  folderName: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
-  folderCount: { color: "#a7b7cb", fontSize: 12 },
-  folderChosen: { color: "#7fc0e6", fontSize: 11, fontWeight: "600" },
-  chips: { gap: 8, paddingRight: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
-  chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.14)" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#ff9a4d" },
-  searchToggle: { width: 38, height: 32, alignItems: "center", justifyContent: "center", marginRight: PADDING - 4 },
-  searchToggleText: { color: "#a7b7cb", fontSize: 15 },
+  folderIcon: { width: 44, height: 44, borderRadius: 10, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
+  folderName: { ...type.body, fontWeight: "600", color: colors.text },
+  folderMeta: { ...type.small, color: colors.textMuted, marginTop: 2 },
+  folderChosen: { color: colors.success, fontWeight: "600" },
+
+  // Folder view
+  folderHeaderWrap: { backgroundColor: colors.bar, borderBottomWidth: 1, borderBottomColor: colors.border },
+  folderHeader: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingTop: space.md },
+  backButton: { width: touch, height: touch, borderRadius: radius.control, alignItems: "center", justifyContent: "center", marginLeft: -10 },
+  iconButton: { width: touch, height: touch, alignItems: "center", justifyContent: "center", marginRight: -10 },
+  folderTitle: { ...type.heading, color: colors.text },
+  folderSub: { ...type.small, color: colors.textMuted },
+  chips: { gap: space.sm, paddingVertical: space.md },
+  chip: {
+    minHeight: 36, justifyContent: "center", borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill,
+    paddingHorizontal: 14, backgroundColor: colors.card,
+  },
+  chipOn: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  chipText: { ...type.small, color: colors.textMuted, fontWeight: "600" },
+  chipTextOn: { color: colors.primary },
   search: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9,
-    color: "#e8edf3", backgroundColor: "#132540", marginHorizontal: PADDING, marginBottom: 10, fontSize: 14,
+    borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.control, paddingHorizontal: space.md, height: touch,
+    color: colors.text, backgroundColor: colors.card, marginBottom: space.md, fontSize: 15,
   },
+  gridSkeleton: { flexDirection: "row", flexWrap: "wrap" },
+  footer: { height: 48, alignItems: "center", justifyContent: "center" },
+  endText: { ...type.caption, color: colors.textFaint },
 
-  banner: { marginHorizontal: PADDING, marginTop: 10, borderRadius: 10, padding: 12, gap: 6, borderWidth: 1 },
-  bannerWarn: { backgroundColor: "rgba(242,189,92,0.12)", borderColor: "rgba(242,189,92,0.4)" },
-  bannerTitleWarn: { color: "#f2bd5c", fontWeight: "800", fontSize: 14 },
-  bannerTextWarn: { color: "#f2d9a0", fontSize: 13 },
-  bannerGood: { backgroundColor: "rgba(76,196,147,0.10)", borderColor: "rgba(76,196,147,0.35)" },
-  bannerTextGood: { color: "#8fdcbc", fontSize: 13 },
-  bannerBad: { backgroundColor: "rgba(255,122,114,0.12)", borderColor: "rgba(255,122,114,0.4)" },
-  bannerTextBad: { color: "#ffb0aa", fontSize: 13 },
-  bannerActions: { flexDirection: "row", gap: 18 },
-  bannerLink: { color: "#ff9a4d", fontWeight: "800", fontSize: 13 },
-  bannerLinkMuted: { color: "#a7b7cb", fontWeight: "600", fontSize: 13 },
+  // Shared
+  banner: { flexDirection: "row", gap: space.md, alignItems: "flex-start", borderRadius: radius.card, padding: space.md },
+  bannerDanger: { backgroundColor: colors.dangerSoft, flexDirection: "column", gap: space.xs },
+  bannerTitle: { ...type.body, fontWeight: "700" },
+  bannerText: { ...type.small },
+  bannerActions: { flexDirection: "row", gap: space.sm, marginLeft: -10 },
+  empty: { alignItems: "center", gap: space.sm, paddingVertical: 48, paddingHorizontal: space.xl },
+  emptyTitle: { ...type.heading, color: colors.text, textAlign: "center" },
+  emptyText: { ...type.body, color: colors.textMuted, textAlign: "center", maxWidth: 360 },
 
-  errorText: { color: "#ff7a72", fontSize: 13, textAlign: "center" },
-  emptyText: { color: "#6f83a0", fontSize: 14, textAlign: "center" },
-  endText: { color: "#4a5d78", fontSize: 12, textAlign: "center", marginVertical: 14 },
+  // Bottom selection bar
+  bar: {
+    position: "absolute", left: 0, right: 0, bottom: 0, height: BOTTOM_BAR_HEIGHT,
+    backgroundColor: colors.bar, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  barInner: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg },
+  barCount: { ...type.heading, color: colors.text },
+  barSplit: { ...type.small, color: colors.textMuted },
+  barHint: { ...type.small, color: colors.textMuted },
 });

@@ -1,3 +1,4 @@
+using StudioManagement.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -14,7 +15,7 @@ public class LeadRepository(AppDbContext context) : ILeadRepository
             .FirstOrDefaultAsync(l => l.StudioId == studioId && l.LeadId == leadId, ct);
 
     public async Task<(List<Lead> Items, int TotalCount)> SearchAsync(
-        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default)
+        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         var query = context.Leads
             .AsNoTracking()
@@ -45,8 +46,15 @@ public class LeadRepository(AppDbContext context) : ILeadRepository
         }
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderByDescending(l => l.CreatedAt)
+        var desc = sort?.Descending ?? false;
+        var ordered = sort?.Key switch
+        {
+            "name" => query.OrderByDirection(l => l.FullName, desc),
+            "created" => query.OrderByDirection(l => l.CreatedAt, desc),
+            _ => query.OrderByDescending(l => l.CreatedAt),
+        };
+        var items = await ordered
+            .ThenByDescending(l => l.LeadId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

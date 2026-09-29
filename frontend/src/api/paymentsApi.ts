@@ -3,7 +3,7 @@ import type { PagedResult } from "../types/studio";
 import type { CreatePaymentRequest, Payment, UpdatePaymentRequest } from "../types/payment";
 
 export const paymentsApi = {
-  search: (params: { search?: string; paymentStatus?: string; customerId?: number; page?: number; pageSize?: number }) =>
+  search: (params: { search?: string; paymentStatus?: string; customerId?: number; page?: number; pageSize?: number; sortBy?: string; sortDesc?: boolean }) =>
     apiClient.get<PagedResult<Payment>>("/api/payments", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<Payment>(`/api/payments/${id}`).then((res) => res.data),

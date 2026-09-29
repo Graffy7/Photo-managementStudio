@@ -213,6 +213,17 @@ ok(float(req("GET", f"/events/{eid}", tok=Q)[1]["balance"]) == 35000, "cancelled
 c, b, _ = req("PUT", f"/events/{eid}", {**ev, "budget": 10000}, Q)
 ok(c == 400, "event total can't go below what's already paid", (c, b))
 
+area("List sorting and paging")
+req("POST", "/events", {**ev, "budget": 90000, "advancePaid": 0}, Q)
+c, b, _ = req("GET", "/events?sortBy=total&sortDesc=true&pageSize=50", tok=Q)
+totals = [x["budget"] for x in items(b)]
+ok(c == 200 and totals == sorted(totals, reverse=True) and len(totals) >= 2, "events sorted by total, highest first", totals)
+c, b, _ = req("GET", "/events?sortBy=customer&pageSize=1&page=2", tok=Q)
+ok(c == 200 and len(items(b)) == 1 and b.get("totalCount", 0) >= 2, "second page holds the next event", b)
+for path in ["/events", "/customers", "/payments", "/quotations", "/leads"]:
+    c, _, _ = req("GET", f"{path}?sortBy=%27%3BDROP%20TABLE%20x%3B--&sortDesc=true", tok=Q)
+    ok(c == 200, f"{path}: an unknown sort column falls back to the usual order", c)
+
 area("Quotations and PDF")
 qb = {"customerId": cid, "eventId": eid, "quotationDate": str(TODAY), "discount": 1000, "taxAmount": 0, "status": "Draft",
       "items": [{"customName": "CI Candid", "quantity": 2, "unitPrice": 25000}, {"customName": "CI Travel", "quantity": 1, "unitPrice": 5000}]}

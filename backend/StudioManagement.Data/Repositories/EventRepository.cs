@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -16,7 +16,7 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.DeliveryItems)
             .FirstOrDefaultAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
-    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null)
+    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null, ListSort? sort = null)
     {
         var query = context.Events
             .AsNoTracking()
@@ -59,9 +59,18 @@ public class EventRepository(AppDbContext context) : IEventRepository
         }
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderBy(e => e.EventDate)
+        var desc = sort?.Descending ?? false;
+        var ordered = sort?.Key switch
+        {
+            "customer" => query.OrderByDirection(e => e.Customer.FullName, desc),
+            "status" => query.OrderByDirection(e => e.EventStatus, desc),
+            "total" => query.OrderByDirection(e => e.Budget, desc),
+            "date" => query.OrderByDirection(e => e.EventDate, desc),
+            _ => query.OrderBy(e => e.EventDate),
+        };
+        var items = await ordered
             .ThenBy(e => e.StartTime)
+            .ThenBy(e => e.EventId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

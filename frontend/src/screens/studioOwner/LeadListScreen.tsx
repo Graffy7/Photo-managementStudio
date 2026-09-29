@@ -1,8 +1,7 @@
 import { useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { leadsApi } from "../../api/leadsApi";
 import { lookupApis } from "../../api/lookupsApi";
 import type { Lead } from "../../types/lead";
@@ -11,10 +10,17 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
-import { compactList, useCompactLayout } from "../../styles/compactList";
+import { Screen } from "../../ui/Screen";
+import { PageHeader } from "../../ui/PageHeader";
+import { FilterChips } from "../../ui/FilterChips";
+import { EmptyState } from "../../ui/EmptyState";
+import { Button } from "../../ui/Button";
+import { DataList, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
+import { colors, space, type } from "../../ui/theme";
 
-function formatDate(value: string | null): string {
-  if (!value) return null as unknown as string;
+const PAGE_SIZE = 20;
+
+function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 }
 
@@ -22,238 +28,174 @@ function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function planLine(l: Lead): string | null {
+  const parts = [l.eventTypeName, l.expectedEventDate ? formatDate(l.expectedEventDate) : null, l.expectedBudget ? formatCurrency(l.expectedBudget) : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
 // react-native-web's Alert.alert() is a no-op stub, so confirmations are rendered inline
 // in the row itself rather than via Alert (which never shows on the web target).
 type PendingAction = { leadId: number; kind: "delete" | "convert" } | null;
 
 export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (lead: Lead) => void; onView: (lead: Lead) => void }) {
-  const compact = useCompactLayout();
-  const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [leadStatusId, setLeadStatusId] = useState<number | null>(null);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<SortState | null>(null);
   const [pending, setPending] = useState<PendingAction>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: leadStatuses } = useQuery({ queryKey: ["lookups", "leadStatuses"], queryFn: lookupApis.leadStatuses.getAll });
 
   const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["leads", search, leadStatusId, createdFrom, createdTo],
+    queryKey: ["leads", search, leadStatusId, createdFrom, createdTo, page, sort?.by, sort?.desc],
     queryFn: () =>
       leadsApi.search({
         search: search || undefined,
         leadStatusId: leadStatusId ?? undefined,
         createdFrom: createdFrom || undefined,
         createdTo: createdTo || undefined,
-        page: 1,
-        pageSize: 50,
+        page,
+        pageSize: PAGE_SIZE,
+        sortBy: sort?.by,
+        sortDesc: sort?.desc,
       }),
+    placeholderData: keepPreviousData,
   });
   useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["leads"] });
+  const done = () => { setPending(null); setActionError(null); invalidate(); };
+  const convert = useMutation({ mutationFn: leadsApi.convert, onSuccess: done, onError: (err) => setActionError(extractErrorMessage(err)) });
+  const remove = useMutation({ mutationFn: leadsApi.remove, onSuccess: done, onError: (err) => setActionError(extractErrorMessage(err)) });
 
-  const convert = useMutation({
-    mutationFn: leadsApi.convert,
-    onSuccess: () => {
-      setPending(null);
-      setActionError(null);
-      invalidate();
-    },
-    onError: (err) => setActionError(extractErrorMessage(err)),
-  });
-
-  const remove = useMutation({
-    mutationFn: leadsApi.remove,
-    onSuccess: () => {
-      setPending(null);
-      setActionError(null);
-      invalidate();
-    },
-    onError: (err) => setActionError(extractErrorMessage(err)),
-  });
-
-  const cancelPending = () => {
-    setPending(null);
-    setActionError(null);
-  };
-
-  const renderItem = ({ item }: { item: Lead }) => {
-    const isPending = pending?.leadId === item.leadId;
-    const isBusy = (convert.isPending && convert.variables === item.leadId) || (remove.isPending && remove.variables === item.leadId);
-
-    return (
-      <View style={[styles.row, compact && compactList.row]}>
-        <View style={styles.rowMain}>
-          <Text style={styles.leadName}>{item.fullName}</Text>
-          <Text style={styles.contact}>{item.mobileNumber}{item.email ? ` · ${item.email}` : ""}</Text>
-
-          <View style={styles.pillRow}>
-            {item.leadStatusName && <StatusPill label={item.leadStatusName} tone="neutral" />}
-            {item.leadSourceName && <StatusPill label={item.leadSourceName} tone="neutral" />}
-            {item.eventTypeName && <StatusPill label={item.eventTypeName} tone="neutral" />}
-            {item.convertedCustomerId && <StatusPill label="Converted" tone="good" />}
+  const actions = (l: Lead) => {
+    const confirming = pending?.leadId === l.leadId;
+    const busy = (convert.isPending && convert.variables === l.leadId) || (remove.isPending && remove.variables === l.leadId);
+    if (confirming) {
+      const isDelete = pending!.kind === "delete";
+      return (
+        <View style={styles.confirm}>
+          <Text style={[styles.confirmText, !isDelete && { color: colors.text }]}>{isDelete ? "Delete this enquiry?" : "Make this enquiry a customer?"}</Text>
+          {actionError && <Text style={styles.error}>{actionError}</Text>}
+          <View style={styles.actionRow}>
+            <Button label="Cancel" variant="link" onPress={() => { setPending(null); setActionError(null); }} disabled={busy} />
+            <Button
+              label={isDelete ? "Delete" : "Convert"}
+              variant={isDelete ? "danger" : "primary"}
+              loading={busy}
+              onPress={() => (isDelete ? remove.mutate(l.leadId) : convert.mutate(l.leadId))}
+            />
           </View>
-
-          {(item.expectedEventDate || item.expectedBudget) && (
-            <Text style={styles.meta}>
-              {item.expectedEventDate ? formatDate(item.expectedEventDate) : ""}
-              {item.expectedEventDate && item.expectedBudget ? " · " : ""}
-              {item.expectedBudget ? formatCurrency(item.expectedBudget) : ""}
-            </Text>
-          )}
-
-          {isPending && actionError && <Text style={styles.rowError}>{actionError}</Text>}
         </View>
-
-        {isPending ? (
-          <View style={[styles.actions, compact && compactList.actions]}>
-            <Pressable style={styles.actionBtn} onPress={cancelPending} disabled={isBusy}>
-              <Text style={styles.actionText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.actionBtn, styles.actionBtnDanger]}
-              disabled={isBusy}
-              onPress={() => (pending!.kind === "delete" ? remove.mutate(item.leadId) : convert.mutate(item.leadId))}
-            >
-              {isBusy ? (
-                <ActivityIndicator color="#ff7a72" size="small" />
-              ) : (
-                <Text style={[styles.actionText, styles.actionTextDanger]}>
-                  {pending!.kind === "delete" ? "Confirm delete" : "Confirm convert"}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        ) : (
-          <View style={[styles.actions, compact && compactList.actions]}>
-            <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
-              <Text style={styles.actionText}>View</Text>
-            </Pressable>
-            <SubscriptionLock compact>
-              <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-                <Text style={styles.actionText}>Edit</Text>
-              </Pressable>
-            </SubscriptionLock>
-            {!item.convertedCustomerId && (
-              <Pressable style={styles.actionBtn} onPress={() => setPending({ leadId: item.leadId, kind: "convert" })}>
-                <Text style={styles.actionText}>Convert</Text>
-              </Pressable>
-            )}
-            <Pressable
-              style={[styles.actionBtn, styles.actionBtnDanger]}
-              onPress={() => setPending({ leadId: item.leadId, kind: "delete" })}
-            >
-              <Text style={[styles.actionText, styles.actionTextDanger]}>Delete</Text>
-            </Pressable>
-          </View>
-        )}
+      );
+    }
+    return (
+      <View style={styles.actionRow}>
+        <SubscriptionLock compact>
+          <Button label="Edit" variant="link" onPress={() => onEdit(l)} />
+        </SubscriptionLock>
+        {!l.convertedCustomerId && <Button label="Convert" variant="link" onPress={() => setPending({ leadId: l.leadId, kind: "convert" })} />}
+        <Button label="Delete" variant="link" onPress={() => setPending({ leadId: l.leadId, kind: "delete" })} accessibilityLabel={`Delete enquiry from ${l.fullName}`} />
       </View>
     );
   };
 
+  const statusPills = (l: Lead) => (
+    <View style={styles.pills}>
+      {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone="info" /> : null}
+      {l.leadSourceName && <StatusPill label={l.leadSourceName} tone="neutral" />}
+    </View>
+  );
+
+  const columns: Column<Lead>[] = [
+    { key: "name", label: "Name", flex: 2, sortKey: "name", render: (l) => (<><CellTitle>{l.fullName}</CellTitle><CellSub>{l.mobileNumber}</CellSub></>) },
+    { key: "plan", label: "Looking for", flex: 2, render: (l) => <CellSub>{planLine(l) ?? "—"}</CellSub> },
+    { key: "status", label: "Status", flex: 1.5, render: statusPills },
+    { key: "created", label: "Received", width: 120, sortKey: "created", render: (l) => <CellSub>{formatDate(l.createdAt)}</CellSub> },
+    { key: "actions", label: "", width: 250, align: "right", render: actions },
+  ];
+
+  const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
+  const filtered = !!search || leadStatusId !== null || !!createdFrom || !!createdTo;
+
   return (
-    <View style={[styles.screen, compact && compactList.screen]}>
-      <View style={[styles.header, compact && compactList.header]}>
-        <View>
-          <Text style={styles.title}>Enquiry</Text>
-          <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>‹ Home</Text>
-          </Pressable>
-          <SubscriptionLock>
-            <Pressable style={styles.newButton} onPress={onCreate}>
-              <Text style={styles.newButtonText}>+ New Enquiry</Text>
-            </Pressable>
-          </SubscriptionLock>
-        </View>
-      </View>
-
-      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by name or mobile number" />
-
+    <Screen>
+      <PageHeader
+        title="Enquiries"
+        subtitle={data ? `${data.totalCount} enquir${data.totalCount === 1 ? "y" : "ies"}` : null}
+        actions={<SubscriptionLock><Button label="New enquiry" icon="add" variant="primary" onPress={onCreate} /></SubscriptionLock>}
+      />
+      <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={setFilter(setSearch)} placeholder="Search by name or mobile number" />
       {leadStatuses && leadStatuses.length > 0 && (
-        <View style={styles.filterRow}>
-          <Pressable style={[styles.filterChip, leadStatusId === null && styles.filterChipSelected]} onPress={() => setLeadStatusId(null)}>
-            <Text style={[styles.filterChipText, leadStatusId === null && styles.filterChipTextSelected]}>All</Text>
-          </Pressable>
-          {leadStatuses.map((s) => (
-            <Pressable key={s.id} style={[styles.filterChip, leadStatusId === s.id && styles.filterChipSelected]} onPress={() => setLeadStatusId(s.id)}>
-              <Text style={[styles.filterChipText, leadStatusId === s.id && styles.filterChipTextSelected]}>{s.name}</Text>
-            </Pressable>
-          ))}
+        <View style={{ marginBottom: space.md }}>
+          <FilterChips
+            options={[{ value: null, label: "All" }, ...leadStatuses.map((s) => ({ value: s.id, label: s.name }))] as { value: number | null; label: string }[]}
+            value={leadStatusId}
+            onChange={setFilter(setLeadStatusId)}
+          />
         </View>
       )}
-
-      <View style={styles.dateFilterRow}>
-        <MiniDatePicker label="Added from" value={createdFrom} onChange={setCreatedFrom} />
-        <MiniDatePicker label="Added to" value={createdTo} onChange={setCreatedTo} />
-        {(createdFrom.length > 0 || createdTo.length > 0) && (
-          <Pressable
-            style={styles.clearDatesButton}
-            onPress={() => { setCreatedFrom(""); setCreatedTo(""); }}
-          >
-            <Text style={styles.clearDatesText}>Clear dates</Text>
-          </Pressable>
+      <View style={styles.dates}>
+        <MiniDatePicker label="Received from" value={createdFrom} onChange={setFilter(setCreatedFrom)} />
+        <MiniDatePicker label="Received to" value={createdTo} onChange={setFilter(setCreatedTo)} />
+        {(createdFrom || createdTo) && (
+          <Button label="Clear dates" variant="link" onPress={() => { setCreatedFrom(""); setCreatedTo(""); setPage(1); }} style={{ alignSelf: "flex-end" }} />
         )}
       </View>
 
-      {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
-      ) : isError ? (
-        <Text style={styles.error}>Couldn't load enquiries.</Text>
-      ) : (
-        <FlatList
-          data={data?.items ?? []}
-          keyExtractor={(item) => String(item.leadId)}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<Text style={styles.empty}>No enquiries yet — add the first one.</Text>}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
-      )}
-    </View>
+      <DataList
+        items={data?.items}
+        keyOf={(l) => l.leadId}
+        columns={columns}
+        onRowPress={onView}
+        loading={isPending}
+        error={isError ? "Couldn't load enquiries. Check your connection and try again." : null}
+        onRetry={() => refetch()}
+        sort={sort}
+        onSortChange={(s) => { setSort(s); setPage(1); }}
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalCount={data?.totalCount ?? 0}
+        onPageChange={setPage}
+        empty={filtered ? (
+          <EmptyState icon="search-outline" title="No enquiries match" text="Try another search, status or date range."
+            action={<Button label="Clear filters" onPress={() => { setSearch(""); setLeadStatusId(null); setCreatedFrom(""); setCreatedTo(""); setPage(1); }} />} />
+        ) : (
+          <EmptyState icon="person-add-outline" title="No enquiries yet" text="Add an enquiry when someone asks about a shoot. Convert it into a customer once they book."
+            action={<Button label="New enquiry" icon="add" variant="primary" onPress={onCreate} />} />
+        )}
+        renderCard={(l) => (
+          <>
+            <View style={styles.cardTop}>
+              <Text style={styles.cardDate}>Received {formatDate(l.createdAt)}</Text>
+              {statusPills(l)}
+            </View>
+            <Text style={styles.cardTitle} numberOfLines={1}>{l.fullName}</Text>
+            <Text style={styles.cardSub} numberOfLines={1}>{l.mobileNumber}{l.email ? ` · ${l.email}` : ""}</Text>
+            {planLine(l) && <Text style={styles.cardMeta} numberOfLines={1}>{planLine(l)}</Text>}
+            <View style={styles.cardActions}>{actions(l)}</View>
+          </>
+        )}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826", padding: 24 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
-  headerActions: { flexDirection: "row", gap: 10 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
-  newButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  newButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
-  search: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    color: "#e8edf3", backgroundColor: "#132540", marginBottom: 12, fontSize: 14,
-  },
-  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  dateFilterRow: { flexDirection: "row", alignItems: "flex-end", gap: 12, marginBottom: 16, flexWrap: "wrap" },
-  clearDatesButton: { paddingVertical: 8 },
-  clearDatesText: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
-  filterChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
-  filterChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  filterChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  filterChipTextSelected: { color: "#ff9a4d" },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 14 },
-  rowMain: { flex: 1, gap: 4 },
-  leadName: { color: "#e8edf3", fontSize: 16, fontWeight: "600" },
-  contact: { color: "#a7b7cb", fontSize: 13 },
-  pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  meta: { color: "#6f83a0", fontSize: 12, marginTop: 4 },
-  rowError: { color: "#ff7a72", fontSize: 12, marginTop: 4 },
-  actions: { flexDirection: "row", gap: 8 },
-  actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
-  actionBtnDanger: { borderColor: "rgba(255, 122, 114, 0.4)" },
-  actionText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  actionTextDanger: { color: "#ff7a72" },
-  separator: { height: 1, backgroundColor: "#1b2c42" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
-  empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
+  dates: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  confirm: { alignItems: "flex-end", gap: 2 },
+  confirmText: { ...type.small, fontWeight: "600", color: colors.danger },
+  error: { ...type.caption, color: colors.danger },
+  cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
+  cardDate: { ...type.small, fontWeight: "600", color: colors.link },
+  cardTitle: { ...type.heading, color: colors.text },
+  cardSub: { ...type.small, color: colors.textMuted },
+  cardMeta: { ...type.caption, color: colors.textFaint },
+  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.xs, marginHorizontal: -space.sm },
 });

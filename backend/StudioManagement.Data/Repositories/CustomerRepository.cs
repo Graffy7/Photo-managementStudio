@@ -1,3 +1,4 @@
+using StudioManagement.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -9,7 +10,7 @@ public class CustomerRepository(AppDbContext context) : ICustomerRepository
     public Task<Customer?> GetByIdAsync(int studioId, int customerId, CancellationToken ct = default) =>
         context.Customers.FirstOrDefaultAsync(c => c.StudioId == studioId && c.CustomerId == customerId, ct);
 
-    public async Task<(List<Customer> Items, int TotalCount)> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Customer> Items, int TotalCount)> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         var query = context.Customers
             .AsNoTracking()
@@ -27,8 +28,15 @@ public class CustomerRepository(AppDbContext context) : ICustomerRepository
         }
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderByDescending(c => c.CreatedAt)
+        var desc = sort?.Descending ?? false;
+        var ordered = sort?.Key switch
+        {
+            "name" => query.OrderByDirection(c => c.FullName, desc),
+            "created" => query.OrderByDirection(c => c.CreatedAt, desc),
+            _ => query.OrderByDescending(c => c.CreatedAt),
+        };
+        var items = await ordered
+            .ThenBy(c => c.CustomerId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

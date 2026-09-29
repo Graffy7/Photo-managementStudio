@@ -15,12 +15,12 @@ public class CustomerService(
 {
     private const string Module = "Customers";
 
-    public async Task<PagedResult<CustomerDto>> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<CustomerDto>> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await customerRepository.SearchAsync(studioId, search, isActive, page, pageSize, ct);
+        var (items, totalCount) = await customerRepository.SearchAsync(studioId, search, isActive, page, pageSize, ct, sort);
         return new PagedResult<CustomerDto>
         {
             Items = items.Select(MapToDto).ToList(),

@@ -29,8 +29,10 @@ public class QuotationsController(
         [FromQuery] int? customerId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDesc = false,
         CancellationToken ct = default) =>
-        Ok(await quotationService.SearchAsync(StudioId, search, status, customerId, page, pageSize, ct));
+        Ok(await quotationService.SearchAsync(StudioId, search, status, customerId, page, pageSize, ct, new ListSort(sortBy, sortDesc)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

@@ -103,12 +103,12 @@ public class PaymentService(
         return null;
     }
 
-    public async Task<PagedResult<PaymentDto>> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<PaymentDto>> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await paymentRepository.SearchAsync(studioId, search, paymentStatus, customerId, page, pageSize, ct);
+        var (items, totalCount) = await paymentRepository.SearchAsync(studioId, search, paymentStatus, customerId, page, pageSize, ct, sort);
         var eventTotals = await GetEventTotalsAsync(studioId, items, ct);
         return new PagedResult<PaymentDto>
         {

@@ -2,9 +2,10 @@ import { memo } from "react";
 import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import { photoUrl } from "../../api/photoSelectionApi";
 import type { PublicPhoto, SelectionType } from "../../types/photoSelection";
+import { colors, radius } from "../../ui/theme";
 
-export const NORMAL_COLOR = "#7fc0e6";
-export const BIG_COLOR = "#ff9a4d";
+export const NORMAL_COLOR = colors.normal;
+export const BIG_COLOR = colors.big;
 export const colorFor = (type: SelectionType | null) => (type === 2 ? BIG_COLOR : NORMAL_COLOR);
 
 interface Props {
@@ -76,7 +77,7 @@ function PublicPhotoCardBase({ photo, selection, width, disabled, onOpen, onChan
                   <View style={[styles.dot, active && { borderColor: colorFor(type) }]}>
                     {active && <View style={[styles.dotFill, { backgroundColor: colorFor(type) }]} />}
                   </View>
-                  <Text style={[styles.radioText, active && { color: "#e8edf3" }]}>{type === 1 ? "Normal" : "Big"}</Text>
+                  <Text style={[styles.radioText, active && { color: colors.text }]}>{type === 1 ? "Normal" : "Big"}</Text>
                 </Pressable>
               );
             })}
@@ -91,39 +92,40 @@ export const PublicPhotoCard = memo(PublicPhotoCardBase);
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#132540",
-    borderRadius: 10,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
     borderWidth: 2,
-    borderColor: "#1b2c42",
+    borderColor: colors.border,
     overflow: "hidden",
   },
-  imageBox: { backgroundColor: "#0a1320", width: "100%" },
+  imageBox: { backgroundColor: "#070e17", width: "100%" },
   image: { width: "100%", height: "100%" },
   nameChip: {
     position: "absolute", left: 6, bottom: 6, maxWidth: "80%",
-    backgroundColor: "rgba(13,24,38,0.78)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+    backgroundColor: "rgba(11,21,34,0.8)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
   },
-  nameText: { color: "#e8edf3", fontSize: 10 },
+  nameText: { color: colors.text, fontSize: 11 },
   check: {
-    position: "absolute", top: 6, right: 6, width: 30, height: 30, borderRadius: 15,
+    position: "absolute", top: 6, right: 6, width: 32, height: 32, borderRadius: 16,
     alignItems: "center", justifyContent: "center",
   },
-  checkText: { color: "#0d1826", fontSize: 16, fontWeight: "800" },
+  checkText: { color: colors.onPrimary, fontSize: 16, fontWeight: "800" },
+  // Both states are the same height, so a card never changes size when a photo is picked.
   controls: { padding: 6 },
   selectButton: {
-    borderWidth: 1, borderColor: "#7fc0e6", borderRadius: 8, paddingVertical: 8, alignItems: "center",
+    height: 40, borderWidth: 1, borderColor: colors.normal, borderRadius: radius.control, alignItems: "center", justifyContent: "center",
   },
-  selectText: { color: "#7fc0e6", fontWeight: "700", fontSize: 13 },
+  selectText: { color: colors.normal, fontWeight: "700", fontSize: 14 },
   radioRow: { flexDirection: "row", gap: 6 },
   radio: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 7,
+    flex: 1, height: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.control,
   },
-  radioText: { color: "#a7b7cb", fontSize: 12, fontWeight: "700" },
+  radioText: { color: colors.textMuted, fontSize: 13, fontWeight: "700" },
   dot: {
-    width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: "#6f83a0",
+    width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: colors.textFaint,
     alignItems: "center", justifyContent: "center",
   },
-  dotFill: { width: 6, height: 6, borderRadius: 3 },
+  dotFill: { width: 7, height: 7, borderRadius: 4 },
   disabled: { opacity: 0.45 },
 });

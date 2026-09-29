@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { leadsApi } from "../../api/leadsApi";
 import { lookupApis } from "../../api/lookupsApi";
@@ -7,6 +7,9 @@ import type { Lead } from "../../types/lead";
 import type { Lookup } from "../../types/lookup";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { emailError, mobileError, nameError } from "../../utils/customerValidation";
+import { FormScreen, FormSection, FieldRow, Field, TextField } from "../../ui/Form";
+import { colors, radius, space, type } from "../../ui/theme";
 
 interface Props {
   lead?: Lead;
@@ -14,32 +17,20 @@ interface Props {
   onCancel: () => void;
 }
 
-function LookupChips({
-  label,
-  options,
-  selectedId,
-  onSelect,
-}: {
-  label: string;
-  options: Lookup[];
-  selectedId: number | null;
-  onSelect: (id: number | null) => void;
-}) {
-  if (options.length === 0) return null;
+// One choice from a studio's own list (event types, sources, statuses), or none.
+function LookupChips({ options, selectedId, onSelect }: { options: Lookup[]; selectedId: number | null; onSelect: (id: number | null) => void }) {
+  const all: { id: number | null; name: string }[] = [{ id: null, name: "None" }, ...options];
   return (
-    <>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.chipRow}>
-        <Pressable style={[styles.chip, selectedId === null && styles.chipSelected]} onPress={() => onSelect(null)}>
-          <Text style={[styles.chipText, selectedId === null && styles.chipTextSelected]}>None</Text>
-        </Pressable>
-        {options.map((o) => (
-          <Pressable key={o.id} style={[styles.chip, selectedId === o.id && styles.chipSelected]} onPress={() => onSelect(o.id)}>
-            <Text style={[styles.chipText, selectedId === o.id && styles.chipTextSelected]}>{o.name}</Text>
+    <View style={styles.chips} accessibilityRole="radiogroup">
+      {all.map((o) => {
+        const on = selectedId === o.id;
+        return (
+          <Pressable key={String(o.id)} style={[styles.chip, on && styles.chipOn]} onPress={() => onSelect(o.id)} accessibilityRole="radio" accessibilityState={{ selected: on }}>
+            <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.name}</Text>
           </Pressable>
-        ))}
-      </View>
-    </>
+        );
+      })}
+    </View>
   );
 }
 
@@ -59,6 +50,7 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
   const [notes, setNotes] = useState(lead?.notes ?? "");
   const [followUpDate, setFollowUpDate] = useState(lead?.followUpDate?.slice(0, 10) ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const { data: eventTypes } = useQuery({ queryKey: ["lookups", "eventTypes"], queryFn: lookupApis.eventTypes.getAll });
   const { data: leadSources } = useQuery({ queryKey: ["lookups", "leadSources"], queryFn: lookupApis.leadSources.getAll });
@@ -85,106 +77,97 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       onDone();
     },
-    onError: (err) => setError(extractErrorMessage(err)),
+    onError: (err) => setError(extractErrorMessage(err, "Couldn't save the enquiry. Please try again.")),
   });
 
-  const canSave = fullName.trim().length > 0 && mobileNumber.trim().length > 0;
+  const errors: Record<string, string | null> = {
+    fullName: nameError(fullName),
+    mobileNumber: mobileError(mobileNumber),
+    email: emailError(email),
+  };
+  const valid = !errors.fullName && !errors.mobileNumber && !errors.email;
+  const show = (field: string) => (touched[field] ? errors[field] : null);
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const submit = () => {
+    setTouched({ fullName: true, mobileNumber: true, email: true });
+    if (!valid) {
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+    setError(null);
+    mutation.mutate();
+  };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEdit ? "Edit enquiry" : "New enquiry"}</Text>
+    <FormScreen
+      title={isEdit ? "Edit enquiry" : "New enquiry"}
+      subtitle={isEdit ? lead!.fullName : "Someone asked about a shoot? Note it here and follow up."}
+      onCancel={onCancel}
+      onSave={submit}
+      saveLabel={isEdit ? "Save changes" : "Create enquiry"}
+      saving={mutation.isPending}
+      error={error}
+    >
+      <FormSection title="Contact">
+        <Field label="Full name" required error={show("fullName")}>
+          <TextField invalid={!!show("fullName")} value={fullName} onChangeText={(v) => { setFullName(v); setError(null); }} onBlur={() => touch("fullName")} placeholder="Ananya Rao" />
+        </Field>
+        <FieldRow>
+          <Field label="Mobile number" required error={show("mobileNumber")} flex>
+            <TextField invalid={!!show("mobileNumber")} value={mobileNumber} onChangeText={(v) => { setMobileNumber(v); setError(null); }} onBlur={() => touch("mobileNumber")} placeholder="98765 43210" keyboardType="phone-pad" />
+          </Field>
+          <Field label="Email" error={show("email")} flex>
+            <TextField invalid={!!show("email")} value={email} onChangeText={(v) => { setEmail(v); setError(null); }} onBlur={() => touch("email")} placeholder="ananya@example.com" autoCapitalize="none" keyboardType="email-address" />
+          </Field>
+        </FieldRow>
+      </FormSection>
 
-      <Text style={styles.label}>Full name</Text>
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Ananya Rao" placeholderTextColor="#6f83a0" />
+      <FormSection title="What they're looking for">
+        {(eventTypes ?? []).length > 0 && (
+          <Field label="Event type">
+            <LookupChips options={eventTypes ?? []} selectedId={eventTypeId} onSelect={setEventTypeId} />
+          </Field>
+        )}
+        <FieldRow>
+          <Field label="Expected event date" flex>
+            <MiniDatePicker variant="form" clearable value={expectedEventDate} onChange={setExpectedEventDate} placeholder="Select date" />
+          </Field>
+          <Field label="Expected budget" flex>
+            <TextField value={expectedBudget} onChangeText={(v) => setExpectedBudget(v.replace(/[^0-9.]/g, ""))} placeholder="75000" keyboardType="numeric" />
+          </Field>
+        </FieldRow>
+        <Field label="Location">
+          <TextField value={location} onChangeText={setLocation} placeholder="Coimbatore" />
+        </Field>
+      </FormSection>
 
-      <Text style={styles.label}>Mobile number</Text>
-      <TextInput
-        style={styles.input}
-        value={mobileNumber}
-        onChangeText={setMobileNumber}
-        placeholder="9876543210"
-        placeholderTextColor="#6f83a0"
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.label}>Email</Text>
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Optional"
-        placeholderTextColor="#6f83a0"
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <LookupChips label="Event type" options={eventTypes ?? []} selectedId={eventTypeId} onSelect={setEventTypeId} />
-      <LookupChips label="Enquiry source" options={leadSources ?? []} selectedId={leadSourceId} onSelect={setLeadSourceId} />
-      <LookupChips label="Enquiry status" options={leadStatuses ?? []} selectedId={leadStatusId} onSelect={setLeadStatusId} />
-
-      <Text style={styles.label}>Expected event date</Text>
-      <MiniDatePicker variant="form" clearable value={expectedEventDate} onChange={setExpectedEventDate} placeholder="Select date (optional)" />
-
-      <Text style={styles.label}>Expected budget</Text>
-      <TextInput
-        style={styles.input}
-        value={expectedBudget}
-        onChangeText={setExpectedBudget}
-        placeholder="Optional"
-        placeholderTextColor="#6f83a0"
-        keyboardType="numeric"
-      />
-
-      <Text style={styles.label}>Location</Text>
-      <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Optional" placeholderTextColor="#6f83a0" />
-
-      <Text style={styles.label}>Notes</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        value={notes}
-        onChangeText={setNotes}
-        placeholder="Optional"
-        placeholderTextColor="#6f83a0"
-        multiline
-        numberOfLines={3}
-      />
-
-      <Text style={styles.label}>Follow-up date</Text>
-      <MiniDatePicker variant="form" clearable value={followUpDate} onChange={setFollowUpDate} placeholder="Select date (optional)" />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.buttonRow}>
-        <Pressable style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
-        <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create enquiry"}</Text>}
-        </Pressable>
-      </View>
-    </ScrollView>
+      <FormSection title="Follow-up">
+        {(leadStatuses ?? []).length > 0 && (
+          <Field label="Status">
+            <LookupChips options={leadStatuses ?? []} selectedId={leadStatusId} onSelect={setLeadStatusId} />
+          </Field>
+        )}
+        {(leadSources ?? []).length > 0 && (
+          <Field label="How they found you">
+            <LookupChips options={leadSources ?? []} selectedId={leadSourceId} onSelect={setLeadSourceId} />
+          </Field>
+        )}
+        <Field label="Follow-up date" hint="When to call them back.">
+          <MiniDatePicker variant="form" clearable value={followUpDate} onChange={setFollowUpDate} placeholder="Select date" />
+        </Field>
+        <Field label="Notes">
+          <TextField value={notes} onChangeText={setNotes} placeholder="Wants a quote for wedding + reception" multiline numberOfLines={3} />
+        </Field>
+      </FormSection>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
-  title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
-  input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#132540",
-  },
-  textArea: { minHeight: 72, textAlignVertical: "top" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#ff9a4d" },
-  error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#a7b7cb", fontWeight: "600" },
-  saveButton: { flex: 2, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  saveText: { color: "#0d1826", fontWeight: "700" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  chip: { minHeight: 40, justifyContent: "center", borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill, paddingHorizontal: space.lg, backgroundColor: colors.page },
+  chipOn: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  chipText: { ...type.small, fontWeight: "600", color: colors.textMuted },
+  chipTextOn: { color: colors.primary },
 });

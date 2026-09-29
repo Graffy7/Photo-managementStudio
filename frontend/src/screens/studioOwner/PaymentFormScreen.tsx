@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { paymentsApi } from "../../api/paymentsApi";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PAYMENT_STATUSES, type Payment, type PaymentMethod, type PaymentStatus } from "../../types/payment";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPicker";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
-import { Ionicons } from "@expo/vector-icons";
+import { FormScreen, FormSection, FieldRow, Field, TextField, ChoiceChips, FormNote } from "../../ui/Form";
+import { colors, radius, space, touch, type } from "../../ui/theme";
 
 // Today's date on this device (not UTC - before 5:30am in India that would still be yesterday).
 function localToday(): string {
@@ -57,6 +58,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(payment?.paymentStatus ?? "Completed");
   const [notes, setNotes] = useState(payment?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
 
   const signedAmount = Number(amount || 0) * (mode === "minus" ? -1 : 1);
   // What will still be due once this payment is saved (negative = overpaid).
@@ -80,7 +82,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
       queryClient.invalidateQueries({ queryKey: ["payments"] });
       onDone();
     },
-    onError: (err) => setError(extractErrorMessage(err)),
+    onError: (err) => setError(extractErrorMessage(err, "Couldn't save the payment. Please try again.")),
   });
 
   // The server enforces these too (it checks against the stored figures); showing them here just
@@ -97,192 +99,160 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
   // Money marked Completed has already been received, so it can't be dated after today. An expected
   // payment can be saved as Pending instead. (The server enforces the same rule.)
   const futureDateError = paymentStatus === "Completed" && paymentDate > localToday()
-    ? "A received payment can't be dated in the future. If the money is only expected, choose Pending below."
+    ? "A received payment can't be dated in the future. If the money is only expected, choose Pending."
     : null;
 
+  const customerError = tried && !customer ? "Choose who paid." : null;
+  const amountError = tried && !(Number(amount) > 0) ? "Enter the amount." : null;
+  const reasonError = tried && needsReason ? "Give a short reason for the deduction." : null;
   const canSave = customer !== null && Number(amount) > 0 && paymentDate.trim().length > 0
     && overpayBy <= 0 && overDeductBy <= 0 && !needsReason && !futureDateError;
 
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEdit ? "Edit payment" : "New payment"}</Text>
+  const submit = () => {
+    setTried(true);
+    if (!canSave) {
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+    setError(null);
+    mutation.mutate();
+  };
 
-      {eventSummary && (
-        <View style={styles.summaryCard}>
+  return (
+    <FormScreen
+      title={isEdit ? "Edit payment" : mode === "minus" ? "Record a deduction" : "Record a payment"}
+      subtitle={isEdit ? payment!.customerName : undefined}
+      onCancel={onCancel}
+      onSave={submit}
+      saveLabel={isEdit ? "Save changes" : mode === "minus" ? "Record deduction" : "Record payment"}
+      saving={mutation.isPending}
+      error={error}
+      above={eventSummary ? (
+        <View style={styles.summary}>
           <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total</Text>
-              <Text style={styles.summaryValue}>{eventSummary.total !== null ? formatCurrency(eventSummary.total) : "—"}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Paid so far</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(eventSummary.advancePaid)}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>This payment</Text>
-              <Text style={[styles.summaryValue, { color: signedAmount < 0 ? "#ff7a72" : signedAmount > 0 ? "#4cc493" : "#6f83a0" }]}>
-                {signedAmount === 0 ? "—" : `${signedAmount < 0 ? "−" : "+"}${formatCurrency(Math.abs(signedAmount))}`}
-              </Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>{balanceAfter < 0 ? "Overpaid" : "Balance"}</Text>
-              <Text style={[styles.summaryValue, { color: balanceAfter > 0 ? "#f2bd5c" : balanceAfter < 0 ? "#ff7a72" : "#4cc493" }]}>
-                {formatCurrency(Math.abs(balanceAfter))}
-              </Text>
-            </View>
+            <Money label="Total" value={eventSummary.total !== null ? formatCurrency(eventSummary.total) : "—"} />
+            <Money label="Paid so far" value={formatCurrency(eventSummary.advancePaid)} />
+            <Money
+              label="This payment"
+              value={signedAmount === 0 ? "—" : `${signedAmount < 0 ? "−" : "+"}${formatCurrency(Math.abs(signedAmount))}`}
+              tone={signedAmount < 0 ? colors.danger : signedAmount > 0 ? colors.success : undefined}
+            />
+            <Money
+              label={balanceAfter < 0 ? "Overpaid" : "Balance after"}
+              value={formatCurrency(Math.abs(balanceAfter))}
+              tone={balanceAfter > 0 ? colors.warning : balanceAfter < 0 ? colors.danger : colors.success}
+            />
           </View>
-          {/* An overpayment gets the fuller warning under the amount instead. */}
           {signedAmount !== 0 && balanceAfter >= 0 && (
             <Text style={styles.summaryNote}>
               {balanceAfter > 0 ? `After this payment, ${formatCurrency(balanceAfter)} is still due.` : "This payment clears the balance."}
             </Text>
           )}
         </View>
-      )}
+      ) : undefined}
+    >
+      <FormSection title="Payment">
+        <Field label="Customer" required error={customerError}>
+          <CustomerPicker selected={customer} onSelect={(c) => { setCustomer(c); setError(null); }} />
+        </Field>
 
-      <Text style={styles.label}>Customer</Text>
-      <CustomerPicker selected={customer} onSelect={setCustomer} />
-
-      <Text style={styles.label}>Amount</Text>
-      <View style={styles.amountRow}>
-        <Pressable
-          style={[styles.signButton, mode === "add" && styles.signButtonAddActive]}
-          onPress={() => { if (mode !== "add") setAmount(""); setMode("add"); }}
+        <Field
+          label="Amount"
+          required
+          error={amountError}
+          hint={mode === "minus" ? "A deduction takes money off what's been paid so far (for example a refund)." : null}
         >
-          <Text style={[styles.signButtonText, mode === "add" && styles.signButtonTextActive]}>+ Add</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.signButton, mode === "minus" && styles.signButtonMinusActive]}
-          onPress={() => { if (mode !== "minus") setAmount(""); setMode("minus"); }}
-        >
-          <Text style={[styles.signButtonText, mode === "minus" && styles.signButtonTextActive]}>− Minus</Text>
-        </Pressable>
-        <TextInput
-          style={[styles.input, styles.amountInput]}
-          value={amount}
-          onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ""))}
-          placeholder="Add amount"
-          placeholderTextColor="#6f83a0"
-          keyboardType="numeric"
-        />
-      </View>
-      {mode === "minus" && (
-        <Text style={styles.minusHint}>
-          A deduction subtracts from what's been paid so far (e.g. a refund). Give the reason in Notes below.
-        </Text>
-      )}
-      {overpayBy > 0 && (
-        <View style={styles.warning}>
-          <Ionicons name="alert-circle-outline" size={15} color="#ff7a72" />
-          <Text style={[styles.warningText, { color: "#ff7a72" }]}>
-            This is {formatCurrency(overpayBy)} more than the {formatCurrency(Math.max(0, eventSummary!.balance))} still due on
-            this event. If more is owed, update the event's total first.
-          </Text>
-        </View>
-      )}
-      {overDeductBy > 0 && (
-        <View style={styles.warning}>
-          <Ionicons name="alert-circle-outline" size={15} color="#ff7a72" />
-          <Text style={[styles.warningText, { color: "#ff7a72" }]}>
-            A deduction can't be more than what's been paid so far ({formatCurrency(eventSummary!.advancePaid)}).
-          </Text>
-        </View>
-      )}
+          <View style={styles.amountRow}>
+            <View style={styles.sign} accessibilityRole="radiogroup">
+              {(["add", "minus"] as const).map((m) => {
+                const on = mode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => { if (!on) { setAmount(""); setMode(m); } }}
+                    style={[styles.signOption, on && (m === "add" ? styles.signAdd : styles.signMinus)]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                  >
+                    <Text style={[styles.signText, on && { color: colors.text }]}>{m === "add" ? "+ Received" : "− Deduct"}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextField
+              invalid={!!amountError}
+              style={{ flex: 1, minWidth: 120 }}
+              value={amount}
+              onChangeText={(v) => { setAmount(v.replace(/[^0-9.]/g, "")); setError(null); }}
+              placeholder="10000"
+              keyboardType="numeric"
+              accessibilityLabel="Amount (required)"
+            />
+          </View>
+        </Field>
+        {overpayBy > 0 && (
+          <FormNote tone="danger">
+            This is {formatCurrency(overpayBy)} more than the {formatCurrency(Math.max(0, eventSummary!.balance))} still due on this event. If more is owed, update the event's total first.
+          </FormNote>
+        )}
+        {overDeductBy > 0 && (
+          <FormNote tone="danger">A deduction can't be more than what's been paid so far ({formatCurrency(eventSummary!.advancePaid)}).</FormNote>
+        )}
 
-      <Text style={styles.label}>Payment date</Text>
-      <MiniDatePicker variant="form" value={paymentDate} onChange={setPaymentDate} placeholder="Select payment date" />
-      {futureDateError ? <Text style={styles.minusHint}>{futureDateError}</Text> : null}
+        <FieldRow>
+          <Field label="Date" required error={futureDateError} flex>
+            <MiniDatePicker variant="form" value={paymentDate} onChange={setPaymentDate} placeholder="Select payment date" />
+          </Field>
+          <Field label="Reference number" hint="UPI / cheque / transaction ID" flex>
+            <TextField value={referenceNumber} onChangeText={setReferenceNumber} placeholder="UPI-8821344" />
+          </Field>
+        </FieldRow>
 
-      <Text style={styles.label}>Payment method</Text>
-      <View style={styles.chipRow}>
-        {PAYMENT_METHODS.map((m) => (
-          <Pressable key={m} style={[styles.chip, paymentMethod === m && styles.chipSelected]} onPress={() => setPaymentMethod(m)}>
-            <Text style={[styles.chipText, paymentMethod === m && styles.chipTextSelected]}>{PAYMENT_METHOD_LABELS[m]}</Text>
-          </Pressable>
-        ))}
-      </View>
+        <Field label="Paid by" required>
+          <ChoiceChips
+            options={PAYMENT_METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }))}
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+          />
+        </Field>
 
-      <Text style={styles.label}>Reference number</Text>
-      <TextInput style={styles.input} value={referenceNumber} onChangeText={setReferenceNumber} placeholder="Optional" placeholderTextColor="#6f83a0" />
+        <Field label="Status" required hint="Completed = money received. Pending = still expected.">
+          <ChoiceChips options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} value={paymentStatus} onChange={setPaymentStatus} />
+        </Field>
 
-      <Text style={styles.label}>Status</Text>
-      <View style={styles.chipRow}>
-        {PAYMENT_STATUSES.map((s) => (
-          <Pressable key={s} style={[styles.chip, paymentStatus === s && styles.chipSelected]} onPress={() => setPaymentStatus(s)}>
-            <Text style={[styles.chipText, paymentStatus === s && styles.chipTextSelected]}>{s}</Text>
-          </Pressable>
-        ))}
-      </View>
+        {mode === "minus" ? (
+          <Field label="Reason for the deduction" required error={reasonError}>
+            <TextField invalid={!!reasonError} value={notes} onChangeText={setNotes} placeholder="Refund for the cancelled album" multiline numberOfLines={3} />
+          </Field>
+        ) : (
+          <Field label="Notes">
+            <TextField value={notes} onChangeText={setNotes} placeholder="Second instalment" multiline numberOfLines={3} />
+          </Field>
+        )}
+      </FormSection>
+    </FormScreen>
+  );
+}
 
-      <Text style={styles.label}>{mode === "minus" ? "Reason for the deduction (required)" : "Notes"}</Text>
-      <TextInput
-        style={[styles.input, styles.textArea, mode === "minus" && needsReason && notes.length > 0 && { borderColor: "#ff7a72" }]}
-        value={notes}
-        onChangeText={setNotes}
-        placeholder={mode === "minus" ? "e.g. Refund for the cancelled album" : "Optional"}
-        placeholderTextColor="#6f83a0"
-        multiline
-        numberOfLines={3}
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.buttonRow}>
-        <Pressable style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
-        <Pressable style={[styles.saveButton, !canSave && { opacity: 0.5 }]} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? (
-            <ActivityIndicator color="#0d1826" />
-          ) : (
-            <Text style={styles.saveText}>{isEdit ? "Save changes" : mode === "minus" ? "Record deduction" : "Record payment"}</Text>
-          )}
-        </Pressable>
-      </View>
-    </ScrollView>
+function Money({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <View style={{ flexGrow: 1, flexBasis: 110 }}>
+      <Text style={styles.moneyLabel}>{label}</Text>
+      <Text style={[styles.moneyValue, tone ? { color: tone } : null]}>{value}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
-  title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
-  summaryCard: { backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c", borderRadius: 10, padding: 14, marginBottom: 18 },
-  summaryRow: { flexDirection: "row", gap: 12 },
-  summaryItem: { flex: 1, gap: 2 },
-  summaryLabel: { color: "#6f83a0", fontSize: 10.5 },
-  summaryValue: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
-  summaryNote: { color: "#a7b7cb", fontSize: 12, marginTop: 10 },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
-  input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#132540",
-  },
-  amountRow: { flexDirection: "row", gap: 8 },
-  amountInput: { flex: 1 },
-  signButton: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, justifyContent: "center", backgroundColor: "#132540",
-  },
-  signButtonAddActive: { borderColor: "#4cc493", backgroundColor: "rgba(76, 196, 147, 0.14)" },
-  signButtonMinusActive: { borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)" },
-  signButtonText: { color: "#a7b7cb", fontSize: 13, fontWeight: "700" },
-  signButtonTextActive: { color: "#e8edf3" },
-  minusHint: { color: "#ff7a72", fontSize: 11, marginTop: 6 },
-  warning: {
-    flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 10, padding: 12, borderRadius: 10,
-    borderWidth: 1, borderColor: "rgba(242, 189, 92, 0.45)", backgroundColor: "rgba(242, 189, 92, 0.08)",
-  },
-  warningText: { color: "#a7b7cb", fontSize: 12, lineHeight: 18, flex: 1 },
-  textArea: { minHeight: 72, textAlignVertical: "top" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#ff9a4d" },
-  error: { color: "#ff7a72", marginTop: 16, fontSize: 13 },
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#a7b7cb", fontWeight: "600" },
-  saveButton: { flex: 2, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  saveText: { color: "#0d1826", fontWeight: "700" },
+  summary: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, marginTop: space.lg },
+  summaryRow: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
+  summaryNote: { ...type.small, color: colors.textMuted, marginTop: space.md },
+  moneyLabel: { ...type.caption, color: colors.textMuted },
+  moneyValue: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
+  amountRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  sign: { flexDirection: "row", borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.control, overflow: "hidden" },
+  signOption: { minHeight: touch, paddingHorizontal: space.md, justifyContent: "center" },
+  signAdd: { backgroundColor: colors.successSoft },
+  signMinus: { backgroundColor: colors.dangerSoft },
+  signText: { ...type.small, fontWeight: "700", color: colors.textMuted },
 });

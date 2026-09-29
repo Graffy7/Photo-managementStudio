@@ -28,8 +28,10 @@ public class LeadsController(
         [FromQuery] DateTime? createdTo,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDesc = false,
         CancellationToken ct = default) =>
-        Ok(await leadService.SearchAsync(StudioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct));
+        Ok(await leadService.SearchAsync(StudioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct, new ListSort(sortBy, sortDesc)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

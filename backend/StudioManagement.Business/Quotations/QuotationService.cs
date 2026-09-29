@@ -21,12 +21,12 @@ public class QuotationService(
 {
     private const string Module = "Quotations";
 
-    public async Task<PagedResult<QuotationDto>> SearchAsync(int studioId, string? search, string? status, int? customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<QuotationDto>> SearchAsync(int studioId, string? search, string? status, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await quotationRepository.SearchAsync(studioId, search, status, customerId, page, pageSize, ct);
+        var (items, totalCount) = await quotationRepository.SearchAsync(studioId, search, status, customerId, page, pageSize, ct, sort);
         return new PagedResult<QuotationDto>
         {
             Items = items.Select(MapToDto).ToList(),

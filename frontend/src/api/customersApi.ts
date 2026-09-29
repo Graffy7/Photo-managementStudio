@@ -3,7 +3,7 @@ import type { PagedResult } from "../types/studio";
 import type { Customer, CreateCustomerRequest, UpdateCustomerRequest, CustomerEventSummary } from "../types/customer";
 
 export const customersApi = {
-  search: (params: { search?: string; isActive?: boolean; page?: number; pageSize?: number }) =>
+  search: (params: { search?: string; isActive?: boolean; page?: number; pageSize?: number; sortBy?: string; sortDesc?: boolean }) =>
     apiClient.get<PagedResult<Customer>>("/api/customers", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<Customer>(`/api/customers/${id}`).then((res) => res.data),

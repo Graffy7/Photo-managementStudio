@@ -22,12 +22,12 @@ public class EventService(
     private const string Module = "Events";
     private const string TimeFormat = @"hh\:mm";
 
-    public async Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null)
+    public async Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null, ListSort? sort = null)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await eventRepository.SearchAsync(studioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom);
+        var (items, totalCount) = await eventRepository.SearchAsync(studioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom, sort);
         return new PagedResult<EventDto>
         {
             Items = items.Select(MapToDto).ToList(),

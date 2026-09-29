@@ -13,7 +13,7 @@ public class PaymentRepository(AppDbContext context) : IPaymentRepository
             .Include(p => p.Event)
             .FirstOrDefaultAsync(p => p.StudioId == studioId && p.PaymentId == paymentId, ct);
 
-    public async Task<(List<Payment> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Payment> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
         var query = context.Payments
             .AsNoTracking()
@@ -38,8 +38,16 @@ public class PaymentRepository(AppDbContext context) : IPaymentRepository
         }
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderByDescending(p => p.PaymentDate)
+        var desc = sort?.Descending ?? false;
+        var ordered = sort?.Key switch
+        {
+            "customer" => query.OrderByDirection(p => p.Customer.FullName, desc),
+            "amount" => query.OrderByDirection(p => p.Amount, desc),
+            "date" => query.OrderByDirection(p => p.PaymentDate, desc),
+            _ => query.OrderByDescending(p => p.PaymentDate),
+        };
+        var items = await ordered
+            .ThenByDescending(p => p.PaymentId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

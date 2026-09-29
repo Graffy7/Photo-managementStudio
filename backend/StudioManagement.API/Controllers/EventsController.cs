@@ -33,8 +33,10 @@ public class EventsController(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] DateTime? upcomingFrom = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDesc = false,
         CancellationToken ct = default) =>
-        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom));
+        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom, new ListSort(sortBy, sortDesc)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

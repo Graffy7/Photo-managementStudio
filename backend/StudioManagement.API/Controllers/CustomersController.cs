@@ -26,8 +26,10 @@ public class CustomersController(
         [FromQuery] bool? isActive,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDesc = false,
         CancellationToken ct = default) =>
-        Ok(await customerService.SearchAsync(StudioId, search, isActive, page, pageSize, ct));
+        Ok(await customerService.SearchAsync(StudioId, search, isActive, page, pageSize, ct, new ListSort(sortBy, sortDesc)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
