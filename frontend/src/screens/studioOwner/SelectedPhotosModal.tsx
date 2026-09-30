@@ -6,7 +6,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { photoSelectionApi, photoUrl } from "../../api/photoSelectionApi";
 import type { OwnerGallery, OwnerPhoto } from "../../types/photoSelection";
 
-const NORMAL_COLOR = "#7fc0e6";
+const NORMAL_COLOR = "#8cc8f0";
 const BIG_COLOR = "#ff9a4d";
 const GAP = 12;
 const PADDING = 20;
@@ -121,7 +121,7 @@ function SelectedCard({ photo, width, onPress }: { photo: OwnerPhoto; width: num
       </View>
       <View style={styles.cardFooter}>
         <Text style={styles.fileName} numberOfLines={1}>{photo.fileName}</Text>
-        <Text style={[styles.selectedLabel, { color: "#4cc493" }]}>✓ Selected</Text>
+        <Text style={[styles.selectedLabel, { color: "#6ee0ad" }]}>✓ Selected</Text>
         <View style={[styles.sizeBadge, { backgroundColor: accent }]}>
           <Text style={styles.sizeText}>{big ? "Big Size" : "Normal"}</Text>
         </View>
@@ -131,37 +131,37 @@ function SelectedCard({ photo, width, onPress }: { photo: OwnerPhoto; width: num
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   header: { flexDirection: "row", alignItems: "center", gap: 12, padding: PADDING, paddingBottom: 12 },
   title: { color: "#e8edf3", fontSize: 22, fontWeight: "700" },
   subtitle: { color: "#6f83a0", fontSize: 13, marginTop: 2 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c" },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  backButton: { backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#2c4463" },
+  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   totals: {
     flexDirection: "row", flexWrap: "wrap", gap: 28, paddingHorizontal: PADDING, paddingVertical: 12,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#1b2c42", backgroundColor: "#0f1e30",
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#1f3149", backgroundColor: "#122033",
   },
   total: { gap: 1 },
   totalValue: { fontSize: 26, fontWeight: "800" },
   totalLabel: { color: "#6f83a0", fontSize: 12 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
   empty: { color: "#6f83a0", fontSize: 14, textAlign: "center" },
-  error: { color: "#ff7a72", fontSize: 13, textAlign: "center" },
-  secondaryButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c" },
-  secondaryText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  error: { color: "#ff9a93", fontSize: 13, textAlign: "center" },
+  secondaryButton: { backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#2c4463" },
+  secondaryText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
 
-  card: { backgroundColor: "#132540", borderRadius: 10, borderWidth: 2, overflow: "hidden" },
+  card: { backgroundColor: "#172a42", borderRadius: 10, borderWidth: 2, overflow: "hidden" },
   imageBox: { backgroundColor: "#0a1320", width: "100%" },
   image: { width: "100%", height: "100%" },
   noPreview: { alignItems: "center", justifyContent: "center" },
   noPreviewText: { color: "#6f83a0", fontSize: 12 },
-  cardFooter: { padding: 10, gap: 5, borderTopWidth: 1, borderTopColor: "#1b2c42" },
-  fileName: { color: "#a7b7cb", fontSize: 11 },
+  cardFooter: { padding: 10, gap: 5, borderTopWidth: 1, borderTopColor: "#1f3149" },
+  fileName: { color: "#9fb0c5", fontSize: 11 },
   selectedLabel: { fontSize: 14, fontWeight: "800" },
   sizeBadge: { alignSelf: "flex-start", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 3 },
-  sizeText: { color: "#0d1826", fontSize: 12, fontWeight: "800" },
+  sizeText: { color: "#0b1522", fontSize: 12, fontWeight: "800" },
 
   previewOverlay: { flex: 1, backgroundColor: "#050a12", alignItems: "center", justifyContent: "center", padding: 20 },
   previewImage: { width: "100%", height: "85%" },
-  previewCaption: { color: "#a7b7cb", fontSize: 13, marginTop: 10 },
+  previewCaption: { color: "#9fb0c5", fontSize: 13, marginTop: 10 },
 });

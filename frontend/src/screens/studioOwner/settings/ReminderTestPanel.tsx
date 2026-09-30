@@ -88,21 +88,21 @@ export function ReminderTestPanel() {
 
           {preview.eventCount > 0 && (
             <>
-              <MessageCard message={preview.eventMessage} accent="#7fc0e6" />
-              <MessageCard message={preview.paymentMessage} accent="#f2bd5c" />
+              <MessageCard message={preview.eventMessage} accent="#8cc8f0" />
+              <MessageCard message={preview.paymentMessage} accent="#f5c66b" />
             </>
           )}
         </View>
       )}
 
-      {loading !== null && !preview && <ActivityIndicator color="#7fc0e6" style={{ marginTop: 14 }} />}
+      {loading !== null && !preview && <ActivityIndicator color="#8cc8f0" style={{ marginTop: 14 }} />}
     </View>
   );
 }
 
 function Check({ ok, text }: { ok: boolean; text: string }) {
   return (
-    <Text style={[styles.check, { color: ok ? "#4cc493" : "#ff7a72" }]}>
+    <Text style={[styles.check, { color: ok ? "#6ee0ad" : "#ff9a93" }]}>
       {ok ? "✓" : "✕"} {text}
     </Text>
   );
@@ -125,7 +125,7 @@ function MessageCard({ message, accent }: { message: ReminderMessagePreview; acc
               styles.recipientTag,
               {
                 backgroundColor: r.kind === "Owner" ? "rgba(242,189,92,0.18)" : "rgba(127,192,230,0.18)",
-                color: r.kind === "Owner" ? "#f2bd5c" : "#7fc0e6",
+                color: r.kind === "Owner" ? "#f5c66b" : "#8cc8f0",
               },
             ]}
           >
@@ -134,7 +134,7 @@ function MessageCard({ message, accent }: { message: ReminderMessagePreview; acc
           <Text style={styles.recipientName} numberOfLines={1}>
             {r.name}{r.phone ? ` · ${r.phone}` : ""}
           </Text>
-          <Text style={[styles.recipientState, { color: r.willReceive ? "#4cc493" : "#6f83a0" }]}>
+          <Text style={[styles.recipientState, { color: r.willReceive ? "#6ee0ad" : "#6f83a0" }]}>
             {r.willReceive ? "will receive" : r.note ?? "not sent"}
           </Text>
         </View>
@@ -144,25 +144,25 @@ function MessageCard({ message, accent }: { message: ReminderMessagePreview; acc
 }
 
 const styles = StyleSheet.create({
-  panel: { borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", padding: 16, marginTop: 16, gap: 10 },
+  panel: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", padding: 16, marginTop: 16, gap: 10 },
   title: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
-  caption: { color: "#a7b7cb", fontSize: 12, lineHeight: 18 },
+  caption: { color: "#9fb0c5", fontSize: 12, lineHeight: 18 },
   buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
   primary: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  primaryText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  secondary: { backgroundColor: "#0d1826", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c" },
-  secondaryText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  primaryText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  secondary: { backgroundColor: "#0b1522", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#2c4463" },
+  secondaryText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   disabled: { opacity: 0.45 },
-  error: { color: "#ff7a72", fontSize: 13 },
-  info: { color: "#7fc0e6", fontSize: 12 },
-  warn: { color: "#f2bd5c", fontSize: 12, lineHeight: 18 },
+  error: { color: "#ff9a93", fontSize: 13 },
+  info: { color: "#8cc8f0", fontSize: 12 },
+  warn: { color: "#f5c66b", fontSize: 12, lineHeight: 18 },
   previewWrap: { gap: 10, marginTop: 6 },
   previewHeading: { color: "#e8edf3", fontSize: 13, fontWeight: "700" },
-  checks: { backgroundColor: "#0d1826", borderRadius: 8, padding: 10, gap: 4 },
+  checks: { backgroundColor: "#0b1522", borderRadius: 8, padding: 10, gap: 4 },
   check: { fontSize: 12, fontWeight: "600" },
-  messageCard: { borderWidth: 1, borderRadius: 10, padding: 12, gap: 8, backgroundColor: "#0f1e30" },
+  messageCard: { borderWidth: 1, borderRadius: 10, padding: 12, gap: 8, backgroundColor: "#122033" },
   messageTitle: { fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
-  messageBox: { backgroundColor: "#0d1826", borderRadius: 8, maxHeight: 320 },
+  messageBox: { backgroundColor: "#0b1522", borderRadius: 8, maxHeight: 320 },
   messageText: { color: "#e8edf3", fontSize: 12.5, lineHeight: 19, fontFamily: "monospace" },
   recipientsLabel: { color: "#6f83a0", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 },
   recipient: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },

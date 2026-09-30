@@ -72,15 +72,15 @@ export function RootNavigator() {
     >
       {!user ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Sign in" }} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: "Forgot password" }} />
           {/* old reset-link route: same code-based flow */}
-          <Stack.Screen name="ResetPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPassword" component={ForgotPasswordScreen} options={{ title: "Reset password" }} />
         </Stack.Navigator>
       ) : user.userType === "SUPER_ADMIN" ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="SuperAdminHome" component={SuperAdminHome} />
-          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Change password" }} />
         </Stack.Navigator>
       ) : (
         // An expired subscription replaces the whole app with the renewal page (the server refuses
@@ -92,8 +92,8 @@ export function RootNavigator() {
         <SubscriptionGate>
         <WebAppShell navigationRef={navigationRef} activeRoute={activeRoute}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Leads" component={GatedLeadsHome} />
+            <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Dashboard" }} />
+            <Stack.Screen name="Leads" component={GatedLeadsHome} options={{ title: "Enquiries" }} />
             <Stack.Screen name="Customers" component={GatedCustomersHome} />
             <Stack.Screen name="Events" component={GatedEventsHome} />
             <Stack.Screen name="Workers" component={GatedWorkersHome} />
@@ -101,16 +101,16 @@ export function RootNavigator() {
             <Stack.Screen name="Quotations" component={GatedQuotationsHome} />
             <Stack.Screen name="Payments" component={GatedPaymentsHome} />
             <Stack.Screen name="Expenses" component={GatedExpensesHome} />
-            <Stack.Screen name="PhotoSelection" component={GatedPhotoSelectionHome} />
+            <Stack.Screen name="PhotoSelection" component={GatedPhotoSelectionHome} options={{ title: "Photo delivery" }} />
             <Stack.Screen name="Reports" component={GatedReportsScreen} />
-            <Stack.Screen name="DayBoard" component={GatedDayBoardScreen} />
+            <Stack.Screen name="DayBoard" component={GatedDayBoardScreen} options={{ title: "Day board" }} />
             <Stack.Screen name="Calendar" component={GatedCalendarScreen} />
             <Stack.Screen name="Notifications" component={GatedNotificationsScreen} />
             <Stack.Screen name="Activity" component={ActivityScreen} />
             <Stack.Screen name="Settings" component={GatedSettingsScreen} />
-            <Stack.Screen name="Lookups" component={GatedLookupsScreen} />
-            <Stack.Screen name="LeadFormConfig" component={GatedLeadFormConfigScreen} />
-            <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+            <Stack.Screen name="Lookups" component={GatedLookupsScreen} options={{ title: "Dropdown lists" }} />
+            <Stack.Screen name="LeadFormConfig" component={GatedLeadFormConfigScreen} options={{ title: "Enquiry form fields" }} />
+            <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Change password" }} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
           </Stack.Navigator>
         </WebAppShell>

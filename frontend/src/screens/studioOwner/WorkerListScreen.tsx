@@ -1,146 +1,125 @@
 import { useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { workersApi } from "../../api/workersApi";
 import { lookupApis } from "../../api/lookupsApi";
 import type { Worker } from "../../types/worker";
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
-import { compactList, useCompactLayout } from "../../styles/compactList";
+import { Screen } from "../../ui/Screen";
+import { PageHeader } from "../../ui/PageHeader";
+import { FilterChips } from "../../ui/FilterChips";
+import { EmptyState } from "../../ui/EmptyState";
+import { Button } from "../../ui/Button";
+import { DataList, CellSub, CellTitle, type Column } from "../../ui/DataList";
+import { colors, space, type } from "../../ui/theme";
+
+const PAGE_SIZE = 20;
 
 export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (worker: Worker) => void; onView: (worker: Worker) => void }) {
-  const compact = useCompactLayout();
-  const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [workerTypeId, setWorkerTypeId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data: workerTypes } = useQuery({ queryKey: ["lookups", "workerTypes"], queryFn: lookupApis.workerTypes.getAll });
 
   const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["workers", search, workerTypeId],
-    queryFn: () => workersApi.search({ search: search || undefined, workerTypeId: workerTypeId ?? undefined, page: 1, pageSize: 50 }),
+    queryKey: ["workers", search, workerTypeId, page],
+    queryFn: () => workersApi.search({ search: search || undefined, workerTypeId: workerTypeId ?? undefined, page, pageSize: PAGE_SIZE }),
+    placeholderData: keepPreviousData,
   });
   useRefetchOnFocus(refetch);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["workers"] });
-
   const activate = useMutation({ mutationFn: workersApi.activate, onSuccess: invalidate });
   const deactivate = useMutation({ mutationFn: workersApi.deactivate, onSuccess: invalidate });
 
-  const renderItem = ({ item }: { item: Worker }) => (
-    <View style={[styles.row, compact && compactList.row]}>
-      <View style={styles.rowMain}>
-        <Text style={styles.workerName}>{item.fullName}</Text>
-        <Text style={styles.contact}>{[item.mobileNumber, item.email].filter(Boolean).join(" · ")}</Text>
-
-        <View style={styles.pillRow}>
-          <StatusPill label={item.isActive ? "Active" : "Inactive"} tone={item.isActive ? "good" : "neutral"} />
-          {item.workerTypeName && <StatusPill label={item.workerTypeName} tone="neutral" />}
-        </View>
-      </View>
-      <View style={[styles.actions, compact && compactList.actions]}>
-        <Pressable style={styles.actionBtn} onPress={() => onView(item)}>
-          <Text style={styles.actionText}>View</Text>
-        </Pressable>
-        <SubscriptionLock compact>
-          <Pressable style={styles.actionBtn} onPress={() => onEdit(item)}>
-            <Text style={styles.actionText}>Edit</Text>
-          </Pressable>
-        </SubscriptionLock>
-        <Pressable
-          style={styles.actionBtn}
-          onPress={() => (item.isActive ? deactivate.mutate(item.workerId) : activate.mutate(item.workerId))}
-        >
-          <Text style={styles.actionText}>{item.isActive ? "Deactivate" : "Activate"}</Text>
-        </Pressable>
-      </View>
+  const actions = (w: Worker) => (
+    <View style={styles.actionRow}>
+      <SubscriptionLock compact>
+        <Button label="Edit" variant="link" onPress={() => onEdit(w)} />
+      </SubscriptionLock>
+      <Button
+        label={w.isActive ? "Deactivate" : "Activate"}
+        variant="link"
+        onPress={() => (w.isActive ? deactivate.mutate(w.workerId) : activate.mutate(w.workerId))}
+      />
     </View>
   );
 
+  const columns: Column<Worker>[] = [
+    { key: "name", label: "Name", flex: 2, render: (w) => (<><CellTitle>{w.fullName}</CellTitle>{w.notes ? <CellSub>{w.notes}</CellSub> : null}</>) },
+    { key: "role", label: "Role", flex: 1, render: (w) => <CellSub>{w.workerTypeName ?? "—"}</CellSub> },
+    { key: "contact", label: "Contact", flex: 2, render: (w) => (<><CellTitle>{w.mobileNumber ?? "—"}</CellTitle><CellSub>{w.email ?? "No email"}</CellSub></>) },
+    { key: "status", label: "Status", width: 110, render: (w) => <StatusPill label={w.isActive ? "Active" : "Inactive"} tone={w.isActive ? "good" : "neutral"} /> },
+    { key: "actions", label: "", width: 180, align: "right", render: actions },
+  ];
+
+  const filtered = !!search || workerTypeId !== null;
+
   return (
-    <View style={[styles.screen, compact && compactList.screen]}>
-      <View style={[styles.header, compact && compactList.header]}>
-        <View>
-          <Text style={styles.title}>Workers</Text>
-          <Text style={styles.subtitle}>{data?.totalCount ?? 0} total</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>‹ Home</Text>
-          </Pressable>
-          <SubscriptionLock>
-            <Pressable style={styles.newButton} onPress={onCreate}>
-              <Text style={styles.newButtonText}>+ New Worker</Text>
-            </Pressable>
-          </SubscriptionLock>
-        </View>
-      </View>
-
-      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by name or mobile number" />
-
+    <Screen>
+      <PageHeader
+        title="Workers"
+        subtitle={data ? `${data.totalCount} worker${data.totalCount === 1 ? "" : "s"}` : null}
+        actions={<SubscriptionLock><Button label="New worker" icon="add" variant="primary" onPress={onCreate} /></SubscriptionLock>}
+      />
+      <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={(v) => { setSearch(v); setPage(1); }} placeholder="Search by name or mobile number" />
       {workerTypes && workerTypes.length > 0 && (
-        <View style={styles.filterRow}>
-          <Pressable style={[styles.filterChip, workerTypeId === null && styles.filterChipSelected]} onPress={() => setWorkerTypeId(null)}>
-            <Text style={[styles.filterChipText, workerTypeId === null && styles.filterChipTextSelected]}>All</Text>
-          </Pressable>
-          {workerTypes.map((t) => (
-            <Pressable key={t.id} style={[styles.filterChip, workerTypeId === t.id && styles.filterChipSelected]} onPress={() => setWorkerTypeId(t.id)}>
-              <Text style={[styles.filterChipText, workerTypeId === t.id && styles.filterChipTextSelected]}>{t.name}</Text>
-            </Pressable>
-          ))}
+        <View style={{ marginBottom: space.lg }}>
+          <FilterChips<number | null>
+            options={[{ value: null, label: "All" }, ...workerTypes.map((t) => ({ value: t.id, label: t.name }))]}
+            value={workerTypeId}
+            onChange={(v) => { setWorkerTypeId(v); setPage(1); }}
+          />
         </View>
       )}
 
-      {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
-      ) : isError ? (
-        <Text style={styles.error}>Couldn't load workers.</Text>
-      ) : (
-        <FlatList
-          data={data?.items ?? []}
-          keyExtractor={(item) => String(item.workerId)}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<Text style={styles.empty}>No workers yet — add the first one.</Text>}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
-      )}
-    </View>
+      <DataList
+        items={data?.items}
+        keyOf={(w) => w.workerId}
+        columns={columns}
+        onRowPress={onView}
+        loading={isPending}
+        error={isError ? "Couldn't load workers. Check your connection and try again." : null}
+        onRetry={() => refetch()}
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalCount={data?.totalCount ?? 0}
+        onPageChange={setPage}
+        empty={filtered ? (
+          <EmptyState icon="search-outline" title="No workers match" text="Try a different name, mobile number or role."
+            action={<Button label="Clear filters" onPress={() => { setSearch(""); setWorkerTypeId(null); setPage(1); }} />} />
+        ) : (
+          <EmptyState icon="people-outline" title="No workers yet" text="Add your photographers, videographers and editors so you can assign them to events."
+            action={<Button label="New worker" icon="add" variant="primary" onPress={onCreate} />} />
+        )}
+        renderCard={(w) => (
+          <>
+            <View style={styles.cardTop}>
+              <Text style={styles.cardTitle} numberOfLines={1}>{w.fullName}</Text>
+              <StatusPill label={w.isActive ? "Active" : "Inactive"} tone={w.isActive ? "good" : "neutral"} />
+            </View>
+            <Text style={styles.cardSub} numberOfLines={1}>
+              {[w.workerTypeName, w.mobileNumber].filter(Boolean).join(" · ") || "No details"}
+            </Text>
+            {w.email ? <Text style={styles.cardMeta} numberOfLines={1}>{w.email}</Text> : null}
+            <View style={styles.cardActions}>{actions(w)}</View>
+          </>
+        )}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826", padding: 24 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
-  headerActions: { flexDirection: "row", gap: 10 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
-  newButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  newButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
-  search: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    color: "#e8edf3", backgroundColor: "#132540", marginBottom: 12, fontSize: 14,
-  },
-  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  filterChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
-  filterChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  filterChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  filterChipTextSelected: { color: "#ff9a4d" },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 14 },
-  rowMain: { flex: 1, gap: 4 },
-  workerName: { color: "#e8edf3", fontSize: 16, fontWeight: "600" },
-  contact: { color: "#a7b7cb", fontSize: 13 },
-  pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  actions: { flexDirection: "row", gap: 8 },
-  actionBtn: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
-  actionText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  separator: { height: 1, backgroundColor: "#1b2c42" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
-  empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
+  cardTitle: { ...type.heading, color: colors.text, flex: 1 },
+  cardSub: { ...type.small, color: colors.textMuted },
+  cardMeta: { ...type.caption, color: colors.textFaint },
+  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.xs, marginHorizontal: -space.sm },
 });

@@ -92,7 +92,7 @@ function CrewSection({ eventId }: { eventId: number }) {
     <View>
       <Text style={styles.fieldLabel}>Team assigned</Text>
       {isPending ? (
-        <ActivityIndicator color="#7fc0e6" size="small" style={{ marginTop: 6, alignSelf: "flex-start" }} />
+        <ActivityIndicator color="#8cc8f0" size="small" style={{ marginTop: 6, alignSelf: "flex-start" }} />
       ) : !crew || crew.length === 0 ? (
         !showPicker && <Text style={styles.hint}>No one assigned yet.</Text>
       ) : (
@@ -158,7 +158,7 @@ function EventNotesSection({ customerId, eventId, notes }: { customerId: number;
             <Text style={styles.cancelLink}>Cancel</Text>
           </Pressable>
           <Pressable onPress={() => mutation.mutate(draft.trim())} disabled={mutation.isPending}>
-            {mutation.isPending ? <ActivityIndicator color="#7fc0e6" size="small" /> : <Text style={styles.saveNoteLink}>Save note</Text>}
+            {mutation.isPending ? <ActivityIndicator color="#8cc8f0" size="small" /> : <Text style={styles.saveNoteLink}>Save note</Text>}
           </Pressable>
         </View>
       </View>
@@ -173,7 +173,7 @@ function EventNotesSection({ customerId, eventId, notes }: { customerId: number;
       ) : (
         <Text style={styles.notesPlaceholder}>Add a note…</Text>
       )}
-      <Ionicons name="pencil-outline" size={11} color="#7fc0e6" style={{ marginLeft: 4 }} />
+      <Ionicons name="pencil-outline" size={11} color="#8cc8f0" style={{ marginLeft: 4 }} />
     </Pressable>
   );
 }
@@ -214,7 +214,7 @@ function EventRow({ event, customerId, onViewEvent }: { event: CustomerEventSumm
         <Field label="Advance paid" value={formatCurrency(event.amountPaid)} />
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>{event.balance < 0 ? "Overpaid" : "Balance"}</Text>
-          <Text style={[styles.fieldValue, { color: event.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>{formatCurrency(Math.abs(event.balance))}</Text>
+          <Text style={[styles.fieldValue, { color: event.balance === 0 ? "#6ee0ad" : "#f5c66b" }]}>{formatCurrency(Math.abs(event.balance))}</Text>
         </View>
         {event.quotationCount > 0 && (
           <Field label="Quotations" value={`${event.quotationCount} version${event.quotationCount === 1 ? "" : "s"}`} />
@@ -238,7 +238,7 @@ export function CustomerEventsList({ customerId }: { customerId: number }) {
   });
 
   if (isPending) {
-    return <ActivityIndicator color="#7fc0e6" style={{ marginVertical: 10 }} />;
+    return <ActivityIndicator color="#8cc8f0" style={{ marginVertical: 10 }} />;
   }
 
   if (isError) {
@@ -262,48 +262,48 @@ export function CustomerEventsList({ customerId }: { customerId: number }) {
 }
 
 const styles = StyleSheet.create({
-  empty: { color: "#a7b7cb", fontSize: 14, lineHeight: 20 },
-  viewButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0f1e30" },
-  viewButtonText: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
+  empty: { color: "#9fb0c5", fontSize: 14, lineHeight: 20 },
+  viewButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#122033" },
+  viewButtonText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
   field: { minWidth: 120, gap: 3 },
   fieldLabel: { color: "#6f83a0", fontSize: 11 },
   fieldValue: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
 
   eventRow: { gap: 10 },
-  eventSeparator: { height: 1, backgroundColor: "#1b2c42", marginBottom: 14 },
+  eventSeparator: { height: 1, backgroundColor: "#1f3149", marginBottom: 14 },
   eventTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   eventTitle: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
-  eventDate: { color: "#7fc0e6", fontSize: 12, fontWeight: "600", marginTop: 2 },
+  eventDate: { color: "#8cc8f0", fontSize: 12, fontWeight: "600", marginTop: 2 },
   eventMetaRow: { flexDirection: "row", alignItems: "center" },
-  eventMetaText: { color: "#a7b7cb", fontSize: 12, marginLeft: 4 },
+  eventMetaText: { color: "#9fb0c5", fontSize: 12, marginLeft: 4 },
   notesRow: { flexDirection: "row", alignItems: "flex-start", gap: 5 },
   notesText: { color: "#6f83a0", fontSize: 11.5, fontStyle: "italic", flex: 1, lineHeight: 16 },
-  notesPlaceholder: { color: "#7fc0e6", fontSize: 11.5, fontStyle: "italic", flex: 1, lineHeight: 16 },
-  notesEditCard: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, padding: 10, backgroundColor: "#0f1e30", gap: 6 },
+  notesPlaceholder: { color: "#8cc8f0", fontSize: 11.5, fontStyle: "italic", flex: 1, lineHeight: 16 },
+  notesEditCard: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, padding: 10, backgroundColor: "#122033", gap: 6 },
   notesInput: {
     color: "#e8edf3", fontSize: 12.5, lineHeight: 17, minHeight: 54, textAlignVertical: "top",
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 6, padding: 8, backgroundColor: "#0d1826",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, padding: 8, backgroundColor: "#0b1522",
   },
   notesEditActions: { flexDirection: "row", justifyContent: "flex-end", gap: 16 },
-  saveNoteLink: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
-  eventFinanceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, backgroundColor: "#0f1e30", borderRadius: 8, padding: 12 },
+  saveNoteLink: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
+  eventFinanceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, backgroundColor: "#122033", borderRadius: 8, padding: 12 },
 
-  crewCard: { backgroundColor: "#0f1e30", borderRadius: 8, padding: 12 },
-  smallLabel: { fontSize: 11, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
+  crewCard: { backgroundColor: "#122033", borderRadius: 8, padding: 12 },
+  smallLabel: { fontSize: 11, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
   hint: { color: "#6f83a0", fontSize: 12, marginTop: 6 },
   crewRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
   crewChip: {
-    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#23405c", borderRadius: 100,
-    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0d1826",
+    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463", borderRadius: 100,
+    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0b1522",
   },
   crewChipText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
-  crewRemove: { color: "#ff7a72", fontSize: 14, fontWeight: "700" },
-  rowError: { color: "#ff7a72", fontSize: 12, marginTop: 4 },
+  crewRemove: { color: "#ff9a93", fontSize: 14, fontWeight: "700" },
+  rowError: { color: "#ff9a93", fontSize: 12, marginTop: 4 },
   assignTrigger: { marginTop: 10, alignSelf: "flex-start" },
-  assignTriggerText: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
-  pickerCard: { marginTop: 10, borderWidth: 1, borderColor: "#23405c", borderStyle: "dashed", borderRadius: 8, padding: 12, backgroundColor: "#0d1826" },
+  assignTriggerText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
+  pickerCard: { marginTop: 10, borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", borderRadius: 8, padding: 12, backgroundColor: "#0b1522" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  cancelLink: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
+  chip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
+  chipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
+  cancelLink: { color: "#ff9a93", fontSize: 12, fontWeight: "600" },
 });

@@ -63,7 +63,7 @@ export function QuotationSettingsTab() {
   });
 
   if (isPending) {
-    return <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />;
+    return <ActivityIndicator color="#8cc8f0" style={{ marginTop: 40 }} />;
   }
 
   return (
@@ -115,7 +115,7 @@ export function QuotationSettingsTab() {
       {saved ? <Text style={styles.success}>✓ Saved</Text> : null}
 
       <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending}>
-        {mutation.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.saveText}>Save changes</Text>}
+        {mutation.isPending ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.saveText}>Save changes</Text>}
       </Pressable>
     </View>
   );
@@ -124,22 +124,22 @@ export function QuotationSettingsTab() {
 const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
   field: { flexGrow: 1, minWidth: 200, marginBottom: 14 },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6 },
+  label: { fontSize: 13, color: "#9fb0c5", marginBottom: 6 },
   input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: "#e8edf3", backgroundColor: "#132540",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 14, color: "#e8edf3", backgroundColor: "#172a42",
   },
   textArea: { minHeight: 64, textAlignVertical: "top" },
   toggleList: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", overflow: "hidden", marginBottom: 14,
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden", marginBottom: 14,
   },
   toggleRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1b2c42",
+    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1f3149",
   },
   toggleLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  error: { color: "#ff7a72", fontSize: 13, marginTop: 4 },
-  success: { color: "#4cc493", fontSize: 13, marginTop: 4, fontWeight: "600" },
+  error: { color: "#ff9a93", fontSize: 13, marginTop: 4 },
+  success: { color: "#6ee0ad", fontSize: 13, marginTop: 4, fontWeight: "600" },
   saveButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center", marginTop: 12, alignSelf: "flex-start", paddingHorizontal: 28 },
-  saveText: { color: "#0d1826", fontWeight: "700" },
+  saveText: { color: "#0b1522", fontWeight: "700" },
 });

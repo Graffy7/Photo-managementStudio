@@ -77,7 +77,7 @@ export function MiniTimePicker({
     <View>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <Pressable style={styles.trigger} onPress={openPicker}>
-        <Ionicons name="time-outline" size={18} color="#7fc0e6" />
+        <Ionicons name="time-outline" size={18} color="#8cc8f0" />
         <Text style={[styles.triggerText, !value && styles.placeholderText]}>{value ? display(value) : placeholder}</Text>
       </Pressable>
 
@@ -154,47 +154,47 @@ export function MiniTimePicker({
 const styles = StyleSheet.create({
   label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginBottom: 6 },
   trigger: {
-    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#23405c", borderRadius: 8,
-    paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#132540", width: "100%",
+    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8,
+    paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#172a42", width: "100%",
   },
   triggerText: { color: "#e8edf3", fontSize: 15 },
   placeholderText: { color: "#6f83a0" },
 
   backdrop: { flex: 1, backgroundColor: "rgba(3, 8, 15, 0.6)", alignItems: "center", justifyContent: "center" },
-  popover: { width: 300, backgroundColor: "#132540", borderRadius: 14, borderWidth: 1, borderColor: "#23405c", padding: 18 },
+  popover: { width: 300, backgroundColor: "#172a42", borderRadius: 14, borderWidth: 1, borderColor: "#2c4463", padding: 18 },
 
   readout: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  readoutBox: { backgroundColor: "#0f1e30", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "#1b2c42" },
-  readoutBoxActive: { borderColor: "#7fc0e6", backgroundColor: "rgba(127, 192, 230, 0.14)" },
-  readoutText: { color: "#a7b7cb", fontSize: 34, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  readoutBox: { backgroundColor: "#122033", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "#1f3149" },
+  readoutBoxActive: { borderColor: "#8cc8f0", backgroundColor: "rgba(127, 192, 230, 0.14)" },
+  readoutText: { color: "#9fb0c5", fontSize: 34, fontWeight: "700", fontVariant: ["tabular-nums"] },
   readoutTextActive: { color: "#e8edf3" },
-  readoutColon: { color: "#a7b7cb", fontSize: 30, fontWeight: "700" },
+  readoutColon: { color: "#9fb0c5", fontSize: 30, fontWeight: "700" },
   periodStack: { marginLeft: 6, gap: 4 },
-  periodButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 9 },
-  periodButtonActive: { backgroundColor: "#7fc0e6", borderColor: "#7fc0e6" },
-  periodText: { color: "#a7b7cb", fontSize: 12, fontWeight: "700" },
-  periodTextActive: { color: "#0d1826" },
+  periodButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 9 },
+  periodButtonActive: { backgroundColor: "#8cc8f0", borderColor: "#8cc8f0" },
+  periodText: { color: "#9fb0c5", fontSize: 12, fontWeight: "700" },
+  periodTextActive: { color: "#0b1522" },
 
   modeHint: { color: "#6f83a0", fontSize: 11, textAlign: "center", marginTop: 12 },
 
   dial: {
-    width: DIAL_SIZE, height: DIAL_SIZE, borderRadius: DIAL_SIZE / 2, backgroundColor: "#0f1e30",
-    alignSelf: "center", marginTop: 10, borderWidth: 1, borderColor: "#1b2c42",
+    width: DIAL_SIZE, height: DIAL_SIZE, borderRadius: DIAL_SIZE / 2, backgroundColor: "#122033",
+    alignSelf: "center", marginTop: 10, borderWidth: 1, borderColor: "#1f3149",
   },
-  dialCenter: { position: "absolute", left: DIAL_SIZE / 2 - 4, top: DIAL_SIZE / 2 - 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#7fc0e6" },
+  dialCenter: { position: "absolute", left: DIAL_SIZE / 2 - 4, top: DIAL_SIZE / 2 - 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#8cc8f0" },
   dialNumber: { position: "absolute", width: NUMBER_SIZE, height: NUMBER_SIZE, borderRadius: NUMBER_SIZE / 2, alignItems: "center", justifyContent: "center" },
-  dialNumberSelected: { backgroundColor: "#7fc0e6" },
+  dialNumberSelected: { backgroundColor: "#8cc8f0" },
   dialNumberText: { color: "#c3d0e0", fontSize: 14, fontWeight: "600" },
-  dialNumberTextSelected: { color: "#0d1826", fontWeight: "800" },
+  dialNumberTextSelected: { color: "#0b1522", fontWeight: "800" },
 
   nudgeRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginTop: 10 },
-  nudgeButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
-  nudgeText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  nudgeButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
+  nudgeText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
 
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#1b2c42" },
+  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#1f3149" },
   footerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
-  clearText: { color: "#ff7a72", fontSize: 13, fontWeight: "700" },
-  cancelText: { color: "#a7b7cb", fontSize: 13, fontWeight: "600" },
+  clearText: { color: "#ff9a93", fontSize: 13, fontWeight: "700" },
+  cancelText: { color: "#9fb0c5", fontSize: 13, fontWeight: "600" },
   okButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 20 },
-  okText: { color: "#0d1826", fontSize: 13, fontWeight: "700" },
+  okText: { color: "#0b1522", fontSize: 13, fontWeight: "700" },
 });

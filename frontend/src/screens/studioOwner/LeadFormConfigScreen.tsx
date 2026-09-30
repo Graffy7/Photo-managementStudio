@@ -53,7 +53,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
           onPress={() => onSave({ ...field, label, isRequired, isVisible, isEnabled })}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#0d1826" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
+          {saving ? <ActivityIndicator color="#0b1522" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
         </Pressable>
       )}
     </View>
@@ -172,7 +172,7 @@ export function LeadFormConfigScreen() {
               onPress={() => fieldKey.trim() && label.trim() && addField.mutate()}
               disabled={addField.isPending}
             >
-              {addField.isPending ? <ActivityIndicator color="#0d1826" size="small" /> : <Text style={styles.saveButtonText}>Add field</Text>}
+              {addField.isPending ? <ActivityIndicator color="#0b1522" size="small" /> : <Text style={styles.saveButtonText}>Add field</Text>}
             </Pressable>
           </View>
         </View>
@@ -186,41 +186,41 @@ export function LeadFormConfigScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   content: { padding: 24, maxWidth: 560, width: "100%", alignSelf: "center" },
-  backButton: { marginBottom: 14 },
-  backText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
+  backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
+  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4, marginBottom: 20 },
   card: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42",
     padding: 16, marginBottom: 12,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   fieldKey: { color: "#6f83a0", fontSize: 11, fontFamily: "monospace" },
-  typeBadge: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
-  typeBadgeText: { color: "#7fc0e6", fontSize: 10, fontWeight: "700" },
+  typeBadge: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
+  typeBadgeText: { color: "#8cc8f0", fontSize: 10, fontWeight: "700" },
   labelInput: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
-    fontSize: 14, color: "#e8edf3", backgroundColor: "#0d1826", marginBottom: 8,
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+    fontSize: 14, color: "#e8edf3", backgroundColor: "#0b1522", marginBottom: 8,
   },
   optionsPreview: { color: "#6f83a0", fontSize: 12, marginBottom: 8 },
   switchRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   switchItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  switchLabel: { color: "#a7b7cb", fontSize: 12 },
+  switchLabel: { color: "#9fb0c5", fontSize: 12 },
   saveButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 12 },
-  saveButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  addFieldTrigger: { borderWidth: 1, borderColor: "#23405c", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
-  addFieldTriggerText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  saveButtonText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  addFieldTrigger: { borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
+  addFieldTriggerText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   addTitle: { color: "#e8edf3", fontWeight: "700", fontSize: 15, marginBottom: 12 },
-  smallLabel: { color: "#a7b7cb", fontSize: 12, marginBottom: 6, marginTop: 4 },
+  smallLabel: { color: "#9fb0c5", fontSize: 12, marginBottom: 6, marginTop: 4 },
   typeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  typeChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
+  typeChip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
   typeChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.12)" },
-  typeChipText: { color: "#a7b7cb", fontSize: 10, fontWeight: "600" },
+  typeChipText: { color: "#9fb0c5", fontSize: 10, fontWeight: "600" },
   typeChipTextSelected: { color: "#ff9a4d" },
-  error: { color: "#ff7a72", fontSize: 12, marginTop: 4 },
+  error: { color: "#ff9a93", fontSize: 12, marginTop: 4 },
   addFieldButtonRow: { flexDirection: "row", gap: 10, marginTop: 4 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 9, alignItems: "center" },
-  cancelButtonText: { color: "#a7b7cb", fontWeight: "600", fontSize: 13 },
+  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 9, alignItems: "center" },
+  cancelButtonText: { color: "#9fb0c5", fontWeight: "600", fontSize: 13 },
 });

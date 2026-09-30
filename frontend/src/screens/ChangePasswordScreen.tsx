@@ -66,7 +66,7 @@ export function ChangePasswordScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
-          {isSubmitting ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.buttonText}>Change password</Text>}
+          {isSubmitting ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.buttonText}>Change password</Text>}
         </Pressable>
       </View>
     </View>
@@ -74,22 +74,22 @@ export function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826", alignItems: "center", justifyContent: "center", padding: 24 },
+  screen: { flex: 1, backgroundColor: "#0b1522", alignItems: "center", justifyContent: "center", padding: 24 },
   card: {
-    width: "100%", maxWidth: 400, backgroundColor: "#132540", borderRadius: 12,
-    padding: 28, borderWidth: 1, borderColor: "#23405c",
+    width: "100%", maxWidth: 400, backgroundColor: "#172a42", borderRadius: 12,
+    padding: 28, borderWidth: 1, borderColor: "#2c4463",
   },
   backButton: { marginBottom: 14 },
-  backText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
+  backText: { color: "#8cc8f0", fontSize: 13, fontWeight: "600" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#a7b7cb", marginTop: 6, marginBottom: 10, lineHeight: 18 },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 14 },
+  subtitle: { fontSize: 13, color: "#9fb0c5", marginTop: 6, marginBottom: 10, lineHeight: 18 },
+  label: { fontSize: 13, color: "#9fb0c5", marginBottom: 6, marginTop: 14 },
   input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#0d1826",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#e8edf3", backgroundColor: "#0b1522",
   },
-  error: { color: "#ff7a72", marginTop: 14, fontSize: 13 },
+  error: { color: "#ff9a93", marginTop: 14, fontSize: 13 },
   button: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 13, marginTop: 22, alignItems: "center" },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#0d1826", fontWeight: "700", fontSize: 15 },
+  buttonText: { color: "#0b1522", fontWeight: "700", fontSize: 15 },
 });

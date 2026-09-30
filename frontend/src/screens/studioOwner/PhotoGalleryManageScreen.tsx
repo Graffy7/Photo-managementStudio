@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import {
   View, Text, TextInput, Pressable, ScrollView, Image, Modal, StyleSheet, ActivityIndicator, Platform, Share, Linking,
+  type LayoutChangeEvent,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildCustomerLink, photoSelectionApi, photoUrl } from "../../api/photoSelectionApi";
 import { extractErrorMessage } from "../../api/errorMessage";
@@ -18,6 +20,12 @@ import {
 import { useModules } from "../../hooks/useModules";
 import { STATE_LABELS, stateTone } from "./PhotoSelectionListScreen";
 import type { OwnerGallery, OwnerPhoto, PhotoFilter, SkippedFiles } from "../../types/photoSelection";
+import { Button } from "../../ui/Button";
+import { Skeleton } from "../../ui/Skeleton";
+import { EmptyState } from "../../ui/EmptyState";
+import { SummaryStrip } from "../../ui/Detail";
+import { StepGuide, StepTitle, type Step } from "../../ui/Steps";
+import { colors, radius, space, type } from "../../ui/theme";
 
 // Customer selection period: 5 days by default, or 10. Previews are deleted 10 days after sending.
 const EXPIRY_PRESETS = [5, 10];
@@ -89,51 +97,106 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["photo-gallery", eventId] });
 
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Record<number, number>>({});
+  const anchor = (n: number) => ({ onLayout: (e: LayoutChangeEvent) => { sectionY.current[n] = e.nativeEvent.layout.y; } });
+  const jumpTo = (i: number) => {
+    const y = sectionY.current[i + 1];
+    if (y !== undefined) scrollRef.current?.scrollTo({ y: Math.max(0, y - space.md), animated: true });
+  };
+
   if (isPending) {
     return (
-      <View style={styles.screen}>
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 60 }} />
+      <View style={[styles.screen, styles.content, { gap: space.lg }]}>
+        <Skeleton height={20} width={140} />
+        <Skeleton height={36} width="60%" />
+        <Skeleton height={72} rounded={radius.card} />
+        <Skeleton height={220} rounded={radius.card} />
       </View>
     );
   }
 
   if (isError || !gallery) {
     return (
-      <View style={styles.screen}>
-        <Pressable style={styles.backButton} onPress={onBack}><Text style={styles.backText}>‹ Photo Selection</Text></Pressable>
-        <Text style={styles.error}>{extractErrorMessage(error, "Couldn't open this event's photo gallery.")}</Text>
+      <View style={[styles.screen, styles.content]}>
+        <BackLink onPress={onBack} />
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Couldn't open this event's photos"
+          text={extractErrorMessage(error, "Check your connection and try again.")}
+          action={<Button label="Try again" onPress={refresh} />}
+        />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView ref={scrollRef} style={styles.screen} contentContainerStyle={styles.content}>
       <Header gallery={gallery} onBack={onBack} />
-      <Stats gallery={gallery} />
+      <StepGuide steps={stepsFor(gallery)} current={currentStep(gallery)} done={gallery.selectionCreatedAt !== null} onPress={jumpTo} />
+      <View {...anchor(1)}><ImportPanel gallery={gallery} onChanged={refresh} /></View>
+      <View {...anchor(2)}><LinkPanel gallery={gallery} onChanged={refresh} /></View>
+      <View {...anchor(3)}><PhotosPanel gallery={gallery} /></View>
       {/* Delivery (folders, copying selected originals) and WhatsApp can be switched off per studio. */}
-      {isOn("PHOTO_DELIVERY") && <SelectionCopyPanel gallery={gallery} onChanged={refresh} />}
-      <ImportPanel gallery={gallery} onChanged={refresh} />
-      <LinkPanel gallery={gallery} onChanged={refresh} />
-      <PhotosPanel gallery={gallery} />
+      {isOn("PHOTO_DELIVERY") && <View {...anchor(4)}><SelectionCopyPanel gallery={gallery} onChanged={refresh} /></View>}
     </ScrollView>
   );
 }
 
+// ---- Steps -----------------------------------------------------------------------------------
+
+// Where this event is: 0 add photos, 1 send link, 2 customer choosing, 3 deliver.
+function currentStep(g: OwnerGallery): number {
+  switch (g.state) {
+    case "NoPhotos": return 0;
+    case "NeedToSend":
+    case "Expired": return 1;
+    case "Pending": return 2;
+    default: return 3;
+  }
+}
+
+function stepsFor(g: OwnerGallery): Step[] {
+  const c = g.counts;
+  const photos = (n: number) => `${n} photo${n === 1 ? "" : "s"}`;
+  return [
+    { title: "Add photos", detail: c.total > 0 ? `${photos(c.total)} added` : "Choose the finished photos folder" },
+    {
+      title: "Send link",
+      detail: g.isExpired ? `Link expired ${formatDate(g.expiresAt)}` : g.hasActiveLink ? `Sent · expires ${formatDate(g.expiresAt)}` : "Share a private link with the customer",
+    },
+    {
+      title: "Customer picks",
+      detail: g.submittedAt ? `Submitted ${photos(c.selected)}` : g.firstOpenedAt ? `Choosing · ${c.selected} selected so far` : g.hasActiveLink ? "Link not opened yet" : "Waiting for the link",
+    },
+    { title: "Deliver", detail: g.selectionCreatedAt ? `Selected photos created ${formatDate(g.selectionCreatedAt)}` : "Put the chosen originals in their folder" },
+  ];
+}
+
 // ---- Header ----------------------------------------------------------------------------------
+
+function BackLink({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={styles.back} accessibilityRole="link" hitSlop={6}>
+      <Ionicons name="chevron-back" size={18} color={colors.link} />
+      <Text style={styles.backText}>Photo delivery</Text>
+    </Pressable>
+  );
+}
 
 function Header({ gallery, onBack }: { gallery: OwnerGallery; onBack: () => void }) {
   return (
-    <View style={styles.header}>
-      <View style={{ flex: 1 }}>
-        <Pressable onPress={onBack} style={{ alignSelf: "flex-start", marginBottom: 8 }}>
-          <Text style={styles.crumb}>‹ Photo Selection</Text>
-        </Pressable>
-        <Text style={styles.title}>{gallery.customerName}</Text>
-        <Text style={styles.subtitle}>
-          {gallery.eventTypeName ? `${gallery.eventTypeName} · ` : ""}{formatEventDate(gallery.eventDate)}{gallery.venue ? ` · ${gallery.venue}` : ""}
-        </Text>
+    <View>
+      <BackLink onPress={onBack} />
+      <View style={styles.header}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.title}>{gallery.customerName}</Text>
+          <Text style={styles.subtitle}>
+            {[gallery.eventTypeName ?? "Event", formatEventDate(gallery.eventDate), gallery.venue].filter(Boolean).join("  ·  ")}
+          </Text>
+        </View>
+        <StatusPill label={STATE_LABELS[gallery.state]} tone={stateTone(gallery.state)} />
       </View>
-      <StatusPill label={STATE_LABELS[gallery.state]} tone={stateTone(gallery.state)} />
     </View>
   );
 }
@@ -142,31 +205,22 @@ function Header({ gallery, onBack }: { gallery: OwnerGallery; onBack: () => void
 
 function Stats({ gallery }: { gallery: OwnerGallery }) {
   const c = gallery.counts;
-  const cards = [
-    { label: "Total photos", value: c.total, color: "#e8edf3" },
-    { label: "Selected", value: c.selected, color: "#4cc493" },
-    { label: "Normal", value: c.normal, color: "#7fc0e6" },
-    { label: "Big", value: c.big, color: "#ff9a4d" },
-    { label: "Not selected", value: c.notSelected, color: "#a7b7cb" },
-  ];
-
+  if (c.total === 0) return null;
   return (
-    <View style={styles.section}>
-      <View style={styles.statRow}>
-        {cards.map((card) => (
-          <View key={card.label} style={styles.statCard}>
-            <Text style={[styles.statValue, { color: card.color }]}>{card.value}</Text>
-            <Text style={styles.statLabel}>{card.label}</Text>
-          </View>
-        ))}
-      </View>
+    <View style={{ gap: space.md }}>
+      <SummaryStrip items={[
+        { label: "Photos", value: String(c.total) },
+        { label: "Selected", value: String(c.selected), tone: colors.success },
+        { label: "Normal", value: String(c.normal), tone: colors.normal },
+        { label: "Big", value: String(c.big), tone: colors.big },
+      ]} />
       <View style={styles.metaRow}>
-        <Meta label="Status" value={gallery.isLocked ? "Locked" : "Open"} />
+        <Meta label="Selection" value={gallery.isLocked ? "Locked" : "Open"} />
         <Meta label="Link opened" value={formatDateTime(gallery.firstOpenedAt)} />
-        <Meta label="Last updated" value={formatDateTime(gallery.lastSelectionAt)} />
+        <Meta label="Last change" value={formatDateTime(gallery.lastSelectionAt)} />
         <Meta
-          label="Submitted at"
-          value={gallery.submittedAt ? `${formatDateTime(gallery.submittedAt)}${gallery.changedSinceSubmit ? " · edited since" : ""}` : "Not submitted"}
+          label="Submitted"
+          value={gallery.submittedAt ? `${formatDateTime(gallery.submittedAt)}${gallery.changedSinceSubmit ? " · edited since" : ""}` : "Not yet"}
         />
       </View>
     </View>
@@ -284,7 +338,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Photos</Text>
+      <StepTitle n={1} title="Add the photos" />
       <Text style={styles.hint}>
         Choose the folder on your computer that has the finished photos. Only JPEG and RAW photos are added — videos and other
         files are skipped. Small previews are made on your computer for the customer to look at; your original files stay
@@ -295,11 +349,11 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
         <View style={styles.folderRow}>
           <SubscriptionLock>
             <Pressable
-              style={[styles.primaryButton, (running || uploading) && styles.disabled]}
+              style={[gallery.counts.total > 0 ? styles.secondaryButton : styles.primaryButton, (running || uploading) && styles.disabled]}
               disabled={running || uploading}
               onPress={chooseOnComputer}
             >
-              <Text style={styles.primaryButtonText}>
+              <Text style={gallery.counts.total > 0 ? styles.secondaryButtonText : styles.primaryButtonText}>
                 {gallery.counts.total > 0 ? "Add photos from this computer" : "Choose folder on this computer"}
               </Text>
             </Pressable>
@@ -451,7 +505,7 @@ function ImportedFolders({ gallery, onChanged, onRemoved }: {
                 <Text style={styles.sourceCancel}>Cancel</Text>
               </Pressable>
               <Pressable onPress={() => remove(s.sourceFolder)} disabled={removing}>
-                {removing ? <ActivityIndicator size="small" color="#ff7a72" /> : <Text style={styles.sourceYes}>Yes, remove</Text>}
+                {removing ? <ActivityIndicator size="small" color="#ff9a93" /> : <Text style={styles.sourceYes}>Yes, remove</Text>}
               </Pressable>
             </View>
           ) : (
@@ -577,7 +631,7 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Customer link</Text>
+      <StepTitle n={2} title="Send the customer their link" />
       {!isOn("GALLERY") && (
         <Text style={styles.warnText}>The customer gallery is switched off for your studio, so customer links don't open right now.</Text>
       )}
@@ -658,11 +712,11 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
             ))}
             <SubscriptionLock>
               <Pressable
-                style={[styles.primaryButton, busy !== null && styles.disabled]}
+                style={[activeLink ? styles.secondaryButton : styles.primaryButton, busy !== null && styles.disabled]}
                 disabled={busy !== null}
                 onPress={generate}
               >
-                <Text style={styles.primaryButtonText}>{activeLink ? "Generate new link" : "Generate link"}</Text>
+                <Text style={activeLink ? styles.secondaryButtonText : styles.primaryButtonText}>{activeLink ? "Generate new link" : "Generate link"}</Text>
               </Pressable>
             </SubscriptionLock>
           </View>
@@ -707,6 +761,8 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
   const [preview, setPreview] = useState<OwnerPhoto | null>(null);
   // null = every photo in the gallery; otherwise the delivery folder the owner picked above.
   const [folderId, setFolderId] = useState<number | null>(null);
+  // The photo grid is long, so it stays folded until asked for - step 4 then sits right below.
+  const [open, setOpen] = useState(false);
   const c = gallery.counts;
 
   const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -715,7 +771,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
     queryFn: ({ pageParam }) => photoSelectionApi.photos(gallery.galleryId, { filter, search: search || undefined, page: pageParam, pageSize: PAGE_SIZE, folderId: folderId ?? undefined }),
     initialPageParam: 1,
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
-    enabled: c.total > 0,
+    enabled: c.total > 0 && open,
   });
 
   const photos = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
@@ -733,24 +789,32 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
 
   return (
     <View style={styles.section}>
+      <StepTitle n={3} title="Customer's selection" />
+      <Stats gallery={gallery} />
+
       {isOn("PHOTO_DELIVERY") && (
         <>
-          <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Photo delivery</Text>
-          <DeliveryFolders galleryId={gallery.galleryId} selectedFolderId={folderId} onSelect={setFolderId} />
+          <Text style={[styles.subTitle, { marginTop: space.sm }]}>Delivery folders</Text>
+          <DeliveryFolders galleryId={gallery.galleryId} selectedFolderId={folderId} onSelect={(id) => { setFolderId(id); if (id !== null) setOpen(true); }} />
         </>
       )}
 
-      <View style={[styles.photosHeader, isOn("PHOTO_DELIVERY") && { marginTop: 18 }]}>
-        <Text style={styles.sectionTitle}>Selection</Text>
-        <View style={styles.viewToggle}>
+      <View style={[styles.photosHeader, styles.divider]}>
+        <Button
+          label={open ? "Hide photos" : `Show photos (${c.total})`}
+          icon={open ? "chevron-up" : "images-outline"}
+          onPress={() => setOpen(!open)}
+        />
+        {open && <View style={styles.viewToggle}>
           {(["grid", "table"] as const).map((v) => (
             <Pressable key={v} style={[styles.toggleItem, view === v && styles.toggleItemActive]} onPress={() => setView(v)}>
               <Text style={[styles.toggleText, view === v && styles.toggleTextActive]}>{v === "grid" ? "Grid" : "Table"}</Text>
             </Pressable>
           ))}
-        </View>
+        </View>}
       </View>
 
+      {open && <>
       <View style={styles.chipRow}>
         {filters.map((f) => (
           <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipSelected]} onPress={() => setFilter(f.key)}>
@@ -785,7 +849,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
               )}
               <Text style={styles.tileName} numberOfLines={1}>{p.fileName}</Text>
               {p.selectionType && (
-                <View style={[styles.tileBadge, { backgroundColor: p.selectionType === "Big" ? "#ff9a4d" : "#7fc0e6" }]}>
+                <View style={[styles.tileBadge, { backgroundColor: p.selectionType === "Big" ? "#ff9a4d" : "#8cc8f0" }]}>
                   <Text style={styles.tileBadgeText}>{p.selectionType}</Text>
                 </View>
               )}
@@ -822,6 +886,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
           <Text style={styles.secondaryButtonText}>{isFetchingNextPage ? "Loading…" : `Load more (${photos.length} of ${matching})`}</Text>
         </Pressable>
       )}
+      </>}
 
       <Modal visible={preview !== null} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
         <Pressable style={styles.previewOverlay} onPress={() => setPreview(null)}>
@@ -840,100 +905,99 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
-  content: { padding: 24, paddingBottom: 48, width: "100%", maxWidth: 1100, alignSelf: "center" },
-  header: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 18 },
-  crumb: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", alignSelf: "flex-start", margin: 24 },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  screen: { flex: 1, backgroundColor: colors.page },
+  content: { padding: space.lg, paddingBottom: 48, width: "100%", maxWidth: 1100, alignSelf: "center", gap: space.lg },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start", minHeight: 32, marginBottom: space.sm },
+  backText: { ...type.small, fontWeight: "600", color: colors.link },
+  header: { flexDirection: "row", alignItems: "flex-start", gap: space.md, flexWrap: "wrap" },
+  title: { ...type.title, color: colors.text },
+  subtitle: { ...type.body, color: colors.textMuted, marginTop: 4 },
+  subTitle: { ...type.body, fontWeight: "700", color: colors.text },
 
-  section: { backgroundColor: "#0f1e30", borderRadius: 12, borderWidth: 1, borderColor: "#1b2c42", padding: 18, marginBottom: 16, gap: 10 },
-  sectionTitle: { color: "#e8edf3", fontSize: 16, fontWeight: "700" },
-  hint: { color: "#a7b7cb", fontSize: 13, lineHeight: 19 },
+  section: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.md },
+  hint: { color: "#9fb0c5", fontSize: 13, lineHeight: 19 },
   hintSmall: { color: "#6f83a0", fontSize: 12 },
   label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginTop: 6 },
-  error: { color: "#ff7a72", fontSize: 13 },
-  serverLink: { color: "#7fc0e6", fontSize: 13, textDecorationLine: "underline" },
-  okText: { color: "#4cc493", fontSize: 13 },
-  warnText: { color: "#f2bd5c", fontSize: 13 },
+  error: { color: "#ff9a93", fontSize: 13 },
+  serverLink: { color: "#8cc8f0", fontSize: 13, textDecorationLine: "underline" },
+  okText: { color: "#6ee0ad", fontSize: 13 },
+  warnText: { color: "#f5c66b", fontSize: 13 },
   disabled: { opacity: 0.45 },
 
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  statCard: { flexGrow: 1, flexBasis: 120, backgroundColor: "#132540", borderRadius: 10, borderWidth: 1, borderColor: "#23405c", padding: 14 },
+  statCard: { flexGrow: 1, flexBasis: 120, backgroundColor: "#172a42", borderRadius: 10, borderWidth: 1, borderColor: "#2c4463", padding: 14 },
   statValue: { fontSize: 26, fontWeight: "800" },
   statLabel: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
-  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 24, marginTop: 4 },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", rowGap: space.md, columnGap: space.xl, paddingHorizontal: space.xs },
   meta: { gap: 2 },
   metaLabel: { color: "#6f83a0", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 },
   metaValue: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
 
   folderRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
   input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    color: "#e8edf3", backgroundColor: "#132540", fontSize: 13, minWidth: 200,
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    color: "#e8edf3", backgroundColor: "#172a42", fontSize: 13, minWidth: 200,
   },
-  primaryButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
-  primaryButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  secondaryButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
-  secondaryButtonText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  primaryButton: { minHeight: 44, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
+  primaryButtonText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  secondaryButton: { minHeight: 44, backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#2c4463", justifyContent: "center" },
+  secondaryButtonText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   copiedButton: { borderColor: "#3fbf7f", backgroundColor: "rgba(63,191,127,0.14)" },
   copiedButtonText: { color: "#6fe0a4" },
-  whatsButton: { backgroundColor: "#25a95a", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
+  whatsButton: { minHeight: 44, backgroundColor: "#25a95a", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
   whatsButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 13 },
-  dangerButton: { backgroundColor: "rgba(255,122,114,0.12)", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(255,122,114,0.4)", justifyContent: "center" },
-  dangerButtonText: { color: "#ff7a72", fontWeight: "600", fontSize: 13 },
+  dangerButton: { minHeight: 44, backgroundColor: "rgba(255,122,114,0.12)", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(255,122,114,0.4)", justifyContent: "center" },
+  dangerButtonText: { color: "#ff9a93", fontWeight: "600", fontSize: 13 },
   sourceList: { gap: 8 },
-  sourceRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#132540", borderRadius: 8, borderWidth: 1, borderColor: "#1b2c42", paddingVertical: 8, paddingHorizontal: 12 },
+  sourceRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#172a42", borderRadius: 8, borderWidth: 1, borderColor: "#1f3149", paddingVertical: 8, paddingHorizontal: 12 },
   sourceMain: { flex: 1, minWidth: 180 },
-  sourcePath: { color: "#e6edf5", fontSize: 13, fontWeight: "600" },
-  sourceMeta: { color: "#a7b7cb", fontSize: 12, marginTop: 2 },
+  sourcePath: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
+  sourceMeta: { color: "#9fb0c5", fontSize: 12, marginTop: 2 },
   sourceConfirm: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12, flexBasis: "100%" },
-  sourceConfirmText: { color: "#a7b7cb", fontSize: 12, flexShrink: 1 },
-  sourceCancel: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
-  sourceYes: { color: "#ff7a72", fontSize: 12, fontWeight: "700" },
+  sourceConfirmText: { color: "#9fb0c5", fontSize: 12, flexShrink: 1 },
+  sourceCancel: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
+  sourceYes: { color: "#ff9a93", fontSize: 12, fontWeight: "700" },
 
   progressBox: { gap: 6, marginTop: 4 },
-  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#132540", overflow: "hidden" },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#172a42", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: "#ff9a4d", borderRadius: 4 },
-  progressText: { color: "#a7b7cb", fontSize: 12 },
+  progressText: { color: "#9fb0c5", fontSize: 12 },
 
-  linkBox: { backgroundColor: "#132540", borderRadius: 8, borderWidth: 1, borderColor: "#23405c", padding: 12, gap: 4 },
-  linkText: { color: "#7fc0e6", fontSize: 13, textDecorationLine: "underline" },
+  linkBox: { backgroundColor: "#172a42", borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", padding: 12, gap: 4 },
+  linkText: { color: "#8cc8f0", fontSize: 13, textDecorationLine: "underline" },
   linkMeta: { color: "#6f83a0", fontSize: 12 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
-  divider: { borderTopWidth: 1, borderTopColor: "#1b2c42", paddingTop: 14, marginTop: 6 },
+  divider: { borderTopWidth: 1, borderTopColor: "#1f3149", paddingTop: 14, marginTop: 6 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
+  chip: { minHeight: 36, justifyContent: "center", borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#172a42" },
   chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.14)" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  chipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   chipTextSelected: { color: "#ff9a4d" },
 
-  photosHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  viewToggle: { flexDirection: "row", borderWidth: 1, borderColor: "#23405c", borderRadius: 8, overflow: "hidden" },
-  toggleItem: { paddingVertical: 6, paddingHorizontal: 14, backgroundColor: "#132540" },
-  toggleItemActive: { backgroundColor: "#7fc0e6" },
-  toggleText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  toggleTextActive: { color: "#0d1826" },
+  photosHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: space.sm },
+  viewToggle: { flexDirection: "row", borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, overflow: "hidden" },
+  toggleItem: { minHeight: 36, justifyContent: "center", paddingVertical: 6, paddingHorizontal: 14, backgroundColor: "#172a42" },
+  toggleItemActive: { backgroundColor: "#8cc8f0" },
+  toggleText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
+  toggleTextActive: { color: "#0b1522" },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  tile: { width: 150, backgroundColor: "#132540", borderRadius: 8, borderWidth: 2, borderColor: "#1b2c42", overflow: "hidden" },
-  tileNormal: { borderColor: "#7fc0e6" },
+  tile: { width: 150, backgroundColor: "#172a42", borderRadius: 8, borderWidth: 2, borderColor: "#1f3149", overflow: "hidden" },
+  tileNormal: { borderColor: "#8cc8f0" },
   tileBig: { borderColor: "#ff9a4d" },
   tileImage: { width: "100%", height: 100, backgroundColor: "#0a1320" },
   tileEmpty: { alignItems: "center", justifyContent: "center" },
-  tileName: { color: "#a7b7cb", fontSize: 11, padding: 6 },
+  tileName: { color: "#9fb0c5", fontSize: 11, padding: 6 },
   tileBadge: { position: "absolute", top: 6, right: 6, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  tileBadgeText: { color: "#0d1826", fontSize: 10, fontWeight: "800" },
+  tileBadgeText: { color: "#0b1522", fontSize: 10, fontWeight: "800" },
 
-  tr: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1b2c42" },
-  trHead: { borderBottomColor: "#23405c" },
+  tr: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1f3149" },
+  trHead: { borderBottomColor: "#2c4463" },
   th: { color: "#6f83a0", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   td: { color: "#e8edf3", fontSize: 13 },
   tdMuted: { color: "#4a5d78", fontSize: 13 },
 
   previewOverlay: { flex: 1, backgroundColor: "rgba(5,10,18,0.94)", alignItems: "center", justifyContent: "center", padding: 20 },
   previewImage: { width: "100%", height: "85%" },
-  previewCaption: { color: "#a7b7cb", fontSize: 13, marginTop: 10 },
+  previewCaption: { color: "#9fb0c5", fontSize: 13, marginTop: 10 },
 });

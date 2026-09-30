@@ -73,10 +73,10 @@ export function ActivityScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   header: { padding: 24, paddingBottom: 18, maxWidth: 640, width: "100%", alignSelf: "center" },
-  backButton: { marginBottom: 10 },
-  backText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
+  backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
+  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4 },
   row: { flexDirection: "row", gap: 12, paddingVertical: 12, alignItems: "flex-start" },
@@ -84,9 +84,9 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1, gap: 3 },
   line: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   action: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  modulePill: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
-  modulePillText: { color: "#7fc0e6", fontSize: 10, fontWeight: "700" },
+  modulePill: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
+  modulePillText: { color: "#8cc8f0", fontSize: 10, fontWeight: "700" },
   meta: { color: "#6f83a0", fontSize: 12 },
-  separator: { height: 1, backgroundColor: "#1b2c42" },
+  separator: { height: 1, backgroundColor: "#1f3149" },
   empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
 });

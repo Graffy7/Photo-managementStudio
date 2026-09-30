@@ -39,9 +39,6 @@ export function SettingsScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </Pressable>
       <Text style={styles.title}>Studio settings</Text>
       <Text style={styles.subtitle}>Manage your studio's profile, branding, and defaults.</Text>
 
@@ -88,30 +85,28 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   content: { padding: 24, maxWidth: 760, width: "100%", alignSelf: "center" },
-  backButton: { marginBottom: 14 },
-  backText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4, marginBottom: 20 },
   tabRow: { marginBottom: 20 },
   tabRowContent: { gap: 8, paddingRight: 8 },
-  tab: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 8, paddingHorizontal: 16, backgroundColor: "#132540" },
+  tab: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 8, paddingHorizontal: 16, backgroundColor: "#172a42" },
   tabActive: { backgroundColor: "rgba(255, 154, 77, 0.14)", borderColor: "#ff9a4d" },
-  tabText: { color: "#a7b7cb", fontSize: 13, fontWeight: "600" },
+  tabText: { color: "#9fb0c5", fontSize: 13, fontWeight: "600" },
   tabTextActive: { color: "#ff9a4d" },
   tabContent: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 12, backgroundColor: "#0f1e30", padding: 20, marginBottom: 28,
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 12, backgroundColor: "#122033", padding: 20, marginBottom: 28,
   },
   moreLabel: {
-    fontSize: 12, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10,
+    fontSize: 12, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10,
   },
   list: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", overflow: "hidden",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden",
   },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 },
   rowTitle: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },
   rowSubtitle: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
   chevron: { color: "#6f83a0", fontSize: 18 },
-  separator: { height: 1, backgroundColor: "#1b2c42" },
+  separator: { height: 1, backgroundColor: "#1f3149" },
 });

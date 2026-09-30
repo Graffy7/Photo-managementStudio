@@ -1,3 +1,4 @@
+import { StepTitle } from "../../ui/Steps";
 import { useState } from "react";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { View, Text, Pressable, Modal, ActivityIndicator, StyleSheet } from "react-native";
@@ -56,7 +57,7 @@ export function SelectionCopyPanel({ gallery, onChanged }: { gallery: OwnerGalle
   if (fromComputer) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Selected photos</Text>
+        <StepTitle n={4} title="Deliver the selected photos" />
         <Text style={styles.hint}>
           See exactly what the customer chose, and put those original photos into their own folder on this computer — ready to edit or print.
         </Text>
@@ -77,7 +78,7 @@ export function SelectionCopyPanel({ gallery, onChanged }: { gallery: OwnerGalle
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Selected photos</Text>
+      <StepTitle n={4} title="Deliver the selected photos" />
       <Text style={styles.hint}>
         See exactly what the customer chose, and put those original photos into their own folder — ready to edit or print.
       </Text>
@@ -317,12 +318,12 @@ function JobStatus({ job }: { job: CopyJob }) {
     : job.status === "Completed" ? (syncing ? "✓ Selected Photos Synced Successfully" : "✓ Selected Photos Created Successfully")
     : job.status === "CompletedWithErrors" ? (syncing ? "Synced, with some problems" : "Created, with some problems")
     : "Couldn't finish";
-  const tone = running ? "#7fc0e6" : job.status === "Completed" ? "#4cc493" : job.status === "CompletedWithErrors" ? "#f2bd5c" : "#ff7a72";
+  const tone = running ? "#8cc8f0" : job.status === "Completed" ? "#6ee0ad" : job.status === "CompletedWithErrors" ? "#f5c66b" : "#ff9a93";
 
   return (
     <View style={[styles.jobBox, { borderColor: tone }]}>
       <View style={styles.jobHeader}>
-        {running && <ActivityIndicator color="#7fc0e6" size="small" />}
+        {running && <ActivityIndicator color="#8cc8f0" size="small" />}
         <Text style={[styles.jobTitle, { color: tone }]}>{title}</Text>
       </View>
 
@@ -350,46 +351,45 @@ function JobStatus({ job }: { job: CopyJob }) {
 }
 
 const styles = StyleSheet.create({
-  section: { backgroundColor: "#0f1e30", borderRadius: 12, borderWidth: 1, borderColor: "#1b2c42", padding: 18, marginBottom: 16, gap: 12 },
-  sectionTitle: { color: "#e8edf3", fontSize: 16, fontWeight: "700" },
-  hint: { color: "#a7b7cb", fontSize: 13, lineHeight: 19 },
+  section: { backgroundColor: "#122033", borderRadius: 12, borderWidth: 1, borderColor: "#1f3149", padding: 16, gap: 12 },
+  hint: { color: "#9fb0c5", fontSize: 13, lineHeight: 19 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
   primaryButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, justifyContent: "center" },
-  primaryText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  secondaryButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
-  secondaryText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
+  primaryText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  secondaryButton: { backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: "#2c4463", justifyContent: "center" },
+  secondaryText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   disabled: { opacity: 0.45 },
   createdBadge: { backgroundColor: "rgba(76,196,147,0.14)", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(76,196,147,0.4)" },
-  createdText: { color: "#4cc493", fontWeight: "800", fontSize: 13 },
-  infoBox: { backgroundColor: "#132540", borderRadius: 8, borderWidth: 1, borderColor: "#23405c", padding: 12, gap: 3 },
-  infoText: { color: "#a7b7cb", fontSize: 13 },
-  infoStrong: { color: "#7fc0e6", fontWeight: "600" },
+  createdText: { color: "#6ee0ad", fontWeight: "800", fontSize: 13 },
+  infoBox: { backgroundColor: "#172a42", borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", padding: 12, gap: 3 },
+  infoText: { color: "#9fb0c5", fontSize: 13 },
+  infoStrong: { color: "#8cc8f0", fontWeight: "600" },
   infoMuted: { color: "#6f83a0", fontSize: 12 },
-  warnText: { color: "#f2bd5c", fontSize: 13, lineHeight: 19 },
-  errorText: { color: "#ff7a72", fontSize: 13 },
-  okText: { color: "#4cc493", fontSize: 13, lineHeight: 19 },
+  warnText: { color: "#f5c66b", fontSize: 13, lineHeight: 19 },
+  errorText: { color: "#ff9a93", fontSize: 13 },
+  okText: { color: "#6ee0ad", fontSize: 13, lineHeight: 19 },
 
   overlay: { flex: 1, backgroundColor: "rgba(5,10,18,0.72)", alignItems: "center", justifyContent: "center", padding: 20 },
-  dialog: { backgroundColor: "#132540", borderRadius: 14, padding: 22, width: "100%", maxWidth: 460, borderWidth: 1, borderColor: "#23405c", gap: 10 },
+  dialog: { backgroundColor: "#172a42", borderRadius: 14, padding: 22, width: "100%", maxWidth: 460, borderWidth: 1, borderColor: "#2c4463", gap: 10 },
   dialogTitle: { color: "#e8edf3", fontSize: 19, fontWeight: "700" },
-  dialogText: { color: "#a7b7cb", fontSize: 14, lineHeight: 20 },
-  dialogNumbers: { backgroundColor: "#0d1826", borderRadius: 8, padding: 12, gap: 3 },
-  dialogLine: { color: "#a7b7cb", fontSize: 14 },
+  dialogText: { color: "#9fb0c5", fontSize: 14, lineHeight: 20 },
+  dialogNumbers: { backgroundColor: "#0b1522", borderRadius: 8, padding: 12, gap: 3 },
+  dialogLine: { color: "#9fb0c5", fontSize: 14 },
   strong: { color: "#e8edf3", fontWeight: "800" },
-  tree: { backgroundColor: "#0d1826", borderRadius: 8, padding: 12 },
-  treeText: { color: "#7fc0e6", fontSize: 14, fontFamily: "monospace" },
-  dialogSafe: { color: "#4cc493", fontSize: 13, fontWeight: "700" },
+  tree: { backgroundColor: "#0b1522", borderRadius: 8, padding: 12 },
+  treeText: { color: "#8cc8f0", fontSize: 14, fontFamily: "monospace" },
+  dialogSafe: { color: "#6ee0ad", fontSize: 13, fontWeight: "700" },
   dialogActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 8 },
 
-  jobBox: { borderWidth: 1, borderRadius: 10, padding: 14, gap: 12, backgroundColor: "#132540" },
+  jobBox: { borderWidth: 1, borderRadius: 10, padding: 14, gap: 12, backgroundColor: "#172a42" },
   jobHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   jobTitle: { fontSize: 15, fontWeight: "800" },
-  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#0d1826", overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: "#7fc0e6", borderRadius: 4 },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#0b1522", overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: "#8cc8f0", borderRadius: 4 },
   statGrid: { flexDirection: "row", flexWrap: "wrap", gap: 20 },
   stat: { gap: 1 },
   statValue: { color: "#e8edf3", fontSize: 18, fontWeight: "800" },
   statLabel: { color: "#6f83a0", fontSize: 11 },
-  jobError: { color: "#f2bd5c", fontSize: 12, lineHeight: 18 },
+  jobError: { color: "#f5c66b", fontSize: 12, lineHeight: 18 },
   jobNote: { color: "#6f83a0", fontSize: 12 },
 });

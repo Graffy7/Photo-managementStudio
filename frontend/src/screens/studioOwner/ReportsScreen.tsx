@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { reportsApi } from "../../api/reportsApi";
@@ -15,7 +14,7 @@ function formatCurrency(value: number): string {
 }
 
 function StatTile({ label, value, tone }: { label: string; value: string | number; tone?: "good" | "bad" | "warn" }) {
-  const toneColor = tone === "good" ? "#4cc493" : tone === "bad" ? "#ff7a72" : tone === "warn" ? "#f2bd5c" : "#e8edf3";
+  const toneColor = tone === "good" ? "#6ee0ad" : tone === "bad" ? "#ff9a93" : tone === "warn" ? "#f5c66b" : "#e8edf3";
   return (
     <View style={styles.tile}>
       <Text style={[styles.tileValue, { color: toneColor }]}>{value}</Text>
@@ -25,7 +24,6 @@ function StatTile({ label, value, tone }: { label: string; value: string | numbe
 }
 
 export function ReportsScreen() {
-  const navigation = useNavigation<any>();
   const [preset, setPreset] = useState<DateRangePreset>("ThisMonth");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -47,9 +45,6 @@ export function ReportsScreen() {
           <Text style={styles.title}>Profit report</Text>
           <Text style={styles.subtitle}>Revenue, expenses, and per-event profitability</Text>
         </View>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>‹ Home</Text>
-        </Pressable>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetRow} contentContainerStyle={styles.presetRowContent}>
@@ -109,38 +104,36 @@ export function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   content: { padding: 24, maxWidth: 720, width: "100%", alignSelf: "center" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c" },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
   presetRow: { marginBottom: 20 },
   presetRowContent: { gap: 8, paddingRight: 8 },
-  presetChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
+  presetChip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
   presetChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  presetChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  presetChipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   presetChipTextSelected: { color: "#ff9a4d" },
   customRangeRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18, flexWrap: "wrap" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
+  error: { color: "#ff9a93", marginTop: 40, textAlign: "center" },
   empty: { color: "#6f83a0", fontSize: 13, textAlign: "center", padding: 16 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
   tile: {
-    flexGrow: 1, minWidth: 140, backgroundColor: "#132540", borderRadius: 10, borderWidth: 1, borderColor: "#23405c",
+    flexGrow: 1, minWidth: 140, backgroundColor: "#172a42", borderRadius: 10, borderWidth: 1, borderColor: "#2c4463",
     paddingVertical: 16, paddingHorizontal: 18,
   },
   tileValue: { fontSize: 20, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  tileLabel: { fontSize: 12, color: "#a7b7cb", marginTop: 4 },
+  tileLabel: { fontSize: 12, color: "#9fb0c5", marginTop: 4 },
   sectionLabel: {
-    fontSize: 12, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5,
+    fontSize: 12, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5,
     marginTop: 24, marginBottom: 10,
   },
   categoryList: { gap: 12 },
   categoryRow: { gap: 6 },
   categoryHeader: { flexDirection: "row", justifyContent: "space-between" },
   categoryName: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  categoryAmount: { color: "#a7b7cb", fontSize: 13, fontVariant: ["tabular-nums"] },
-  categoryBarTrack: { height: 6, borderRadius: 3, backgroundColor: "#132540", overflow: "hidden" },
+  categoryAmount: { color: "#9fb0c5", fontSize: 13, fontVariant: ["tabular-nums"] },
+  categoryBarTrack: { height: 6, borderRadius: 3, backgroundColor: "#172a42", overflow: "hidden" },
   categoryBarFill: { height: 6, borderRadius: 3, backgroundColor: "#ff9a4d" },
 });

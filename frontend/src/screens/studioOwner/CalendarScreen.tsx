@@ -164,7 +164,7 @@ export function CalendarScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.titleIcon}>
-              <Ionicons name="calendar" size={16} color="#7fc0e6" />
+              <Ionicons name="calendar" size={16} color="#8cc8f0" />
             </View>
             <View style={{ flexShrink: 1 }}>
               <Text style={styles.title}>Calendar</Text>
@@ -174,7 +174,7 @@ export function CalendarScreen() {
         </View>
 
         <View style={styles.statRow}>
-          <StatCard icon="calendar-outline" color="#7fc0e6" label="Total Events" value={monthlySummary.totalEvents} />
+          <StatCard icon="calendar-outline" color="#8cc8f0" label="Total Events" value={monthlySummary.totalEvents} />
           {CATEGORY_ORDER.filter((c) => c !== "other").map((c) => (
             <StatCard key={c} icon={CATEGORY_ICONS[c]} color={CATEGORY_COLORS[c]} label={`${CATEGORY_LABELS[c]}s`} value={categoryCounts[c]} />
           ))}
@@ -187,11 +187,11 @@ export function CalendarScreen() {
               <View style={styles.toolbar}>
                 <View style={styles.toolbarNav}>
                   <Pressable style={styles.navButton} onPress={() => goToMonth(-1)}>
-                    <Ionicons name="chevron-back" size={16} color="#a7b7cb" />
+                    <Ionicons name="chevron-back" size={16} color="#9fb0c5" />
                   </Pressable>
                   <Text style={styles.monthLabel}>{MONTH_NAMES[viewedMonth - 1]} {viewedYear}</Text>
                   <Pressable style={styles.navButton} onPress={() => goToMonth(1)}>
-                    <Ionicons name="chevron-forward" size={16} color="#a7b7cb" />
+                    <Ionicons name="chevron-forward" size={16} color="#9fb0c5" />
                   </Pressable>
                 </View>
                 <Pressable style={styles.todayButton} onPress={goToToday}>
@@ -200,7 +200,7 @@ export function CalendarScreen() {
               </View>
 
               {isPending ? (
-                <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40, marginBottom: 40 }} />
+                <ActivityIndicator color="#8cc8f0" style={{ marginTop: 40, marginBottom: 40 }} />
               ) : isError ? (
                 <Text style={styles.error}>Couldn't load the calendar.</Text>
               ) : (
@@ -279,7 +279,7 @@ export function CalendarScreen() {
                     style={styles.addButton}
                     onPress={() => navigation.navigate("Events", { create: true, date: selectedKey ?? undefined, returnTo: "Calendar" })}
                   >
-                    <Ionicons name="add" size={14} color="#0d1826" />
+                    <Ionicons name="add" size={14} color="#0b1522" />
                     <Text style={styles.addButtonText}>Add Event</Text>
                   </Pressable>
                 </SubscriptionLock>
@@ -345,14 +345,14 @@ export function CalendarScreen() {
                               </View>
                               <View style={styles.financeItem}>
                                 <Text style={styles.financeLabel}>{e.balance < 0 ? "Overpaid" : "Balance"}</Text>
-                                <Text style={[styles.financeValue, { color: e.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>
+                                <Text style={[styles.financeValue, { color: e.balance === 0 ? "#6ee0ad" : "#f5c66b" }]}>
                                   {formatCurrency(Math.abs(e.balance))}
                                 </Text>
                               </View>
                             </View>
                             <SubscriptionLock>
                               <Pressable style={styles.recordPaymentButton} onPress={() => setView({ name: "recordPayment", event: e })}>
-                                <Ionicons name="cash-outline" size={13} color="#0d1826" />
+                                <Ionicons name="cash-outline" size={13} color="#0b1522" />
                                 <Text style={styles.recordPaymentButtonText}>
                                   {e.balance > 0 ? "Record Payment" : "Add Payment"}
                                 </Text>
@@ -379,7 +379,7 @@ export function CalendarScreen() {
                                 disabled={deleteMutation.isPending}
                               >
                                 {deleteMutation.isPending ? (
-                                  <ActivityIndicator color="#ff7a72" size="small" />
+                                  <ActivityIndicator color="#ff9a93" size="small" />
                                 ) : (
                                   <Text style={styles.deleteConfirmButtonText}>Confirm Delete</Text>
                                 )}
@@ -423,7 +423,7 @@ export function CalendarScreen() {
                             styles.bar,
                             {
                               height: busiestDay.max > 0 ? Math.max((count / busiestDay.max) * 48, count > 0 ? 6 : 2) : 2,
-                              backgroundColor: i === busiestDay.busiestIndex ? "#7fc0e6" : "#23405c",
+                              backgroundColor: i === busiestDay.busiestIndex ? "#8cc8f0" : "#2c4463",
                             },
                           ]}
                         />
@@ -456,7 +456,7 @@ function StatCard({ icon, color, label, value }: { icon: string; color: string; 
 function SummaryTile({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <View style={styles.summaryTile}>
-      <Ionicons name={icon as any} size={16} color="#7fc0e6" />
+      <Ionicons name={icon as any} size={16} color="#8cc8f0" />
       <Text style={styles.summaryValue}>{value}</Text>
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
@@ -464,7 +464,7 @@ function SummaryTile({ icon, label, value }: { icon: string; label: string; valu
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   content: { padding: 28, maxWidth: 1300, width: "100%", alignSelf: "center" },
   contentNarrow: { padding: 16 },
 
@@ -477,100 +477,100 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3, maxWidth: 420 },
   addButton: {
-    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#7fc0e6",
+    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#8cc8f0",
     borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10,
   },
-  addButtonText: { color: "#0d1826", fontSize: 12, fontWeight: "700" },
+  addButtonText: { color: "#0b1522", fontSize: 12, fontWeight: "700" },
   panelHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
 
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 18 },
-  statCard: { flexGrow: 1, minWidth: 130, backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 14 },
+  statCard: { flexGrow: 1, minWidth: 130, backgroundColor: "#172a42", borderRadius: 12, borderWidth: 1, borderColor: "#2c4463", padding: 14 },
   statIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 8 },
   statValue: { fontSize: 20, fontWeight: "700", color: "#e8edf3" },
-  statLabel: { fontSize: 11, color: "#a7b7cb", marginTop: 2 },
+  statLabel: { fontSize: 11, color: "#9fb0c5", marginTop: 2 },
 
   columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
   mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 560, minWidth: 0, gap: 16 },
   sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
 
-  card: { backgroundColor: "#132540", borderRadius: 14, borderWidth: 1, borderColor: "#23405c", padding: 18 },
+  card: { backgroundColor: "#172a42", borderRadius: 14, borderWidth: 1, borderColor: "#2c4463", padding: 18 },
 
   toolbar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   toolbarNav: { flexDirection: "row", alignItems: "center", gap: 12 },
   navButton: {
-    width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: "#23405c", backgroundColor: "#0f1e30",
+    width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", backgroundColor: "#122033",
     alignItems: "center", justifyContent: "center",
   },
   monthLabel: { color: "#e8edf3", fontSize: 16, fontWeight: "700", minWidth: 150, textAlign: "center" },
-  todayButton: { borderWidth: 1, borderColor: "#7fc0e6", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 14 },
-  todayButtonText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
-  error: { color: "#ff7a72", marginTop: 40, marginBottom: 40, textAlign: "center" },
+  todayButton: { borderWidth: 1, borderColor: "#8cc8f0", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 14 },
+  todayButtonText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
+  error: { color: "#ff9a93", marginTop: 40, marginBottom: 40, textAlign: "center" },
 
   weekdayRow: { flexDirection: "row" },
   weekdaySlot: { width: "14.2857%", alignItems: "center", paddingBottom: 10 },
   weekdayLabel: { color: "#6f83a0", fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
-  weekendLabel: { color: "#ff7a72" },
+  weekendLabel: { color: "#ff9a93" },
 
   grid: { flexDirection: "row", flexWrap: "wrap" },
   dayCellSlot: { width: "14.2857%", aspectRatio: 0.95, padding: 3 },
   dayCell: {
-    flex: 1, borderRadius: 10, backgroundColor: "#0f1e30", borderWidth: 1, borderColor: "#1b2c42",
+    flex: 1, borderRadius: 10, backgroundColor: "#122033", borderWidth: 1, borderColor: "#1f3149",
     padding: 6, justifyContent: "flex-start",
   },
-  dayCellToday: { borderColor: "#7fc0e6", borderWidth: 1.5, backgroundColor: "rgba(127, 192, 230, 0.08)" },
-  dayCellSelected: { backgroundColor: "#7fc0e6", borderColor: "#7fc0e6" },
+  dayCellToday: { borderColor: "#8cc8f0", borderWidth: 1.5, backgroundColor: "rgba(127, 192, 230, 0.08)" },
+  dayCellSelected: { backgroundColor: "#8cc8f0", borderColor: "#8cc8f0" },
   dayCellTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
   dayNumber: { color: "#c3d0e0", fontSize: 12, fontWeight: "600" },
-  dayNumberToday: { color: "#7fc0e6", fontWeight: "800" },
-  dayNumberSelected: { color: "#0d1826", fontWeight: "800" },
+  dayNumberToday: { color: "#8cc8f0", fontWeight: "800" },
+  dayNumberSelected: { color: "#0b1522", fontWeight: "800" },
   countBadge: { backgroundColor: "#a78bfa", borderRadius: 100, minWidth: 15, height: 15, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
-  countBadgeSelected: { backgroundColor: "#0d1826" },
-  countBadgeText: { color: "#0d1826", fontSize: 9, fontWeight: "800" },
-  countBadgeTextSelected: { color: "#7fc0e6" },
+  countBadgeSelected: { backgroundColor: "#0b1522" },
+  countBadgeText: { color: "#0b1522", fontSize: 9, fontWeight: "800" },
+  countBadgeTextSelected: { color: "#8cc8f0" },
   chipStack: { gap: 2 },
   eventChip: { flexDirection: "row", alignItems: "center", gap: 3 },
   eventChipDot: { width: 4, height: 4, borderRadius: 2 },
-  eventChipText: { color: "#a7b7cb", fontSize: 8.5, flex: 1 },
-  eventChipTextSelected: { color: "#0d1826" },
-  moreLabel: { color: "#7fc0e6", fontSize: 8.5, fontWeight: "700" },
-  moreLabelSelected: { color: "#0d1826" },
+  eventChipText: { color: "#9fb0c5", fontSize: 8.5, flex: 1 },
+  eventChipTextSelected: { color: "#0b1522" },
+  moreLabel: { color: "#8cc8f0", fontSize: 8.5, fontWeight: "700" },
+  moreLabelSelected: { color: "#0b1522" },
 
-  legendRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#1b2c42" },
+  legendRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#1f3149" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: { color: "#a7b7cb", fontSize: 11, fontWeight: "600" },
+  legendLabel: { color: "#9fb0c5", fontSize: 11, fontWeight: "600" },
 
   panelTitle: { fontSize: 15, fontWeight: "700", color: "#e8edf3" },
   panelSubtitle: { fontSize: 12, color: "#6f83a0", marginTop: 2, marginBottom: 4 },
-  panelSubtitleAccent: { fontSize: 12, color: "#7fc0e6", fontWeight: "700", marginTop: 2, marginBottom: 4 },
+  panelSubtitleAccent: { fontSize: 12, color: "#8cc8f0", fontWeight: "700", marginTop: 2, marginBottom: 4 },
   emptyState: { alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 },
   empty: { color: "#6f83a0", fontSize: 13, textAlign: "center" },
 
-  eventCard: { backgroundColor: "#0f1e30", borderRadius: 10, padding: 12, gap: 4 },
+  eventCard: { backgroundColor: "#122033", borderRadius: 10, padding: 12, gap: 4 },
   eventCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   eventCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
   eventDotSmall: { width: 7, height: 7, borderRadius: 4 },
   eventCardTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "700", flex: 1 },
-  eventCardTime: { color: "#7fc0e6", fontSize: 11, fontWeight: "600" },
-  eventCardMeta: { color: "#a7b7cb", fontSize: 11 },
+  eventCardTime: { color: "#8cc8f0", fontSize: 11, fontWeight: "600" },
+  eventCardMeta: { color: "#9fb0c5", fontSize: 11 },
   categoryPill: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8, marginTop: 2 },
   categoryPillText: { fontSize: 10, fontWeight: "700" },
 
   deleteConfirmBox: {
-    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1b2c42", gap: 8,
+    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1f3149", gap: 8,
   },
-  deleteConfirmText: { color: "#ff7a72", fontSize: 11.5, fontWeight: "600" },
-  deleteErrorText: { color: "#ff7a72", fontSize: 11 },
+  deleteConfirmText: { color: "#ff9a93", fontSize: 11.5, fontWeight: "600" },
+  deleteErrorText: { color: "#ff9a93", fontSize: 11 },
   deleteConfirmButtons: { flexDirection: "row", gap: 8 },
-  deleteCancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 8, alignItems: "center" },
-  deleteCancelText: { color: "#a7b7cb", fontSize: 11.5, fontWeight: "700" },
+  deleteCancelButton: { flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 8, alignItems: "center" },
+  deleteCancelText: { color: "#9fb0c5", fontSize: 11.5, fontWeight: "700" },
   deleteConfirmButton: {
-    flex: 1, borderWidth: 1, borderColor: "#ff7a72", backgroundColor: "rgba(255, 122, 114, 0.14)",
+    flex: 1, borderWidth: 1, borderColor: "#ff9a93", backgroundColor: "rgba(255, 122, 114, 0.14)",
     borderRadius: 8, paddingVertical: 8, alignItems: "center",
   },
-  deleteConfirmButtonText: { color: "#ff7a72", fontSize: 11.5, fontWeight: "700" },
+  deleteConfirmButtonText: { color: "#ff9a93", fontSize: 11.5, fontWeight: "700" },
 
-  financeRow: { flexDirection: "row", gap: 10, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1b2c42" },
+  financeRow: { flexDirection: "row", gap: 10, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1f3149" },
   financeItem: { flex: 1, gap: 1 },
   financeLabel: { color: "#6f83a0", fontSize: 9.5 },
   financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
@@ -578,15 +578,15 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
     backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 8, marginTop: 8,
   },
-  recordPaymentButtonText: { color: "#0d1826", fontSize: 11.5, fontWeight: "700" },
+  recordPaymentButtonText: { color: "#0b1522", fontSize: 11.5, fontWeight: "700" },
 
   summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
-  summaryTile: { flexGrow: 1, minWidth: "45%", backgroundColor: "#0f1e30", borderRadius: 10, padding: 12, gap: 4 },
+  summaryTile: { flexGrow: 1, minWidth: "45%", backgroundColor: "#122033", borderRadius: 10, padding: 12, gap: 4 },
   summaryValue: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
   summaryLabel: { color: "#6f83a0", fontSize: 10 },
 
   busiestHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  busiestDayName: { color: "#7fc0e6", fontSize: 14, fontWeight: "700" },
+  busiestDayName: { color: "#8cc8f0", fontSize: 14, fontWeight: "700" },
   barsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, height: 60 },
   barSlot: { alignItems: "center", gap: 4, flex: 1 },
   bar: { width: 10, borderRadius: 4 },

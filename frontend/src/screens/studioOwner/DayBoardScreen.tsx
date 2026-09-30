@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dayBoardApi } from "../../api/dayBoardApi";
 import { workersApi } from "../../api/workersApi";
@@ -114,7 +113,7 @@ function EventCard({ event }: { event: DayBoardEvent }) {
           </View>
           <View style={styles.financeItem}>
             <Text style={styles.financeLabel}>{event.balance < 0 ? "Overpaid" : "Balance"}</Text>
-            <Text style={[styles.financeValue, { color: event.balance === 0 ? "#4cc493" : "#f2bd5c" }]}>
+            <Text style={[styles.financeValue, { color: event.balance === 0 ? "#6ee0ad" : "#f5c66b" }]}>
               {formatCurrency(Math.abs(event.balance))}
             </Text>
           </View>
@@ -156,7 +155,6 @@ function EventCard({ event }: { event: DayBoardEvent }) {
 }
 
 export function DayBoardScreen() {
-  const navigation = useNavigation<any>();
   const [date, setDate] = useState(todayUtc());
 
   const { data, isPending, isError, refetch } = useQuery({
@@ -172,9 +170,6 @@ export function DayBoardScreen() {
           <Text style={styles.title}>Day board</Text>
           <Text style={styles.subtitle}>{data ? formatDateLabel(date) : ""}</Text>
         </View>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>‹ Home</Text>
-        </Pressable>
       </View>
 
       <View style={styles.dateNav}>
@@ -206,48 +201,46 @@ export function DayBoardScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   content: { padding: 24, maxWidth: 640, width: "100%", alignSelf: "center" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c" },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
   dateNav: { flexDirection: "row", gap: 8, marginBottom: 20 },
-  navButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#132540" },
-  navButtonText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
+  navButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#172a42" },
+  navButtonText: { color: "#8cc8f0", fontSize: 13, fontWeight: "600" },
   datePickerSlot: { flex: 1, justifyContent: "center" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
+  error: { color: "#ff9a93", marginTop: 40, textAlign: "center" },
   empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
   card: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", padding: 16, marginBottom: 14, gap: 4,
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", padding: 16, marginBottom: 14, gap: 4,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   time: { color: "#ff9a4d", fontSize: 13, fontWeight: "700" },
   customerName: { color: "#e8edf3", fontSize: 16, fontWeight: "600", marginTop: 4 },
-  contact: { color: "#a7b7cb", fontSize: 13 },
-  venue: { color: "#a7b7cb", fontSize: 13 },
+  contact: { color: "#9fb0c5", fontSize: 13 },
+  venue: { color: "#9fb0c5", fontSize: 13 },
   notes: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
   pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
   financeRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 6 },
   financeItem: { gap: 1 },
   financeLabel: { color: "#6f83a0", fontSize: 10 },
   financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
-  smallLabel: { fontSize: 11, color: "#7fc0e6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 10, marginBottom: 6 },
+  smallLabel: { fontSize: 11, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 10, marginBottom: 6 },
   hint: { color: "#6f83a0", fontSize: 12 },
   crewRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   crewChip: {
-    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#23405c", borderRadius: 100,
-    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0d1826",
+    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463", borderRadius: 100,
+    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0b1522",
   },
   crewChipText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
-  crewRemove: { color: "#ff7a72", fontSize: 14, fontWeight: "700" },
-  rowError: { color: "#ff7a72", fontSize: 12, marginTop: 4 },
+  crewRemove: { color: "#ff9a93", fontSize: 14, fontWeight: "700" },
+  rowError: { color: "#ff9a93", fontSize: 12, marginTop: 4 },
   assignTrigger: { marginTop: 10, alignSelf: "flex-start" },
-  assignTriggerText: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
-  pickerCard: { marginTop: 10, borderWidth: 1, borderColor: "#23405c", borderStyle: "dashed", borderRadius: 8, padding: 12, backgroundColor: "#0d1826" },
+  assignTriggerText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
+  pickerCard: { marginTop: 10, borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", borderRadius: 8, padding: 12, backgroundColor: "#0b1522" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  cancelLink: { color: "#ff7a72", fontSize: 12, fontWeight: "600" },
+  chip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
+  chipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
+  cancelLink: { color: "#ff9a93", fontSize: 12, fontWeight: "600" },
 });

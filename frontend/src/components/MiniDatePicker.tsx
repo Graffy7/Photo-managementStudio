@@ -69,7 +69,7 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
     <View>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <Pressable style={[styles.trigger, variant === "form" && styles.triggerForm]} onPress={openPicker}>
-        <Ionicons name="calendar-outline" size={variant === "form" ? 18 : 14} color="#7fc0e6" />
+        <Ionicons name="calendar-outline" size={variant === "form" ? 18 : 14} color="#8cc8f0" />
         <Text style={[styles.triggerText, variant === "form" && styles.triggerTextForm, !value && styles.placeholderText]}>{displayLabel}</Text>
       </Pressable>
 
@@ -78,11 +78,11 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
           <View style={styles.popover}>
             <View style={styles.popoverHeader}>
               <Pressable style={styles.navButton} onPress={() => goToMonth(-1)}>
-                <Ionicons name="chevron-back" size={16} color="#a7b7cb" />
+                <Ionicons name="chevron-back" size={16} color="#9fb0c5" />
               </Pressable>
               <Text style={styles.monthLabel}>{MONTH_NAMES[viewMonth - 1]} {viewYear}</Text>
               <Pressable style={styles.navButton} onPress={() => goToMonth(1)}>
-                <Ionicons name="chevron-forward" size={16} color="#a7b7cb" />
+                <Ionicons name="chevron-forward" size={16} color="#9fb0c5" />
               </Pressable>
               <Pressable style={styles.closeButton} onPress={() => setOpen(false)}>
                 <Ionicons name="close" size={18} color="#6f83a0" />
@@ -136,24 +136,24 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
 const styles = StyleSheet.create({
   label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginBottom: 6 },
   trigger: {
-    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#23405c", borderRadius: 8,
-    paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#132540", minWidth: 140,
+    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8,
+    paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#172a42", minWidth: 140,
   },
   triggerText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
   triggerForm: { paddingVertical: 10, paddingHorizontal: 14, minWidth: 0, width: "100%" },
   triggerTextForm: { fontSize: 15, fontWeight: "400" },
   placeholderText: { color: "#6f83a0", fontWeight: "400" },
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#1b2c42" },
-  clearText: { color: "#ff7a72", fontSize: 12, fontWeight: "700" },
-  todayText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
+  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#1f3149" },
+  clearText: { color: "#ff9a93", fontSize: 12, fontWeight: "700" },
+  todayText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
 
   backdrop: { flex: 1, backgroundColor: "rgba(3, 8, 15, 0.6)", alignItems: "center", justifyContent: "center" },
   popover: {
-    width: 300, backgroundColor: "#132540", borderRadius: 14, borderWidth: 1, borderColor: "#23405c", padding: 16,
+    width: 300, backgroundColor: "#172a42", borderRadius: 14, borderWidth: 1, borderColor: "#2c4463", padding: 16,
   },
   popoverHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
   navButton: {
-    width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: "#23405c", backgroundColor: "#0f1e30",
+    width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", backgroundColor: "#122033",
     alignItems: "center", justifyContent: "center",
   },
   monthLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "700", flex: 1, textAlign: "center" },
@@ -165,9 +165,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
   daySlot: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center" },
   dayCircle: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
-  dayCircleToday: { borderWidth: 1.5, borderColor: "#7fc0e6" },
-  dayCircleSelected: { backgroundColor: "#7fc0e6" },
+  dayCircleToday: { borderWidth: 1.5, borderColor: "#8cc8f0" },
+  dayCircleSelected: { backgroundColor: "#8cc8f0" },
   dayText: { color: "#c3d0e0", fontSize: 12, fontWeight: "600" },
-  dayTextToday: { color: "#7fc0e6", fontWeight: "800" },
-  dayTextSelected: { color: "#0d1826", fontWeight: "800" },
+  dayTextToday: { color: "#8cc8f0", fontWeight: "800" },
+  dayTextSelected: { color: "#0b1522", fontWeight: "800" },
 });

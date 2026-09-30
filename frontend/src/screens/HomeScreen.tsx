@@ -214,18 +214,23 @@ export function HomeScreen() {
     isOn("CUSTOMERS") && { key: "customers", icon: "people-outline" as const, label: "Customers", value: month ? month.totalCustomers : null, hint: "this month", route: "Customers" },
   ].filter(Boolean) as { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; value: string | number | null; hint: string; route: string }[];
 
+  // A slim strip: one line when the day is free, compact rows only when there are events.
+  const todayCount = dayBoard?.events.length ?? 0;
   const todayPanel = isOn("DAY_BOARD") && (
-    <Panel
-      title={dayBoard && dayBoard.events.length > 0 ? `Today · ${dayBoard.events.length} event${dayBoard.events.length === 1 ? "" : "s"}` : "Today"}
-      action={<Button label="Day board" variant="link" onPress={() => navigation.navigate("DayBoard")} />}
-    >
-      {dayBoardPending ? <RowsSkeleton rows={2} /> : !dayBoard || dayBoard.events.length === 0 ? (
-        <View style={styles.emptyRow}>
-          <Ionicons name="sunny-outline" size={20} color={colors.textFaint} />
-          <Text style={styles.empty}>No events today.</Text>
-          {isOn("EVENTS") && <Button label="New event" icon="add" variant="link" onPress={() => navigation.navigate("Events", { create: true })} />}
-        </View>
-      ) : (
+    <View style={styles.todayStrip}>
+      <View style={styles.todayHead}>
+        <Ionicons name={todayCount > 0 ? "today-outline" : "sunny-outline"} size={18} color={todayCount > 0 ? colors.link : colors.textFaint} />
+        <Text style={styles.todayTitle}>Today</Text>
+        <Text style={styles.todayText} numberOfLines={1}>
+          {dayBoardPending ? "Loading…" : todayCount > 0 ? `${todayCount} event${todayCount === 1 ? "" : "s"}` : isPhone ? "No events" : "No events today"}
+        </Text>
+        <View style={{ flex: 1 }} />
+        {!dayBoardPending && todayCount === 0 && !isPhone && isOn("EVENTS") && (
+          <Button label="New event" icon="add" variant="link" onPress={() => navigation.navigate("Events", { create: true })} />
+        )}
+        <Button label="Day board" variant="link" onPress={() => navigation.navigate("DayBoard")} />
+      </View>
+      {!dayBoardPending && dayBoard && todayCount > 0 && (
         <View style={styles.rows}>
           {dayBoard.events.map((e) => (
             <Pressable key={e.eventId} style={({ pressed }) => [styles.row, pressed && styles.pressed]}
@@ -240,7 +245,7 @@ export function HomeScreen() {
           ))}
         </View>
       )}
-    </Panel>
+    </View>
   );
 
   const upcomingPanel = isOn("EVENTS") && (
@@ -518,6 +523,10 @@ const styles = StyleSheet.create({
   dateMonth: { fontSize: 11, fontWeight: "600", color: colors.info, textTransform: "uppercase" },
   avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.cardRaised, alignItems: "center", justifyContent: "center" },
   avatarText: { color: colors.text, fontWeight: "700" },
+  todayStrip: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, paddingVertical: space.xs, paddingHorizontal: space.md },
+  todayHead: { flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: 44 },
+  todayTitle: { ...type.body, fontWeight: "700", color: colors.text },
+  todayText: { ...type.body, color: colors.textMuted, flexShrink: 1 },
   emptyRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap", minHeight: 44 },
   empty: { ...type.body, color: colors.textMuted },
   error: { ...type.body, color: colors.danger, marginBottom: space.md },

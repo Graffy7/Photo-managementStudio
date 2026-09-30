@@ -70,7 +70,7 @@ export function LookupsScreen() {
           placeholderTextColor="#6f83a0"
         />
         <Pressable style={styles.addButton} onPress={() => newName.trim() && create.mutate()} disabled={create.isPending}>
-          {create.isPending ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.addButtonText}>Add</Text>}
+          {create.isPending ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.addButtonText}>Add</Text>}
         </Pressable>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -98,35 +98,35 @@ export function LookupsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#0b1522" },
   content: { padding: 24, maxWidth: 560, width: "100%", alignSelf: "center" },
-  backButton: { marginBottom: 14 },
-  backText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
+  backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
+  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
   subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4, marginBottom: 20 },
   tabRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
-  tab: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
+  tab: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
   tabActive: { backgroundColor: "rgba(255, 154, 77, 0.14)", borderColor: "#ff9a4d" },
-  tabText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  tabText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   tabTextActive: { color: "#ff9a4d" },
   addRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
   input: {
-    flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: "#e8edf3", backgroundColor: "#132540",
+    flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 14, color: "#e8edf3", backgroundColor: "#172a42",
   },
   addButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center" },
-  addButtonText: { color: "#0d1826", fontWeight: "700", fontSize: 13 },
-  error: { color: "#ff7a72", fontSize: 12, marginTop: 8 },
+  addButtonText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  error: { color: "#ff9a93", fontSize: 12, marginTop: 8 },
   list: {
-    marginTop: 20, borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", overflow: "hidden",
+    marginTop: 20, borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden",
   },
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1b2c42",
+    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1f3149",
   },
   rowName: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
   rowRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  toggleButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 10 },
-  toggleButtonText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  toggleButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 10 },
+  toggleButtonText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   empty: { color: "#6f83a0", fontSize: 13, textAlign: "center", padding: 20 },
 });

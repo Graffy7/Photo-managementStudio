@@ -8,8 +8,8 @@ import { openRazorpayCheckout } from "../../../utils/razorpayCheckout";
 import type { BillingHistoryItem, Plan, SubscriptionStatus } from "../../../types/billing";
 
 export const T = {
-  page: "#0d1826", surface: "#0f1e30", raised: "#132540", border: "#1b2c42", text: "#e8edf3",
-  muted: "#a7b7cb", faint: "#6f83a0", accent: "#7fc0e6", brand: "#ff9a4d", good: "#4cc493", warn: "#f2bd5c", bad: "#ff7a72",
+  page: "#0b1522", surface: "#122033", raised: "#172a42", border: "#1f3149", text: "#e8edf3",
+  muted: "#9fb0c5", faint: "#6f83a0", accent: "#8cc8f0", brand: "#ff9a4d", good: "#6ee0ad", warn: "#f5c66b", bad: "#ff9a93",
 };
 
 const asUtc = (v: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(v) ? v : `${v}Z`);
@@ -101,7 +101,7 @@ export function PlanPicker({ status, highlightRenew }: { status: SubscriptionSta
                 accessibilityRole="button"
                 accessibilityLabel={`${renewing ? "Renew with" : "Buy"} ${p.name} for ${fmtMoney(p.price)}`}
               >
-                {thisBusy ? <ActivityIndicator size="small" color={isSelected ? "#0d1826" : T.text} /> : (
+                {thisBusy ? <ActivityIndicator size="small" color={isSelected ? "#0b1522" : T.text} /> : (
                   <Text style={[styles.buyText, isSelected && styles.buyTextBest]}>{renewing || highlightRenew ? "Renew" : "Buy"}</Text>
                 )}
               </Pressable>
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   buyBestHover: { backgroundColor: "#ffb071", borderColor: "#ffb071" },
   buyPressed: { transform: [{ scale: 0.98 }] },
   buyText: { color: T.text, fontWeight: "700", fontSize: 13.5 },
-  buyTextBest: { color: "#0d1826" },
+  buyTextBest: { color: "#0b1522" },
   disabled: { opacity: 0.5 },
   notice: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 10, padding: 12, backgroundColor: T.surface },
   noticeText: { color: T.muted, fontSize: 13, flex: 1, lineHeight: 19 },

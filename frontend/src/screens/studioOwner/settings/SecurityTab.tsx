@@ -60,7 +60,7 @@ export function SecurityTab() {
           </Pressable>
           <Pressable onPress={() => logoutEverywhereMutation.mutate()} disabled={logoutEverywhereMutation.isPending}>
             {logoutEverywhereMutation.isPending ? (
-              <ActivityIndicator color="#ff7a72" size="small" />
+              <ActivityIndicator color="#ff9a93" size="small" />
             ) : (
               <Text style={styles.confirmLink}>Yes, sign out everywhere</Text>
             )}
@@ -77,26 +77,26 @@ export function SecurityTab() {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 10, backgroundColor: "#132540", overflow: "hidden", marginBottom: 16,
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden", marginBottom: 16,
   },
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1b2c42",
+    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1f3149",
   },
   linkRow: {},
   rowLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  rowValue: { color: "#a7b7cb", fontSize: 13 },
+  rowValue: { color: "#9fb0c5", fontSize: 13 },
   chevron: { color: "#6f83a0", fontSize: 18 },
-  error: { color: "#ff7a72", fontSize: 13, marginBottom: 8 },
+  error: { color: "#ff9a93", fontSize: 13, marginBottom: 8 },
   dangerButton: {
-    borderWidth: 1, borderColor: "#ff7a72", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",
+    borderWidth: 1, borderColor: "#ff9a93", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",
   },
-  dangerButtonText: { color: "#ff7a72", fontWeight: "700", fontSize: 13 },
+  dangerButtonText: { color: "#ff9a93", fontWeight: "700", fontSize: 13 },
   confirmRow: {
     flexDirection: "row", alignItems: "center", gap: 16, padding: 12,
-    borderWidth: 1, borderColor: "#23405c", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#0f1e30",
+    borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#122033",
   },
   confirmText: { color: "#e8edf3", fontSize: 13, flex: 1 },
-  cancelLink: { color: "#a7b7cb", fontSize: 13, fontWeight: "600" },
-  confirmLink: { color: "#ff7a72", fontSize: 13, fontWeight: "700" },
+  cancelLink: { color: "#9fb0c5", fontSize: 13, fontWeight: "600" },
+  confirmLink: { color: "#ff9a93", fontSize: 13, fontWeight: "700" },
 });

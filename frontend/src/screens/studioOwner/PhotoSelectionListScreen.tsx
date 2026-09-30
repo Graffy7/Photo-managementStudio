@@ -1,11 +1,17 @@
 import { useMemo, useState } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { View, Text, StyleSheet } from "react-native";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { Screen } from "../../ui/Screen";
+import { PageHeader } from "../../ui/PageHeader";
+import { FilterChips } from "../../ui/FilterChips";
+import { EmptyState } from "../../ui/EmptyState";
+import { Button } from "../../ui/Button";
+import { DataList, CellSub, CellTitle, type Column } from "../../ui/DataList";
+import { colors, space, type } from "../../ui/theme";
 import type { CompletedEventGallery, GalleryState } from "../../types/photoSelection";
 
 export const STATE_LABELS: Record<GalleryState, string> = {
@@ -17,21 +23,38 @@ export const STATE_LABELS: Record<GalleryState, string> = {
   Expired: "Expired",
 };
 
-export function stateTone(state: GalleryState): "good" | "bad" | "warn" | "neutral" {
+export function stateTone(state: GalleryState): "good" | "bad" | "warn" | "neutral" | "info" {
   if (state === "Submitted") return "good";
   if (state === "Expired") return "bad";
   if (state === "NeedToSend") return "warn";
+  if (state === "Pending") return "info";
   return "neutral";
 }
 
-const FILTERS: { key: GalleryState | "All"; label: string }[] = [
-  { key: "All", label: "All" },
-  { key: "NeedToSend", label: "Need to send" },
-  { key: "Pending", label: "Link sent" },
-  { key: "Submitted", label: "Submitted" },
-  { key: "Locked", label: "Locked" },
-  { key: "Expired", label: "Expired" },
+// What the owner should do next for an event, in their words.
+export function nextStep(state: GalleryState): string {
+  switch (state) {
+    case "NoPhotos": return "Add the photos";
+    case "NeedToSend": return "Send the link";
+    case "Pending": return "Waiting for the customer";
+    case "Submitted": return "Deliver the selected photos";
+    case "Locked": return "Selection confirmed";
+    case "Expired": return "Send a new link";
+  }
+}
+
+type Filter = GalleryState | "All";
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "All", label: "All" },
+  { value: "NoPhotos", label: "No photos yet" },
+  { value: "NeedToSend", label: "Need to send" },
+  { value: "Pending", label: "Link sent" },
+  { value: "Submitted", label: "Submitted" },
+  { value: "Locked", label: "Locked" },
+  { value: "Expired", label: "Expired" },
 ];
+
+const PAGE_SIZE = 20;
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
@@ -52,117 +75,106 @@ function countdown(item: CompletedEventGallery): string | null {
   return null;
 }
 
+function progressText(item: CompletedEventGallery): string {
+  return item.photoCount > 0 ? `${item.selectedCount} of ${item.photoCount} selected` : "No photos";
+}
+
 // Completed events and where each one stands with its customer photo selection. Tapping one opens
 // (creating, the first time) that event's gallery.
 export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number) => void }) {
-  const navigation = useNavigation<any>();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<GalleryState | "All">("All");
+  const [filter, setFilter] = useState<Filter>("All");
+  const [page, setPage] = useState(1);
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["photo-gallery-events", search],
     queryFn: () => photoSelectionApi.completedEvents({ search: search || undefined, page: 1, pageSize: 100 }),
+    placeholderData: keepPreviousData,
   });
   useRefetchOnFocus(refetch);
 
-  const items = useMemo(
-    () => (data?.items ?? []).filter((e) => filter === "All" || e.state === filter),
-    [data, filter]
-  );
+  const all = data?.items;
+  const counts = useMemo(() => {
+    const c: Partial<Record<Filter, number>> = { All: all?.length ?? 0 };
+    for (const e of all ?? []) c[e.state] = (c[e.state] ?? 0) + 1;
+    return c;
+  }, [all]);
+  const filteredItems = useMemo(() => (all ?? []).filter((e) => filter === "All" || e.state === filter), [all, filter]);
+  const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const renderItem = ({ item }: { item: CompletedEventGallery }) => (
-    <Pressable style={styles.row} onPress={() => onOpen(item.eventId)}>
-      <View style={styles.rowMain}>
-        <Text style={styles.date}>{formatDate(item.eventDate)}{item.eventTypeName ? ` · ${item.eventTypeName}` : ""}</Text>
-        <Text style={styles.customer}>{item.customerName}</Text>
-        {!!item.venue && <Text style={styles.venue}>{item.venue}</Text>}
-        <View style={styles.pillRow}>
-          <StatusPill label={STATE_LABELS[item.state]} tone={stateTone(item.state)} />
-        </View>
-      </View>
-      <View style={styles.rowEnd}>
-        {item.photoCount > 0 && (
-          <Text style={styles.progress}>{item.selectedCount} / {item.photoCount} selected</Text>
-        )}
-        {!!countdown(item) && <Text style={styles.countdown}>{countdown(item)}</Text>}
-        <Text style={styles.chevron}>›</Text>
-      </View>
-    </Pressable>
-  );
+  // Only states that actually occur get a chip (plus the one currently chosen).
+  const chips = FILTERS
+    .filter((f) => f.value === "All" || f.value === filter || (counts[f.value] ?? 0) > 0)
+    .map((f) => ({ value: f.value, label: all ? `${f.label} (${counts[f.value] ?? 0})` : f.label }));
+
+  const columns: Column<CompletedEventGallery>[] = [
+    { key: "customer", label: "Customer", flex: 2, render: (e) => (<><CellTitle>{e.customerName}</CellTitle><CellSub>{[e.eventTypeName, e.venue].filter(Boolean).join(" · ") || "Event"}</CellSub></>) },
+    { key: "date", label: "Event date", width: 130, render: (e) => <CellSub>{formatDate(e.eventDate)}</CellSub> },
+    { key: "status", label: "Status", width: 140, render: (e) => <StatusPill label={STATE_LABELS[e.state]} tone={stateTone(e.state)} /> },
+    { key: "photos", label: "Selection", flex: 1, render: (e) => (<><CellTitle>{progressText(e)}</CellTitle>{countdown(e) ? <CellSub>{countdown(e)}</CellSub> : null}</>) },
+    { key: "next", label: "Next step", flex: 1, render: (e) => <Text style={styles.next} numberOfLines={1}>{nextStep(e.state)} ›</Text> },
+  ];
+
+  const hasFilter = !!search || filter !== "All";
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Photo Selection</Text>
-          <Text style={styles.subtitle}>{data?.totalCount ?? 0} completed events</Text>
-        </View>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>‹ Home</Text>
-        </Pressable>
+    <Screen>
+      <PageHeader
+        title="Photo delivery"
+        subtitle={data ? `${data.totalCount} completed event${data.totalCount === 1 ? "" : "s"}` : null}
+      />
+      <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={(v) => { setSearch(v); setPage(1); }} placeholder="Search by customer or venue" />
+      <View style={{ marginBottom: space.lg }}>
+        <FilterChips<Filter> options={chips} value={filter} onChange={(v) => { setFilter(v); setPage(1); }} />
       </View>
 
-      <SearchInput style={styles.search} value={search} onChangeText={setSearch} placeholder="Search by customer or venue" />
-
-      <View style={styles.filterRow}>
-        {FILTERS.map((f) => (
-          <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipSelected]} onPress={() => setFilter(f.key)}>
-            <Text style={[styles.chipText, filter === f.key && styles.chipTextSelected]}>{f.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
-      ) : isError ? (
-        <Text style={styles.error}>Couldn't load events.</Text>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => String(item.eventId)}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            <Text style={styles.empty}>
-              {(data?.totalCount ?? 0) === 0
-                ? "No completed events yet. Photo selection opens once an event is marked Completed."
-                : "No events in this view."}
+      <DataList
+        items={pageItems}
+        keyOf={(e) => e.eventId}
+        columns={columns}
+        onRowPress={(e) => onOpen(e.eventId)}
+        loading={isPending}
+        error={isError ? "Couldn't load events. Check your connection and try again." : null}
+        onRetry={() => refetch()}
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalCount={filteredItems.length}
+        onPageChange={setPage}
+        empty={hasFilter ? (
+          <EmptyState icon="search-outline" title="No events here" text="Try another customer name or status."
+            action={<Button label="Show all" onPress={() => { setSearch(""); setFilter("All"); setPage(1); }} />} />
+        ) : (
+          <EmptyState icon="images-outline" title="No completed events yet"
+            text="Photo delivery opens once an event is marked Completed. Then add the photos, send the customer their link, and deliver what they pick." />
+        )}
+        renderCard={(e) => (
+          <>
+            <View style={styles.cardTop}>
+              <Text style={styles.cardTitle} numberOfLines={1}>{e.customerName}</Text>
+              <StatusPill label={STATE_LABELS[e.state]} tone={stateTone(e.state)} />
+            </View>
+            <Text style={styles.cardSub} numberOfLines={1}>
+              {formatDate(e.eventDate)}{e.eventTypeName ? ` · ${e.eventTypeName}` : ""}{e.venue ? ` · ${e.venue}` : ""}
             </Text>
-          }
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
-      )}
-    </View>
+            <View style={styles.cardBottom}>
+              <Text style={styles.cardMeta} numberOfLines={1}>{progressText(e)}{countdown(e) ? ` · ${countdown(e)}` : ""}</Text>
+              <Text style={styles.next} numberOfLines={1}>{nextStep(e.state)} ›</Text>
+            </View>
+          </>
+        )}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826", padding: 24 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
-  backButton: { backgroundColor: "#132540", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#23405c", justifyContent: "center" },
-  backText: { color: "#7fc0e6", fontWeight: "600", fontSize: 13 },
-  search: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    color: "#e8edf3", backgroundColor: "#132540", marginBottom: 12, fontSize: 14,
+  cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
+  cardTitle: { ...type.heading, color: colors.text, flex: 1 },
+  cardSub: { ...type.small, color: colors.textMuted },
+  cardBottom: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm, flexWrap: "wrap",
+    borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.sm,
   },
-  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  chip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#132540" },
-  countdown: { color: "#ffb37a", fontSize: 12 },
-  chipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.14)" },
-  chipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#ff9a4d" },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, gap: 12 },
-  rowMain: { flex: 1, gap: 3 },
-  date: { color: "#7fc0e6", fontSize: 12, fontWeight: "600" },
-  customer: { color: "#e8edf3", fontSize: 16, fontWeight: "600" },
-  venue: { color: "#a7b7cb", fontSize: 13 },
-  pillRow: { flexDirection: "row", marginTop: 4 },
-  rowEnd: { flexDirection: "row", alignItems: "center", gap: 10 },
-  progress: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  chevron: { color: "#6f83a0", fontSize: 20 },
-  separator: { height: 1, backgroundColor: "#1b2c42" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
-  empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
+  cardMeta: { ...type.caption, color: colors.textFaint, flexShrink: 1 },
+  next: { ...type.small, fontWeight: "600", color: colors.link },
 });
