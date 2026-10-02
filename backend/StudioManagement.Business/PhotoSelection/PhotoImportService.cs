@@ -29,17 +29,24 @@ public class PhotoImportService(
 
     // ---- Folder browsing -------------------------------------------------------------------
 
-    // Only ever inside the studio's own photo root: an empty path opens the root itself.
+    // Inside the studio's own photo root when one is configured (an empty path opens the root
+    // itself); otherwise browsing is unrestricted and an empty path opens a "This PC" style
+    // top-level list, mirroring how Windows' own folder picker opens.
     public async Task<(PhotoPathProblem Problem, FolderBrowseResultDto? Result)> BrowseFoldersAsync(int studioId, string? path, CancellationToken ct = default)
     {
         var root = await photoRoots.GetRootAsync(studioId, ct);
-        if (root is null)
+
+        if (string.IsNullOrWhiteSpace(path))
         {
-            return (PhotoPathProblem.NoRoot, null);
+            if (root is null)
+            {
+                return (PhotoPathProblem.None, new FolderBrowseResultDto { Folders = TopLevelEntries() });
+            }
+            path = root;
         }
 
-        var problem = StudioPhotoRootService.Check(root, string.IsNullOrWhiteSpace(path) ? root : path, out var full);
-        if (problem != PhotoPathProblem.None)
+        var (problem, full) = await photoRoots.CheckAsync(studioId, path, ct);
+        if (problem != PhotoPathProblem.None || full is null)
         {
             return (problem, null);
         }
@@ -51,9 +58,13 @@ public class PhotoImportService(
                 .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // "Up" stops at the studio's root.
-            var parent = StudioPhotoRootService.Check(root, Directory.GetParent(full)?.FullName, out var parentFull) == PhotoPathProblem.None
-                ? parentFull : null;
+            var parentPath = Directory.GetParent(full)?.FullName;
+            string? parent = null;
+            if (parentPath is not null)
+            {
+                var (parentProblem, parentFull) = await photoRoots.CheckAsync(studioId, parentPath, ct);
+                parent = parentProblem == PhotoPathProblem.None ? parentFull : null;
+            }
 
             return (PhotoPathProblem.None, new FolderBrowseResultDto
             {
@@ -68,6 +79,39 @@ public class PhotoImportService(
         {
             return (PhotoPathProblem.NotFound, null);
         }
+    }
+
+    // Mirrors what Windows' "This PC" opens to: the user's library folders first (where photos
+    // most likely live), then the drives. Only used when the studio has no configured photo root.
+    private static List<FolderBrowseEntryDto> TopLevelEntries()
+    {
+        var entries = new List<FolderBrowseEntryDto>();
+        foreach (var (name, folder) in new[]
+        {
+            ("Desktop", Environment.SpecialFolder.DesktopDirectory),
+            ("Documents", Environment.SpecialFolder.MyDocuments),
+            ("Pictures", Environment.SpecialFolder.MyPictures),
+            ("Videos", Environment.SpecialFolder.MyVideos)
+        })
+        {
+            var p = Environment.GetFolderPath(folder);
+            if (!string.IsNullOrEmpty(p) && Directory.Exists(p))
+            {
+                entries.Add(new FolderBrowseEntryDto { Name = name, FullPath = p });
+            }
+        }
+
+        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        if (Directory.Exists(downloads))
+        {
+            entries.Insert(Math.Min(1, entries.Count), new FolderBrowseEntryDto { Name = "Downloads", FullPath = downloads });
+        }
+
+        entries.AddRange(DriveInfo.GetDrives()
+            .Where(d => d.IsReady)
+            .OrderBy(d => d.Name)
+            .Select(d => new FolderBrowseEntryDto { Name = d.Name, FullPath = d.Name }));
+        return entries;
     }
 
     // Maps a photo's path relative to the source folder to the delivery folder it belongs in:

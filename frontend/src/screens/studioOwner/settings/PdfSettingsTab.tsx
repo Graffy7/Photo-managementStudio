@@ -15,6 +15,7 @@ const TEMPLATES: { key: PdfTemplate; name: string; text: string; header: PdfHead
   { key: "Modern", name: "Modern", text: "Coloured banner header, striped rows, bold total.", header: "Banner", swatch: "#1F3A5F" },
   { key: "Minimal", name: "Minimal", text: "Clean lines, no colour blocks — prints well in black & white.", header: "Standard", swatch: "#263238" },
   { key: "Elegant", name: "Elegant", text: "Centred letterhead with a fine accent line and soft tints.", header: "Centered", swatch: "#6D4C41" },
+  { key: "Traditional", name: "Traditional", text: "Plain black & white receipt style — big bold line items, no table grid. Colour and header style don't apply.", header: "Standard", swatch: "#1A1A1A" },
 ];
 
 const PRESET_COLORS = ["#1976D2", "#1F3A5F", "#0E7C66", "#6D4C41", "#8E24AA", "#C62828", "#EF6C00", "#263238"];
@@ -114,14 +115,20 @@ export function PdfSettingsTab() {
         </View>
       </Section>
 
-      <Section title="Colours">
-        <ColorField label="Main colour" value={form.primaryColor} onChange={(v) => set("primaryColor", v)} hint="Headings, table header and total. Empty = the template's own." />
-        <ColorField label="Accent colour" value={form.accentColor} onChange={(v) => set("accentColor", v)} hint="Status and accent lines. Empty = the main colour." />
-      </Section>
+      {form.template !== "Traditional" && (
+        <Section title="Colours">
+          <ColorField label="Main colour" value={form.primaryColor} onChange={(v) => set("primaryColor", v)} hint="Headings, table header and total. Empty = the template's own." />
+          <ColorField label="Accent colour" value={form.accentColor} onChange={(v) => set("accentColor", v)} hint="Status and accent lines. Empty = the main colour." />
+        </Section>
+      )}
 
       <Section title="Header & logo">
-        <Label>Header style</Label>
-        <Chips options={HEADERS} value={form.headerStyle} onChange={(v) => set("headerStyle", v)} />
+        {form.template !== "Traditional" && (
+          <>
+            <Label>Header style</Label>
+            <Chips options={HEADERS} value={form.headerStyle} onChange={(v) => set("headerStyle", v)} />
+          </>
+        )}
         <Label>Logo</Label>
         <Chips options={LOGOS} value={form.logoPlacement} onChange={(v) => set("logoPlacement", v)} />
         <Text style={styles.small}>Uses the logo from the Logo & Branding tab.</Text>

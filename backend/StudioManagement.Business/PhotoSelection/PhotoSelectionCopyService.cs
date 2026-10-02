@@ -28,7 +28,9 @@ public class PhotoSelectionCopyService(
     private string? studioRoot;
 
     private bool InsideStudioRoot(string path) =>
-        studioRoot is not null && StudioPhotoRootService.Check(studioRoot, path, out _) == PhotoPathProblem.None;
+        studioRoot is not null
+            ? StudioPhotoRootService.Check(studioRoot, path, out _) == PhotoPathProblem.None
+            : StudioPhotoRootService.IsSafeUnrestrictedPath(path, out _);
 
     private const string Module = "PhotoSelection";
     private const string TempSuffix = ".copying";

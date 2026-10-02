@@ -10,7 +10,7 @@ public class QuotationRepository(AppDbContext context) : IQuotationRepository
     public Task<Quotation?> GetByIdAsync(int studioId, int quotationId, CancellationToken ct = default) =>
         context.Quotations
             .Include(q => q.Customer)
-            .Include(q => q.Event)
+            .Include(q => q.Event).ThenInclude(e => e!.EventType)
             .Include(q => q.Items).ThenInclude(i => i.Service)
             .FirstOrDefaultAsync(q => q.StudioId == studioId && q.QuotationId == quotationId, ct);
 
@@ -19,7 +19,7 @@ public class QuotationRepository(AppDbContext context) : IQuotationRepository
         var query = context.Quotations
             .AsNoTracking()
             .Include(q => q.Customer)
-            .Include(q => q.Event)
+            .Include(q => q.Event).ThenInclude(e => e!.EventType)
             .Include(q => q.Items).ThenInclude(i => i.Service)
             .Where(q => q.StudioId == studioId);
 

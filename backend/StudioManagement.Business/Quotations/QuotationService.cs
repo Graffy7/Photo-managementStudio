@@ -279,6 +279,7 @@ public class QuotationService(
         CustomerMobileNumber = quotation.Customer.MobileNumber,
         EventId = quotation.EventId,
         EventVenue = quotation.Event?.Venue,
+        EventTypeName = quotation.Event?.EventType?.Name,
         QuotationDate = quotation.QuotationDate,
         ValidUntil = quotation.ValidUntil,
         Subtotal = quotation.Subtotal,
