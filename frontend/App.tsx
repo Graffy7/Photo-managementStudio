@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/auth/authStore";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
+import { ShutterProvider } from "./src/shutter";
 
 // Data counts as fresh for 30 seconds, so moving between screens re-uses it instead of re-asking.
 // Window-focus refetching is off: it would reload every screen still mounted in the navigation
@@ -24,7 +25,7 @@ function photoSelectionToken(): string | null {
 
 export default function App() {
   const [token] = useState(photoSelectionToken);
-  return token ? <PublicPhotoSelection token={token} /> : <AuthenticatedApp />;
+  return <ShutterProvider>{token ? <PublicPhotoSelection token={token} /> : <AuthenticatedApp />}</ShutterProvider>;
 }
 
 const publicQueryClient = new QueryClient({ defaultOptions: { queries: { retry: 1 } } });

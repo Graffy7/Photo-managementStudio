@@ -6,6 +6,7 @@ import { extractErrorMessage } from "../../../api/errorMessage";
 import { Toggle } from "../../../components/Toggle";
 import type { NotificationSettings } from "../../../types/settings";
 import { ReminderTestPanel } from "./ReminderTestPanel";
+import { CameraModeToggle } from "../../../shutter";
 
 function ToggleRow({
   label,
@@ -80,6 +81,9 @@ export function NotificationSettingsTab() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {saved ? <Text style={styles.success}>✓ Saved</Text> : null}
+    </View>
+    <View style={{ marginTop: 16 }}>
+      <CameraModeToggle />
     </View>
     <ReminderTestPanel />
     </>
