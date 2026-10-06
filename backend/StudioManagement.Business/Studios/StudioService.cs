@@ -83,7 +83,7 @@ public class StudioService(
             // From/To are the studio's calendar dates: starting today means right now; the whole of
             // the To day is included (access ends at midnight after it).
             var startDay = request.TrialStartDate!.Value.Date;
-            subscription.StartDate = startDay <= DateTime.Now.Date ? now : DateTime.SpecifyKind(startDay, DateTimeKind.Local).ToUniversalTime();
+            subscription.StartDate = startDay <= BusinessClock.Today ? now : BusinessClock.ToUtc(startDay);
             subscription.EndDate = DateTime.SpecifyKind(request.TrialEndDate!.Value.Date.AddDays(1), DateTimeKind.Local).ToUniversalTime();
             subscription.Amount = 0;
             subscription.IsTrial = true;
@@ -104,7 +104,7 @@ public class StudioService(
 
     public async Task<PagedResult<StudioDto>> SearchAsync(string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await studioRepository.SearchAsync(search, isActive, page, pageSize, ct);

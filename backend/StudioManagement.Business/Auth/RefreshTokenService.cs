@@ -8,6 +8,7 @@ namespace StudioManagement.Business.Auth;
 
 public class RefreshTokenService(
     IRefreshTokenRepository refreshTokenRepository,
+    ISessionRevocationService sessionRevocation,
     IConfiguration configuration,
     IUnitOfWork unitOfWork,
     ILogger<RefreshTokenService> logger) : IRefreshTokenService
@@ -109,6 +110,8 @@ public class RefreshTokenService(
 
     public async Task RevokeAllForUserAsync(int userId, CancellationToken ct = default)
     {
+        // Ends the user's open sessions too, not just future refreshes (see SessionRevocationService).
+        await sessionRevocation.RevokeAllAsync(userId, ct);
         var active = await refreshTokenRepository.GetActiveByUserIdAsync(userId, ct);
         if (active.Count == 0)
         {

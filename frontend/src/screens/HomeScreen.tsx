@@ -14,6 +14,7 @@ import { DonutChart } from "../components/DonutChart";
 import { MiniDatePicker } from "../components/MiniDatePicker";
 import { DATE_RANGE_PRESET_LABELS, type DateRangePreset } from "../types/studioDashboard";
 import { useRefetchOnFocus } from "../hooks/useRefetchOnFocus";
+import { localDateString } from "../utils/localDate";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { StatusPill, eventStatusTone } from "../components/StatusPill";
 import { Button } from "../ui/Button";
@@ -126,7 +127,8 @@ export function HomeScreen() {
   const [preset, setPreset] = useState<DateRangePreset>("ThisMonth");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // The studio's own calendar day, not UTC's - just after midnight in India they differ.
+  const today = useMemo(() => localDateString(), []);
 
   const customRangeReady = customStart.length > 0 && customEnd.length > 0;
   // Modules the platform admin switched off are neither fetched nor shown.
@@ -158,11 +160,7 @@ export function HomeScreen() {
     enabled: dashboardOn && isOn("DAY_BOARD"),
   });
 
-  // The studio's own calendar day, not UTC's - just after midnight they differ.
-  const localToday = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
+  const localToday = today;
 
   const { data: upcoming, isPending: upcomingPending, refetch: refetchUpcoming } = useQuery({
     queryKey: ["events-upcoming", localToday],
@@ -199,6 +197,7 @@ export function HomeScreen() {
         sub: e.venue ? `${e.customerName} · ${e.venue}` : e.customerName,
         value: formatCurrency(e.amount),
       })),
+      moreCount: p.moreEvents ?? 0,
     },
   }));
 

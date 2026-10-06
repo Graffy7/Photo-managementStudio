@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using StudioManagement.API.Filters;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -109,6 +110,7 @@ public class QuotationsController(
     // priceDisplay (optional) prints this copy that way without saving it; without it the
     // quotation's own saved choice is used.
     [HttpGet("{id:int}/pdf")]
+    [EnableRateLimiting("expensive")]
     public async Task<IActionResult> DownloadPdf(int id, [FromQuery] string? priceDisplay, CancellationToken ct)
     {
         var quotation = await quotationService.GetByIdAsync(StudioId, id, ct);

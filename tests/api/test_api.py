@@ -160,8 +160,22 @@ c, r1, _ = req("POST", "/auth/refresh", {"refreshToken": extra["refreshToken"]})
 ok(c == 200 and r1["refreshToken"] != extra["refreshToken"], "refresh rotates the refresh token", c)
 time.sleep(61)  # past the short grace period for sibling tabs refreshing at the same moment
 ok(req("POST", "/auth/refresh", {"refreshToken": extra["refreshToken"]})[0] == 401, "an old refresh token is refused")
-ok(req("POST", "/auth/logout", {"refreshToken": r1["refreshToken"]}, r1["accessToken"])[0] in (200, 204), "logout")
-ok(req("POST", "/auth/refresh", {"refreshToken": r1["refreshToken"]})[0] == 401, "refresh after logout refused")
+# Reusing a rotated refresh token looks like theft: every session of that user ends at once, open
+# access tokens included (they used to keep working until they expired).
+ok(req("GET", "/customers", tok=r1["accessToken"])[0] == 401, "possible token theft ends open sessions immediately")
+ok(req("GET", "/customers", tok=T)[0] == 401, "...on every device of that user")
+lb = login(studios["b"]["email"], studios["b"]["password"])
+T = lb["accessToken"]
+ok(req("GET", "/customers", tok=T)[0] == 200, "signing in again works")
+fresh = login(studios["b"]["email"], studios["b"]["password"])
+ok(req("POST", "/auth/logout", {"refreshToken": fresh["refreshToken"]}, fresh["accessToken"])[0] in (200, 204), "logout")
+ok(req("POST", "/auth/refresh", {"refreshToken": fresh["refreshToken"]})[0] == 401, "refresh after logout refused")
+ok(req("GET", "/customers", tok=T)[0] == 200, "signing out one device leaves the others signed in")
+everywhere = login(studios["b"]["email"], studios["b"]["password"])
+ok(req("POST", "/auth/logout-everywhere", tok=everywhere["accessToken"])[0] == 200, "sign out everywhere")
+ok(req("GET", "/customers", tok=T)[0] == 401 and req("GET", "/customers", tok=everywhere["accessToken"])[0] == 401,
+   "sign out everywhere ends every open session at once")
+T = login(studios["b"]["email"], studios["b"]["password"])["accessToken"]
 ok(req("GET", "/auth/forgot-password/options")[0] == 200, "forgot-password options")
 
 area("Admin vs studio permissions")

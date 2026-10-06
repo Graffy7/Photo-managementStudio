@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,7 +55,7 @@ public class NotificationsController(
     [HttpPost("whatsapp-reminders/test")]
     public async Task<IActionResult> TestWhatsAppReminder(TestReminderRequestDto request, CancellationToken ct)
     {
-        var preview = await whatsAppReminderService.PreviewAsync(StudioId, DateTime.Now, request, ct);
+        var preview = await whatsAppReminderService.PreviewAsync(StudioId, BusinessClock.Now, request, ct);
         return preview is null ? NotFound(new { message = "That event wasn't found." }) : Ok(preview);
     }
 
@@ -63,5 +64,5 @@ public class NotificationsController(
     [FeatureRequired(FeatureCodes.WhatsApp)]
     [HttpPost("whatsapp-reminders/send-now")]
     public async Task<IActionResult> SendWhatsAppRemindersNow(CancellationToken ct) =>
-        Ok(await whatsAppReminderService.SendRemindersForStudioAsync(StudioId, DateTime.Now, ignoreTime: true, ct));
+        Ok(await whatsAppReminderService.SendRemindersForStudioAsync(StudioId, BusinessClock.Now, ignoreTime: true, ct));
 }

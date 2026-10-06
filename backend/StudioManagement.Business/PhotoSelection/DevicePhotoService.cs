@@ -57,10 +57,24 @@ public class DevicePhotoService(
     }
 
     // "Candid/IMG_1.JPG" -> "Candid\IMG_1.JPG" (the form server imports use). Null when unsafe.
+    // Windows device names can't be files (CON.jpg, nul.jpeg...): copying such a photo later would fail.
+    private static readonly HashSet<string> ReservedNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
+
     private static string? CleanRelative(string relativePath)
     {
-        var segments = (relativePath ?? "").Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length is 0 or > 12 || segments.Any(s => s is "." or ".." || s.IndexOfAny([':', '*', '?', '"', '<', '>', '|']) >= 0))
+        var raw = relativePath ?? "";
+        // Relative to the chosen folder only: nothing that starts at a root or a network share.
+        if (raw.StartsWith('/') || raw.StartsWith('\\'))
+        {
+            return null;
+        }
+        var segments = raw.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length is 0 or > 12 || segments.Any(s => s is "." or ".." || s.IndexOfAny([':', '*', '?', '"', '<', '>', '|']) >= 0
+                                                            || ReservedNames.Contains(s.Split('.')[0]) || s.EndsWith('.')))
         {
             return null;
         }

@@ -22,5 +22,7 @@ public interface IEventRepository
     Task<bool> HasQuotationsAsync(int studioId, int eventId, CancellationToken ct = default);
 
     // PhotoGalleries Restrict-delete against Event too (its customer selections are worth keeping).
+    Task<bool> HasPaymentsAsync(int studioId, int eventId, CancellationToken ct = default);
+    Task<bool> ExistsAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<bool> HasPhotoGalleryAsync(int studioId, int eventId, CancellationToken ct = default);
 }

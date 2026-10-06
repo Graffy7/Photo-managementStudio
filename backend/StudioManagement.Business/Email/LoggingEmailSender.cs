@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using StudioManagement.Business.Common;
 
 namespace StudioManagement.Business.Email;
 
@@ -8,9 +9,10 @@ public class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSend
 {
     public Task SendAsync(string toEmail, string subject, string body, CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Email (no SMTP configured, logging instead) — To: {ToEmail}, Subject: {Subject}\n{Body}",
-            toEmail, subject, body);
+        // The body can hold a reset code, so it's only written at Debug (enabled for this class in
+        // development settings, never on a server); the normal line carries no secret.
+        logger.LogInformation("Email NOT sent (no SMTP configured) to {ToEmail}: {Subject}", LogMask.Email(toEmail), subject);
+        logger.LogDebug("Email body for {ToEmail} (development only):\n{Body}", toEmail, body);
         return Task.CompletedTask;
     }
 }

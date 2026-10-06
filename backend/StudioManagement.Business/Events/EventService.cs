@@ -1,6 +1,7 @@
 using System.Globalization;
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Lookups;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -15,6 +16,7 @@ public class EventService(
     IPaymentRepository paymentRepository,
     IQuotationRepository quotationRepository,
     IEventWorkerRepository eventWorkerRepository,
+    IStudioLookupGuard lookupGuard,
     INotificationService notificationService,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IEventService
@@ -24,7 +26,7 @@ public class EventService(
 
     public async Task<PagedResult<EventDto>> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null, ListSort? sort = null)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await eventRepository.SearchAsync(studioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom, sort);
@@ -51,6 +53,7 @@ public class EventService(
             return EventWriteResult.Fail(EventWriteFailureReason.CustomerNotFound);
         }
 
+        await lookupGuard.EnsureOwnedAsync(studioId, eventTypeId: request.EventTypeId, ct: ct);
         var now = DateTime.UtcNow;
         var @event = new Event
         {
@@ -123,6 +126,8 @@ public class EventService(
                 return EventWriteResult.Fail(EventWriteFailureReason.CustomerNotFound);
             }
         }
+
+        await lookupGuard.EnsureOwnedAsync(studioId, eventTypeId: request.EventTypeId, ct: ct);
 
         // The total can't drop below what the customer has already paid - that would show a negative
         // balance. Checked under the same event lock payments use, so a payment saved at the same
@@ -213,13 +218,27 @@ public class EventService(
             return EventDeleteResult.HasPhotoGallery;
         }
 
-        // Payments/Expenses referencing this event have EventId SetNull at the DB level — they
-        // survive as un-linked records rather than blocking or cascading away real financial history.
-        eventRepository.Remove(@event);
-        await unitOfWork.SaveChangesAsync(ct);
-        await auditService.LogAsync("Event deleted", Module, studioId, ct);
+        // An event with money recorded against it isn't deleted: its payments would silently lose
+        // their event (EventId is SetNull in the database). Checked under the same event lock payments
+        // take, so a payment saved at this very moment is either seen here or refused afterwards.
+        var result = await unitOfWork.ExecuteInTransactionAsync(async tx =>
+        {
+            await paymentRepository.LockForPaymentAsync(studioId, @event.CustomerId, eventId, tx);
+            if (await eventRepository.HasPaymentsAsync(studioId, eventId, tx))
+            {
+                return EventDeleteResult.HasPayments;
+            }
 
-        return EventDeleteResult.Deleted;
+            eventRepository.Remove(@event);
+            await unitOfWork.SaveChangesAsync(tx);
+            return EventDeleteResult.Deleted;
+        }, ct);
+        if (result == EventDeleteResult.Deleted)
+        {
+            await auditService.LogAsync("Event deleted", Module, studioId, ct);
+        }
+
+        return result;
     }
 
     private static TimeSpan? ParseTime(string? value) =>

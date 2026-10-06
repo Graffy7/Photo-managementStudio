@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Repositories;
@@ -18,7 +19,7 @@ public class AuthService(
         var user = await userRepository.FindByEmailAsync(request.Email, ct);
         if (user is null || !user.IsActive || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
-            logger.LogWarning("Failed login attempt for {Email}.", request.Email);
+            logger.LogWarning("Failed login attempt for {Email}.", LogMask.Email(request.Email));
             return AuthResult.Fail(AuthFailureReason.InvalidCredentials);
         }
 
@@ -58,7 +59,25 @@ public class AuthService(
             return AuthResult.Fail(reason);
         }
 
-        var user = rotation.User!;
+        // The same account checks as signing in: a blocked or deactivated studio (or user) must not keep
+        // getting fresh access tokens from a refresh token it already had.
+        var user = await userRepository.GetByIdWithStudioAsync(rotation.User!.UserId, ct) ?? rotation.User!;
+        if (!user.IsActive)
+        {
+            return AuthResult.Fail(AuthFailureReason.RefreshTokenRevoked);
+        }
+        if (user.UserType == UserTypes.StudioOwner)
+        {
+            if (user.Studio is null || !user.Studio.IsActive)
+            {
+                return AuthResult.Fail(AuthFailureReason.StudioInactive);
+            }
+            if (user.Studio.IsBlocked)
+            {
+                return AuthResult.Fail(AuthFailureReason.StudioBlocked);
+            }
+        }
+
         var (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateToken(user);
 
         return AuthResult.Success(new LoginResponseDto

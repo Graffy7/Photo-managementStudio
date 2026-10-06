@@ -8,9 +8,11 @@ import { StatusPill } from "../../components/StatusPill";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { localDateString } from "../../utils/localDate";
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+// Today on the studio's calendar (the device's own day, not UTC's).
+function todayLocal(): string {
+  return localDateString();
 }
 
 function shiftDate(date: string, days: number): string {
@@ -155,7 +157,7 @@ function EventCard({ event }: { event: DayBoardEvent }) {
 }
 
 export function DayBoardScreen() {
-  const [date, setDate] = useState(todayUtc());
+  const [date, setDate] = useState(todayLocal());
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["day-board", date],
@@ -179,7 +181,7 @@ export function DayBoardScreen() {
         <View style={styles.datePickerSlot}>
           <MiniDatePicker value={date} onChange={(d) => d && setDate(d)} />
         </View>
-        <Pressable style={styles.navButton} onPress={() => setDate(todayUtc())}>
+        <Pressable style={styles.navButton} onPress={() => setDate(todayLocal())}>
           <Text style={styles.navButtonText}>Today</Text>
         </Pressable>
         <Pressable style={styles.navButton} onPress={() => setDate((d) => shiftDate(d, 1))}>

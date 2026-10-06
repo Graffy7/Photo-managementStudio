@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ public class DayBoardController(IDayBoardService dayBoardService, ITenantContext
     [HttpGet]
     public async Task<IActionResult> GetDayBoard([FromQuery] DateTime? date, CancellationToken ct)
     {
-        var board = await dayBoardService.GetDayBoardAsync(StudioId, date ?? DateTime.UtcNow.Date, ct);
+        var board = await dayBoardService.GetDayBoardAsync(StudioId, date ?? BusinessClock.Today, ct);
         return Ok(board);
     }
 

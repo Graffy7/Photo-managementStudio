@@ -89,6 +89,7 @@ public class AuthController(
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting("refresh")]
     [AllowAnonymous]
     public async Task<IActionResult> Refresh(RefreshRequestDto request, CancellationToken ct)
     {

@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using FluentValidation;
 
 namespace StudioManagement.Business.Studios;
@@ -16,7 +17,7 @@ public class CreateStudioRequestValidator : AbstractValidator<CreateStudioReques
         When(x => x.FreeTrial, () =>
         {
             RuleFor(x => x.TrialStartDate).NotNull().WithMessage("Choose the date the free trial starts.")
-                .Must(d => d is null || d.Value.Date >= DateTime.Now.Date).WithMessage("The free trial can't start in the past.");
+                .Must(d => d is null || d.Value.Date >= BusinessClock.Today).WithMessage("The free trial can't start in the past.");
             RuleFor(x => x.TrialEndDate).NotNull().WithMessage("Choose the date the free trial ends.");
             RuleFor(x => x).Must(x => x.TrialStartDate is null || x.TrialEndDate is null || x.TrialEndDate.Value.Date >= x.TrialStartDate.Value.Date)
                 .WithName("TrialEndDate").WithMessage("The end date must be on or after the start date.");

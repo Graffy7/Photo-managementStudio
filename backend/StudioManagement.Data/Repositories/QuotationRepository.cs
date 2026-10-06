@@ -67,6 +67,9 @@ public class QuotationRepository(AppDbContext context) : IQuotationRepository
     public Task<int> CountAllAsync(int studioId, CancellationToken ct = default) =>
         context.Quotations.CountAsync(q => q.StudioId == studioId, ct);
 
+    public Task<bool> NumberExistsAsync(int studioId, string quotationNumber, CancellationToken ct = default) =>
+        context.Quotations.AnyAsync(q => q.StudioId == studioId && q.QuotationNumber == quotationNumber, ct);
+
     public async Task AddAsync(Quotation quotation, CancellationToken ct = default) =>
         await context.Quotations.AddAsync(quotation, ct);
 

@@ -76,4 +76,6 @@ export interface RevenueTrendPoint {
   amount: number;
   // Which events that day's revenue came from, largest first.
   events: RevenueTrendEvent[];
+  // Events that day beyond the ones listed (the tooltip shows "and N more").
+  moreEvents?: number;
 }

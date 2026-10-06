@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using StudioManagement.API.Filters;
 using StudioManagement.API.Realtime;
 using FluentValidation;
@@ -149,6 +150,7 @@ public class PhotoGalleriesController(
     // One photo. multipart: file (the browser-made preview), folder (the chosen folder's name),
     // path (the photo's path inside that folder, e.g. "Candid Photos/IMG_0001.JPG").
     [HttpPost("{id:int}/device-photos")]
+    [EnableRateLimiting("upload")]
     [SkipRealtime]
     [RequestSizeLimit(16 * 1024 * 1024)]
     public async Task<IActionResult> AddDevicePhoto(int id, [FromForm] IFormFile? file, [FromForm] string? folder, [FromForm] string? path, [FromForm] long? size, CancellationToken ct)
@@ -382,6 +384,7 @@ public class PhotoGalleriesController(
     }
 
     [HttpGet("{id:int}/export")]
+    [EnableRateLimiting("expensive")]
     public async Task<IActionResult> Export(int id, CancellationToken ct)
     {
         var export = await galleryService.ExportSelectionAsync(StudioId, id, ct);

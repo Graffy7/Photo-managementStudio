@@ -57,6 +57,8 @@ public class RevenueTrendPointDto
     public DateTime Date { get; set; }
     public decimal Amount { get; set; }
 
-    // Which events the day's revenue came from, largest first — shown when hovering the chart.
+    // Which events the day's revenue came from, largest first — shown when hovering the chart. Only
+    // the ones the tooltip shows are sent; MoreEvents says how many others there were that day.
     public List<RevenueTrendEventDto> Events { get; set; } = [];
+    public int MoreEvents { get; set; }
 }

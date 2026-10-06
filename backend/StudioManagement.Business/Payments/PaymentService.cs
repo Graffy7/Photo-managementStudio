@@ -35,7 +35,7 @@ public class PaymentService(
     // saved as Pending with a date up to a year ahead. Any real past date still works.
     private static string? CheckDate(DateTime paymentDate, string status)
     {
-        var today = DateTime.Now.Date;
+        var today = BusinessClock.Today;
         if (paymentDate.Date < new DateTime(2000, 1, 1))
         {
             return "Check the payment date - it's too far in the past.";
@@ -105,7 +105,7 @@ public class PaymentService(
 
     public async Task<PagedResult<PaymentDto>> SearchAsync(int studioId, string? search, string? paymentStatus, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await paymentRepository.SearchAsync(studioId, search, paymentStatus, customerId, page, pageSize, ct, sort);
@@ -153,6 +153,11 @@ public class PaymentService(
         var (payment, problem) = await unitOfWork.ExecuteInTransactionAsync(async tx =>
         {
             await paymentRepository.LockForPaymentAsync(studioId, request.CustomerId, request.EventId, tx);
+            // The event may have been deleted between the check above and taking the lock.
+            if (request.EventId is not null && !await eventRepository.ExistsAsync(studioId, request.EventId.Value, tx))
+            {
+                return ((Payment?)null, "This event no longer exists. Refresh and try again.");
+            }
             var amountProblem = CheckDate(request.PaymentDate, request.PaymentStatus)
                 ?? await CheckAmountAsync(studioId, request.CustomerId, request.EventId, request.Amount,
                     request.PaymentStatus, request.Notes, excludePaymentId: null, tx);
@@ -221,6 +226,10 @@ public class PaymentService(
         var problem = await unitOfWork.ExecuteInTransactionAsync(async tx =>
         {
             await paymentRepository.LockForPaymentAsync(studioId, request.CustomerId, request.EventId, tx);
+            if (request.EventId is not null && !await eventRepository.ExistsAsync(studioId, request.EventId.Value, tx))
+            {
+                return "This event no longer exists. Refresh and try again.";
+            }
             // An existing entry keeps working when only its status changes (e.g. cancelling an old
             // future-dated one), so the date rule is applied when the date itself is changed.
             var amountProblem = (payment.PaymentDate.Date != request.PaymentDate.Date || payment.PaymentStatus != request.PaymentStatus) && request.PaymentStatus != PaymentStatuses.Cancelled

@@ -17,7 +17,7 @@ public class CustomerService(
 
     public async Task<PagedResult<CustomerDto>> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await customerRepository.SearchAsync(studioId, search, isActive, page, pageSize, ct, sort);
@@ -63,8 +63,16 @@ public class CustomerService(
             UpdatedAt = now
         };
 
-        await customerRepository.AddAsync(customer, ct);
-        await unitOfWork.SaveChangesAsync(ct);
+        // One customer per mobile number: checked and saved under a lock on that number, so two
+        // devices saving the same new customer at the same moment can't both create one.
+        await unitOfWork.ExecuteInTransactionAsync(async tx =>
+        {
+            await unitOfWork.AcquireLockAsync(LockNames.CustomerMobile(studioId, request.MobileNumber), tx);
+            await ThrowIfMobileTakenAsync(studioId, request.MobileNumber, null, tx);
+            await customerRepository.AddAsync(customer, tx);
+            await unitOfWork.SaveChangesAsync(tx);
+            return true;
+        }, ct);
         await auditService.LogAsync("Customer created", Module, studioId, ct);
 
         return MapToDto(customer);
@@ -78,6 +86,7 @@ public class CustomerService(
             return null;
         }
 
+        var originalMobile = customer.MobileNumber;
         customer.FullName = request.FullName;
         customer.MobileNumber = request.MobileNumber;
         customer.Email = request.Email;
@@ -85,8 +94,23 @@ public class CustomerService(
         customer.Notes = request.Notes;
         customer.UpdatedAt = DateTime.UtcNow;
 
-        customerRepository.Update(customer);
-        await unitOfWork.SaveChangesAsync(ct);
+        // A changed number is checked and saved under the same lock new customers use.
+        if (Digits(customer.MobileNumber) != Digits(originalMobile))
+        {
+            await unitOfWork.ExecuteInTransactionAsync(async tx =>
+            {
+                await unitOfWork.AcquireLockAsync(LockNames.CustomerMobile(studioId, customer.MobileNumber), tx);
+                await ThrowIfMobileTakenAsync(studioId, customer.MobileNumber, customerId, tx);
+                customerRepository.Update(customer);
+                await unitOfWork.SaveChangesAsync(tx);
+                return true;
+            }, ct);
+        }
+        else
+        {
+            customerRepository.Update(customer);
+            await unitOfWork.SaveChangesAsync(ct);
+        }
         await auditService.LogAsync("Customer updated", Module, studioId, ct);
 
         return MapToDto(customer);
@@ -143,6 +167,22 @@ public class CustomerService(
             };
         }).ToList();
     }
+
+    private async Task ThrowIfMobileTakenAsync(int studioId, string mobileNumber, int? excludeCustomerId, CancellationToken ct)
+    {
+        var digits = Digits(mobileNumber);
+        if (digits.Length == 0)
+        {
+            return;
+        }
+        var existing = await customerRepository.FindByMobileDigitsAsync(studioId, digits, excludeCustomerId, ct);
+        if (existing is not null)
+        {
+            throw new DuplicateCustomerException(MapToDto(existing));
+        }
+    }
+
+    private static string Digits(string? value) => new((value ?? "").Where(char.IsDigit).ToArray());
 
     private static CustomerDto MapToDto(Customer customer) => new()
     {

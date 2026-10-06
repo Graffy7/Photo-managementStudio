@@ -53,8 +53,15 @@ public class CustomersController(
             return DuplicateMobile(existing);
         }
 
-        var customer = await customerService.CreateAsync(StudioId, request, ct);
-        return Ok(customer);
+        try
+        {
+            return Ok(await customerService.CreateAsync(StudioId, request, ct));
+        }
+        catch (DuplicateCustomerException duplicate)
+        {
+            // Another device saved the same number a moment earlier (caught under the lock).
+            return DuplicateMobile(duplicate.Existing);
+        }
     }
 
     [HttpPut("{id:int}")]
@@ -77,8 +84,15 @@ public class CustomersController(
             return DuplicateMobile(existing);
         }
 
-        var customer = await customerService.UpdateAsync(StudioId, id, request, ct);
-        return customer is null ? NotFound() : Ok(customer);
+        try
+        {
+            var customer = await customerService.UpdateAsync(StudioId, id, request, ct);
+            return customer is null ? NotFound() : Ok(customer);
+        }
+        catch (DuplicateCustomerException duplicate)
+        {
+            return DuplicateMobile(duplicate.Existing);
+        }
     }
 
     [HttpPost("{id:int}/activate")]

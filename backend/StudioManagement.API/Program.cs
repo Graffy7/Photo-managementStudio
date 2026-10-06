@@ -44,6 +44,7 @@ using StudioManagement.Business.Storage;
 using StudioManagement.Business.Studios;
 using StudioManagement.Business.Subscriptions;
 using StudioManagement.Business.Tenant;
+using StudioManagement.Business.Common;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Context;
 using StudioManagement.Data.Entities;
@@ -53,6 +54,9 @@ using StudioManagement.Data.UnitOfWork;
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Calendar decisions (today, this month, due reminders) use the studios' time zone, not the server's.
+BusinessClock.Configure(builder.Configuration["App:TimeZone"]);
 
 // Don't advertise the web server (and its version) on every response.
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
@@ -185,6 +189,8 @@ builder.Services.AddScoped<IStudioDashboardService, StudioDashboardService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IFormConfigurationService, FormConfigurationService>();
 builder.Services.AddScoped<ILeadService, LeadService>();
+builder.Services.AddScoped<IStudioLookupGuard, StudioLookupGuard>();
+builder.Services.AddScoped<ISessionRevocationService, SessionRevocationService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IWorkerService, WorkerService>();
@@ -336,14 +342,47 @@ builder.Services.AddScoped<IValidator<BusinessSettingsDto>, BusinessSettingsVali
 builder.Services.AddScoped<IValidator<QuotationSettingsDto>, QuotationSettingsValidator>();
 builder.Services.AddScoped<SuperAdminSeeder>();
 
+// Limits, all adjustable in "RateLimits" (per minute). Per-IP limits are shared by an office behind one
+// address, so they are generous; signed-in limits are per user.
+var limits = builder.Configuration.GetSection("RateLimits");
+int Limit(string name, int fallback) => limits.GetValue(name, fallback);
+string UserOrIp(HttpContext c) =>
+    c.User.FindFirst(TenantClaimTypes.UserId)?.Value is { } userId ? $"user:{userId}" : $"ip:{c.Connection.RemoteIpAddress}";
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, ct) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+        }
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            status = 429,
+            code = "TOO_MANY_REQUESTS",
+            message = "Too many requests. Please wait a moment and try again."
+        }, ct);
+    };
+
+    // Every signed-in request: a ceiling far above what a person clicking around needs (bursts allowed),
+    // so a runaway script or a stolen token can't hammer the database.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        context.User.Identity?.IsAuthenticated == true
+            ? RateLimitPartition.GetTokenBucketLimiter(UserOrIp(context), _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = Limit("PerUserBurst", 300),
+                TokensPerPeriod = Limit("PerUserPerMinute", 600),
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            })
+            : RateLimitPartition.GetNoLimiter("anonymous"));
+
     options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
         $"{httpContext.Request.Path}:{httpContext.Connection.RemoteIpAddress}",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
+            PermitLimit = Limit("AuthPerIp", 5),
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
@@ -353,7 +392,16 @@ builder.Services.AddRateLimiter(options =>
         httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 20,
+            PermitLimit = Limit("LoginPerIp", 20),
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    // Token refresh: every device refreshes about every 15 minutes, so even a busy office stays far below this.
+    options.AddPolicy("refresh", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = Limit("RefreshPerIp", 60),
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
@@ -363,7 +411,7 @@ builder.Services.AddRateLimiter(options =>
         httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 300,
+            PermitLimit = Limit("PublicGalleryPerIp", 300),
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
@@ -372,10 +420,26 @@ builder.Services.AddRateLimiter(options =>
         httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 20,
+            PermitLimit = Limit("CheckoutPerIp", 20),
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
+    // Heavy reads (dashboard, reports, exports, PDFs): opening them repeatedly is normal, hundreds a minute isn't.
+    options.AddPolicy("expensive", httpContext => RateLimitPartition.GetTokenBucketLimiter(UserOrIp(httpContext), _ => new TokenBucketRateLimiterOptions
+    {
+        TokenLimit = Limit("ExpensiveBurst", 30),
+        TokensPerPeriod = Limit("ExpensivePerMinute", 60),
+        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+        QueueLimit = 0
+    }));
+    // Photo uploads from the studio's computer: a large folder uploads a few photos a second.
+    options.AddPolicy("upload", httpContext => RateLimitPartition.GetTokenBucketLimiter(UserOrIp(httpContext), _ => new TokenBucketRateLimiterOptions
+    {
+        TokenLimit = Limit("UploadBurst", 300),
+        TokensPerPeriod = Limit("UploadPerMinute", 1200),
+        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+        QueueLimit = 0
+    }));
 });
 
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -399,6 +463,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // only it) accepts the access token from the query string.
         options.Events = new JwtBearerEvents
         {
+            // A token issued before the user's sessions were ended (sign out everywhere, password
+            // change/reset, stolen refresh token) is refused even though it hasn't expired yet.
+            OnTokenValidated = async context =>
+            {
+                if (int.TryParse(context.Principal?.FindFirst(TenantClaimTypes.UserId)?.Value, out var userId)
+                    && context.SecurityToken is { } token)
+                {
+                    // Exact issue time (tokens from before this change: expiry minus lifetime, whole seconds).
+                    var lifetime = TimeSpan.FromMinutes(context.HttpContext.RequestServices.GetRequiredService<IConfiguration>()
+                        .GetValue("Jwt:AccessTokenExpiryMinutes", 15));
+                    var issuedAt = long.TryParse(context.Principal?.FindFirst(TenantClaimTypes.IssuedAtMs)?.Value, out var issuedMs)
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(issuedMs).UtcDateTime
+                        : token.ValidTo - lifetime;
+                    var sessions = context.HttpContext.RequestServices.GetRequiredService<ISessionRevocationService>();
+                    if (await sessions.IsIssuedBeforeRevocationAsync(userId, issuedAt, context.HttpContext.RequestAborted))
+                    {
+                        context.Fail("Session ended.");
+                    }
+                }
+            },
             OnMessageReceived = context =>
             {
                 var token = context.Request.Query["access_token"];
@@ -425,7 +509,32 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    // Same line as before, but customer gallery links (a secret in the path) are masked.
+    options.GetMessageTemplateProperties = (context, requestPath, elapsed, statusCode) =>
+    [
+        new Serilog.Events.LogEventProperty("RequestMethod", new Serilog.Events.ScalarValue(context.Request.Method)),
+        new Serilog.Events.LogEventProperty("RequestPath", new Serilog.Events.ScalarValue(LogSanitizer.Path(requestPath))),
+        new Serilog.Events.LogEventProperty("StatusCode", new Serilog.Events.ScalarValue(statusCode)),
+        new Serilog.Events.LogEventProperty("Elapsed", new Serilog.Events.ScalarValue(elapsed))
+    ];
+});
+
+// JSON bodies are small forms; anything bigger is refused before it's read (uploads are multipart
+// and keep their own limits).
+var maxJsonBytes = builder.Configuration.GetValue<long>("RequestLimits:MaxJsonBodyBytes", 1_048_576);
+app.Use(async (context, next) =>
+{
+    if (context.Request.ContentLength > maxJsonBytes &&
+        context.Request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        await context.Response.WriteAsJsonAsync(new { status = 413, code = "TOO_LARGE", message = "The request is too large." });
+        return;
+    }
+    await next();
+});
 
 // Security headers on every response (API JSON, PDFs, uploaded images, errors). The API never
 // serves pages of its own, so its CSP allows nothing to run or embed it; Swagger's UI (development

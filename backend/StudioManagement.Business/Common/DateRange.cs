@@ -20,6 +20,11 @@ public class DateRange
     public DateTime Start { get; init; }
     public DateTime End { get; init; }
 
+    // The same range as UTC instants, for columns stored as UTC timestamps (CreatedAt) rather than
+    // calendar dates (EventDate, PaymentDate...): "today" means today in the studio's time zone.
+    public DateTime StartUtc => BusinessClock.ToUtc(Start);
+    public DateTime EndUtc => BusinessClock.ToUtc(End);
+
     // The immediately-preceding window of the same length — used for "vs last period" deltas.
     // For calendar presets (month/year) this is length-equal rather than calendar-equal (e.g. 28
     // vs 31 days), which is the honest tradeoff for a single generic definition that works for
@@ -32,7 +37,8 @@ public class DateRange
 
     public static DateRange Resolve(DateRangePreset preset, DateTime? customStart = null, DateTime? customEnd = null)
     {
-        var today = DateTime.UtcNow.Date;
+        // The studio's calendar day (India), not UTC's - UTC is still "yesterday" until 05:30 IST.
+        var today = BusinessClock.Today;
 
         return preset switch
         {

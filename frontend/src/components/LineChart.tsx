@@ -7,6 +7,8 @@ export interface PointDetail {
   title: string;
   total?: string;
   items?: { name: string; sub?: string; value: string }[];
+  // Items that exist beyond `items` but weren't sent (shown as "and N more").
+  moreCount?: number;
 }
 
 interface Point {
@@ -164,6 +166,8 @@ export function LineChart({
   const active = hover !== null && hover < coords.length ? coords[hover] : null;
   const detail = active?.detail;
   const items = detail?.items ?? [];
+  // Beyond the listed items: the ones cut here plus any the server already left out.
+  const moreCount = Math.max(0, items.length - MAX_TOOLTIP_ITEMS) + (detail?.moreCount ?? 0);
   const tooltipLeft = active ? Math.max(0, Math.min(width - TOOLTIP_WIDTH, active.x - TOOLTIP_WIDTH / 2)) : 0;
   // Sit above the point when there is room, otherwise below it.
   const tooltipAbove = active ? active.y > height * 0.55 : false;
@@ -272,8 +276,8 @@ export function LineChart({
                   <Text style={styles.tooltipValue}>{item.value}</Text>
                 </View>
               ))}
-              {items.length > MAX_TOOLTIP_ITEMS && (
-                <Text style={styles.tooltipMore}>and {items.length - MAX_TOOLTIP_ITEMS} more</Text>
+              {moreCount > 0 && (
+                <Text style={styles.tooltipMore}>and {moreCount} more</Text>
               )}
             </View>
           )}

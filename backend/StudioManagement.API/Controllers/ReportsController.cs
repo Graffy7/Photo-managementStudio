@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class ReportsController(IProfitReportService profitReportService, ITenant
     private int StudioId => tenantContext.CurrentStudioId!.Value;
 
     [HttpGet("profit")]
+    [EnableRateLimiting("expensive")]
     public async Task<IActionResult> GetProfitReport(
         [FromQuery] DateRangePreset preset = DateRangePreset.ThisMonth,
         [FromQuery] DateTime? customStart = null,

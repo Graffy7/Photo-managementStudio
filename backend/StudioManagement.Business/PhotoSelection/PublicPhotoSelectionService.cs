@@ -66,7 +66,7 @@ public class PublicPhotoSelectionService(
             return PublicAccess<PublicPhotosPageDto>.Fail(failure!.Value);
         }
 
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 50 : pageSize;
 
         var (items, totalCount) = await photoRepository.GetPageAsync(gallery.PhotoGalleryId, filter, search, page, pageSize, folderId, ct);

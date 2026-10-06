@@ -25,7 +25,8 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
             new(ClaimTypes.Role, user.UserType),
             new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(TenantClaimTypes.IssuedAtMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString())
         };
 
         if (user.StudioId is not null)

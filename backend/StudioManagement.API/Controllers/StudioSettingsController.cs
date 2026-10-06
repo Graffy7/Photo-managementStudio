@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using StudioManagement.Business.Common;
 using StudioManagement.API.Filters;
 using FluentValidation;
@@ -97,6 +98,7 @@ public class StudioSettingsController(
     // changes nothing, so it's allowed even while the studio is read-only.
     [AllowWhenReadOnly]
     [HttpPost("pdf/preview")]
+    [EnableRateLimiting("expensive")]
     public async Task<IActionResult> PreviewPdf(PdfSettingsDto request, CancellationToken ct)
     {
         var validation = await pdfValidator.ValidateAsync(request, ct);

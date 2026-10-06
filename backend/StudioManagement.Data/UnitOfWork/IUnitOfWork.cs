@@ -13,4 +13,8 @@ public interface IUnitOfWork
     // Runs several writes as one all-or-nothing transaction (committed only if the operation
     // completes; rolled back on any exception).
     Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken ct = default);
+
+    // Inside ExecuteInTransactionAsync: waits for (and holds until commit/rollback) a named lock, so
+    // requests doing the same thing to the same record run one after another. See AppLock.
+    Task AcquireLockAsync(string resource, CancellationToken ct = default);
 }

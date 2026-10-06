@@ -235,7 +235,7 @@ public class AdminConsoleService(
 
     public async Task<PagedResult<AdminStudioRowDto>> GetStudiosAsync(string? search, string? status, string? plan, string? sort, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var states = await LoadStatesAsync(ct);
@@ -293,7 +293,7 @@ public class AdminConsoleService(
 
         var (storage, _) = await storageService.GetAllAsync(false, ct);
         var lastSeen = await usageRepository.GetLastSeenAsync(ct);
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         var usage = await usageRepository.GetForStudioAsync(studioId, today.AddDays(-29), today, ct);
 
         return new AdminStudioDetailDto
@@ -422,7 +422,7 @@ public class AdminConsoleService(
 
     public async Task<PagedResult<AdminActivityDto>> GetActivityAsync(int? studioId, DateTime? from, DateTime? to, string? module, string? search, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 25 : pageSize;
 
         var (items, total) = await repository.SearchActivityAsync(
@@ -660,7 +660,7 @@ public class AdminConsoleService(
 
     public async Task<AdminLedgerPageDto> GetLedgerAsync(int? studioId, string? search, string? status, string? kind, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 25 : pageSize;
 
         var studios = (await repository.GetStudiosAsync(ct)).ToDictionary(s => s.StudioId, s => s.StudioName);

@@ -7,6 +7,9 @@ namespace StudioManagement.Business.Dashboard;
 
 public class StudioDashboardService(IStudioDashboardRepository repository, IUnitOfWork unitOfWork) : IStudioDashboardService
 {
+    // The chart tooltip lists this many of a day's events, then "and N more" (LineChart MAX_TOOLTIP_ITEMS).
+    private const int TooltipEvents = 4;
+
     public Task<StudioDashboardSummaryDto> GetSummaryAsync(int studioId, DateRangePreset preset, DateTime? customStart, DateTime? customEnd, CancellationToken ct = default)
     {
         var range = DateRange.Resolve(preset, customStart, customEnd);
@@ -24,10 +27,11 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
 
         // Sequential — these share one scoped DbContext, which EF Core does not allow to run
         // concurrent operations against.
-        var totalLeads = await repository.CountLeadsAsync(studioId, range.Start, range.End, ct);
-        var convertedLeads = await repository.CountConvertedLeadsAsync(studioId, range.Start, range.End, ct);
+        // Enquiries and customers are counted by when they were created (a UTC timestamp).
+        var totalLeads = await repository.CountLeadsAsync(studioId, range.StartUtc, range.EndUtc, ct);
+        var convertedLeads = await repository.CountConvertedLeadsAsync(studioId, range.StartUtc, range.EndUtc, ct);
         var totalCustomers = await repository.CountTotalCustomersAsync(studioId, ct);
-        var newCustomers = await repository.CountNewCustomersAsync(studioId, range.Start, range.End, ct);
+        var newCustomers = await repository.CountNewCustomersAsync(studioId, range.StartUtc, range.EndUtc, ct);
 
         var totalEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, null, ct);
         var upcomingEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Upcoming, ct);
@@ -42,10 +46,12 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
         var topServices = await repository.GetTopServicesAsync(studioId, range.Start, range.End, 3, ct);
         var revenueTrend = await repository.GetDailyRevenueAsync(studioId, range.Start, range.End, ct);
         var revenueBreakdown = await repository.GetDailyRevenueBreakdownAsync(studioId, range.Start, range.End, ct);
+        // Largest first within each day (the repository orders them), grouped once instead of per point.
+        var breakdownByDay = revenueBreakdown.GroupBy(b => b.Date).ToDictionary(g => g.Key, g => g.ToList());
 
         // Previous-period baselines, purely for the "vs last period" deltas above.
-        var previousLeads = await repository.CountLeadsAsync(studioId, previous.Start, previous.End, ct);
-        var previousNewCustomers = await repository.CountNewCustomersAsync(studioId, previous.Start, previous.End, ct);
+        var previousLeads = await repository.CountLeadsAsync(studioId, previous.StartUtc, previous.EndUtc, ct);
+        var previousNewCustomers = await repository.CountNewCustomersAsync(studioId, previous.StartUtc, previous.EndUtc, ct);
         var previousEvents = await repository.CountEventsByStatusAsync(studioId, previous.Start, previous.End, null, ct);
         var previousRevenue = await repository.SumCollectedRevenueAsync(studioId, previous.Start, previous.End, ct);
 
@@ -87,12 +93,16 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
                 Percentage = totalServiceUsage == 0 ? 0m : Math.Round((decimal)s.Count / totalServiceUsage * 100, 0)
             }).ToList(),
 
-            RevenueTrend = revenueTrend.Select(r => new RevenueTrendPointDto
+            RevenueTrend = revenueTrend.Select(r =>
             {
-                Date = r.Date,
-                Amount = r.Amount,
-                Events = revenueBreakdown
-                    .Where(b => b.Date == r.Date)
+                var dayItems = breakdownByDay.TryGetValue(r.Date, out var items) ? items : [];
+                return new RevenueTrendPointDto
+                {
+                    Date = r.Date,
+                    Amount = r.Amount,
+                    MoreEvents = Math.Max(0, dayItems.Count - TooltipEvents),
+                    Events = dayItems
+                    .Take(TooltipEvents)
                     .Select(b => new RevenueTrendEventDto
                     {
                         EventId = b.EventId,
@@ -102,6 +112,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
                         Amount = b.Amount
                     })
                     .ToList()
+                };
             }).ToList()
         };
     }

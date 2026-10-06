@@ -10,6 +10,7 @@ public interface IQuotationRepository
     // Every quotation ever raised for one event, oldest first - the event's quotation history.
     Task<List<Quotation>> GetForEventAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<int> CountAllAsync(int studioId, CancellationToken ct = default);
+    Task<bool> NumberExistsAsync(int studioId, string quotationNumber, CancellationToken ct = default);
     Task AddAsync(Quotation quotation, CancellationToken ct = default);
     void Update(Quotation quotation);
 }

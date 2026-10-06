@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -33,7 +34,7 @@ public class QuotationPdfService(
     // owner can see the result before saving.
     public Task<byte[]> GeneratePreviewAsync(int studioId, PdfSettingsDto draft, CancellationToken ct = default)
     {
-        var today = DateTime.Today;
+        var today = BusinessClock.Today;
         var sample = new QuotationDto
         {
             QuotationNumber = "SAMPLE-001",

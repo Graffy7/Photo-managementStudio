@@ -30,7 +30,7 @@ public partial class PhotoGalleryService(
 
     public async Task<PagedResult<CompletedEventGalleryDto>> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (events, totalCount) = await galleryRepository.GetCompletedEventsAsync(studioId, search, page, pageSize, ct);
@@ -186,7 +186,7 @@ public partial class PhotoGalleryService(
             return null;
         }
 
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 200 ? 60 : pageSize;
 
         var (items, totalCount) = await photoRepository.GetPageAsync(galleryId, filter, search, page, pageSize, folderId, ct);

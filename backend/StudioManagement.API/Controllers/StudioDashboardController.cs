@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using StudioManagement.API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class StudioDashboardController(IStudioDashboardService studioDashboardSe
     private int StudioId => tenantContext.CurrentStudioId!.Value;
 
     [HttpGet("summary")]
+    [EnableRateLimiting("expensive")]
     public async Task<IActionResult> GetSummary(
         [FromQuery] DateRangePreset preset = DateRangePreset.ThisMonth,
         [FromQuery] DateTime? customStart = null,

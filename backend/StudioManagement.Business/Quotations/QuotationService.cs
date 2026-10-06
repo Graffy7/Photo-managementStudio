@@ -23,7 +23,7 @@ public class QuotationService(
 
     public async Task<PagedResult<QuotationDto>> SearchAsync(int studioId, string? search, string? status, int? customerId, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await quotationRepository.SearchAsync(studioId, search, status, customerId, page, pageSize, ct, sort);
@@ -62,8 +62,6 @@ public class QuotationService(
 
         var settings = await studioSettingsService.GetQuotationSettingsAsync(studioId, ct);
         var subtotal = items.Sum(i => i.Total);
-        var existingCount = await quotationRepository.CountAllAsync(studioId, ct);
-        var sequence = settings.StartingNumber + existingCount;
         var now = DateTime.UtcNow;
 
         var businessSettings = await studioSettingsService.GetBusinessSettingsAsync(studioId, ct);
@@ -72,7 +70,7 @@ public class QuotationService(
         var quotation = new Quotation
         {
             StudioId = studioId,
-            QuotationNumber = $"{settings.Prefix}{sequence:000000}",
+            QuotationNumber = "",
             CustomerId = request.CustomerId,
             EventId = request.EventId,
             QuotationDate = request.QuotationDate,
@@ -90,8 +88,22 @@ public class QuotationService(
             Items = items
         };
 
-        await quotationRepository.AddAsync(quotation, ct);
-        await unitOfWork.SaveChangesAsync(ct);
+        // The number is picked and saved under a per-studio lock, so quotations saved at the same moment
+        // get consecutive numbers instead of the same one. Same format as always: prefix + 6 digits.
+        await unitOfWork.ExecuteInTransactionAsync(async tx =>
+        {
+            await unitOfWork.AcquireLockAsync(LockNames.QuotationNumber(studioId), tx);
+            var sequence = settings.StartingNumber + await quotationRepository.CountAllAsync(studioId, tx);
+            // A number can already be taken if the prefix or starting number was changed in settings.
+            while (await quotationRepository.NumberExistsAsync(studioId, $"{settings.Prefix}{sequence:000000}", tx))
+            {
+                sequence++;
+            }
+            quotation.QuotationNumber = $"{settings.Prefix}{sequence:000000}";
+            await quotationRepository.AddAsync(quotation, tx);
+            await unitOfWork.SaveChangesAsync(tx);
+            return true;
+        }, ct);
         await auditService.LogAsync("Quotation created", Module, studioId, ct);
 
         var created = await quotationRepository.GetByIdAsync(studioId, quotation.QuotationId, ct);

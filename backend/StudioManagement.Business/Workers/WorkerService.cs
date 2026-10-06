@@ -1,5 +1,6 @@
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Lookups;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
 using StudioManagement.Data.UnitOfWork;
@@ -8,6 +9,7 @@ namespace StudioManagement.Business.Workers;
 
 public class WorkerService(
     IWorkerRepository workerRepository,
+    IStudioLookupGuard lookupGuard,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IWorkerService
 {
@@ -15,7 +17,7 @@ public class WorkerService(
 
     public async Task<PagedResult<WorkerDto>> SearchAsync(int studioId, string? search, int? workerTypeId, bool? isActive, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await workerRepository.SearchAsync(studioId, search, workerTypeId, isActive, page, pageSize, ct);
@@ -36,6 +38,7 @@ public class WorkerService(
 
     public async Task<WorkerDto> CreateAsync(int studioId, CreateWorkerRequestDto request, CancellationToken ct = default)
     {
+        await lookupGuard.EnsureOwnedAsync(studioId, workerTypeId: request.WorkerTypeId, ct: ct);
         var now = DateTime.UtcNow;
         var worker = new Worker
         {
@@ -66,6 +69,7 @@ public class WorkerService(
             return null;
         }
 
+        await lookupGuard.EnsureOwnedAsync(studioId, workerTypeId: request.WorkerTypeId, ct: ct);
         worker.FullName = request.FullName;
         worker.MobileNumber = request.MobileNumber;
         worker.Email = request.Email;

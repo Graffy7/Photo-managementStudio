@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using StudioManagement.Business.Common;
 
 namespace StudioManagement.Business.Sms;
 
@@ -8,8 +9,9 @@ public class LoggingSmsSender(ILogger<LoggingSmsSender> logger) : ISmsSender
 {
     public Task SendVerificationCodeAsync(string phoneNumber, string code, int expiryMinutes, CancellationToken ct = default)
     {
-        logger.LogInformation("SMS (no SMS provider, logging instead) — To: {Phone}\n{Message}",
-            phoneNumber, SmsText.VerificationCode(code, expiryMinutes));
+        // The text is a reset code: only at Debug (development settings), never in a server's log.
+        logger.LogInformation("SMS NOT sent (no SMS provider configured) to {Phone}", LogMask.Phone(phoneNumber));
+        logger.LogDebug("SMS text for {Phone} (development only):\n{Message}", phoneNumber, SmsText.VerificationCode(code, expiryMinutes));
         return Task.CompletedTask;
     }
 }

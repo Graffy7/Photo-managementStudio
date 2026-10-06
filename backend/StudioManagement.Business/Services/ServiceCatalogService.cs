@@ -15,7 +15,7 @@ public class ServiceCatalogService(
 
     public async Task<PagedResult<ServiceCatalogDto>> SearchAsync(int studioId, string? search, bool? isActive, int page, int pageSize, CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
         var (items, totalCount) = await serviceRepository.SearchAsync(studioId, search, isActive, page, pageSize, ct);

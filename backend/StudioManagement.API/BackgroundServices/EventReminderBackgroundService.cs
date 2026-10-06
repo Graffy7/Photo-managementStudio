@@ -1,3 +1,4 @@
+using StudioManagement.Business.Common;
 using StudioManagement.Business.Notifications;
 using StudioManagement.Business.WhatsApp;
 
@@ -40,7 +41,7 @@ public class EventReminderBackgroundService(IServiceScopeFactory scopeFactory, I
             {
                 using var scope = scopeFactory.CreateScope();
                 var whatsAppReminderService = scope.ServiceProvider.GetRequiredService<IWhatsAppReminderService>();
-                var result = await whatsAppReminderService.SendDueRemindersForAllStudiosAsync(DateTime.Now, stoppingToken);
+                var result = await whatsAppReminderService.SendDueRemindersForAllStudiosAsync(BusinessClock.Now, stoppingToken);
                 if (result.Sent + result.Failed + result.Skipped > 0)
                 {
                     logger.LogInformation("WhatsApp reminders: {Sent} sent, {Failed} failed, {Skipped} skipped", result.Sent, result.Failed, result.Skipped);
