@@ -70,7 +70,9 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
         fileLocation: eventStatus === "Completed" ? fileLocation.trim() || undefined : undefined,
         notes: notes.trim() || undefined,
       };
-      return isEdit ? eventsApi.update(event!.eventId, payload) : eventsApi.create(payload);
+      // Editing: say which version of the event these fields came from, so the save is refused if
+      // someone else changed the event in the meantime (instead of overwriting their changes).
+      return isEdit ? eventsApi.update(event!.eventId, { ...payload, rowVersion: event!.rowVersion }) : eventsApi.create(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });

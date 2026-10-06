@@ -132,9 +132,22 @@ public class EventService(
         // The total can't drop below what the customer has already paid - that would show a negative
         // balance. Checked under the same event lock payments use, so a payment saved at the same
         // moment is counted. To lower it further, record a refund (deduction) first.
+        // The version check, the totals check and the save all happen under the event lock, so two
+        // people saving the same event at the same moment are handled one after the other: the second
+        // one's version is then out of date and it is told so.
         var totalProblem = await unitOfWork.ExecuteInTransactionAsync(async tx =>
         {
             await paymentRepository.LockForPaymentAsync(studioId, @event.CustomerId, eventId, tx);
+            if (request.RowVersion is { Length: > 0 } expected)
+            {
+                var current = await eventRepository.GetRowVersionAsync(studioId, eventId, tx);
+                if (current is null || !current.AsSpan().SequenceEqual(expected))
+                {
+                    throw new BusinessConflictException(
+                        "This event was changed by someone else while you were editing it. Reload it to see the latest details, then make your changes again.",
+                        "EVENT_CHANGED");
+                }
+            }
             var paid = await paymentRepository.GetCompletedTotalForEventAsync(studioId, eventId, null, tx);
             if (paid > 0 && (request.Budget is null || request.Budget < paid))
             {
@@ -142,6 +155,10 @@ public class EventService(
                     ? $"₹{paid:N0} has already been paid for this event, so it needs a total of at least ₹{paid:N0}."
                     : $"₹{paid:N0} has already been paid for this event, so the total can't be less than that. To lower it, record a refund (a deduction) first.";
             }
+
+            ApplyUpdate(@event, request);
+            eventRepository.Update(@event);
+            await unitOfWork.SaveChangesAsync(tx);
             return (string?)null;
         }, ct);
         if (totalProblem is not null)
@@ -149,6 +166,14 @@ public class EventService(
             return EventWriteResult.Fail(EventWriteFailureReason.TotalBelowPaid, totalProblem);
         }
 
+        await auditService.LogAsync("Event updated", Module, studioId, ct);
+
+        var updated = await eventRepository.GetByIdAsync(studioId, eventId, ct);
+        return EventWriteResult.Success(MapToDto(updated!));
+    }
+
+    private static void ApplyUpdate(Event @event, UpdateEventRequestDto request)
+    {
         @event.CustomerId = request.CustomerId;
         @event.EventTypeId = request.EventTypeId;
         @event.EventDate = request.EventDate;
@@ -172,13 +197,6 @@ public class EventService(
         @event.FileLocation = request.FileLocation;
         @event.Notes = request.Notes;
         @event.UpdatedAt = DateTime.UtcNow;
-
-        eventRepository.Update(@event);
-        await unitOfWork.SaveChangesAsync(ct);
-        await auditService.LogAsync("Event updated", Module, studioId, ct);
-
-        var updated = await eventRepository.GetByIdAsync(studioId, eventId, ct);
-        return EventWriteResult.Success(MapToDto(updated!));
     }
 
     public async Task<EventDto?> UpdateNotesAsync(int studioId, int eventId, string? notes, CancellationToken ct = default)
@@ -336,7 +354,8 @@ public class EventService(
                 .ToList(),
             DeliveryItems = EventDeliveryService.Merge(@event.DeliveryItems),
             CreatedAt = @event.CreatedAt,
-            UpdatedAt = @event.UpdatedAt
+            UpdatedAt = @event.UpdatedAt,
+            RowVersion = @event.RowVersion
         };
     }
 }

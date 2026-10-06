@@ -64,6 +64,9 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         b.Property(x => x.VenueAddress).HasMaxLength(500);
         b.Property(x => x.Budget).HasColumnType("decimal(18,2)");
         b.Property(x => x.EventStatus).IsRequired().HasMaxLength(30);
+        // Database-generated version stamp. Not an automatic EF concurrency token: only the full edit
+        // checks it (EventService.UpdateAsync) - quick actions like notes keep "last save wins".
+        b.Property(x => x.RowVersion).HasColumnType("rowversion").ValueGeneratedOnAddOrUpdate().IsConcurrencyToken(false);
         b.Property(x => x.FileLocation).HasMaxLength(1000);
         b.Property(x => x.EventDate).HasColumnType("datetime2");
         b.Property(x => x.CompletedAt).HasColumnType("datetime2");

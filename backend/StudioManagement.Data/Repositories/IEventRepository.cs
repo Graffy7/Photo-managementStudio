@@ -24,5 +24,7 @@ public interface IEventRepository
     // PhotoGalleries Restrict-delete against Event too (its customer selections are worth keeping).
     Task<bool> HasPaymentsAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<bool> ExistsAsync(int studioId, int eventId, CancellationToken ct = default);
+    // The event's version as stored right now (not the value a tracked entity was loaded with).
+    Task<byte[]?> GetRowVersionAsync(int studioId, int eventId, CancellationToken ct = default);
     Task<bool> HasPhotoGalleryAsync(int studioId, int eventId, CancellationToken ct = default);
 }

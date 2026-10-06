@@ -217,6 +217,11 @@ namespace StudioManagement.Data.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<TimeSpan?>("StartTime")
                         .HasColumnType("time");
 
@@ -1242,6 +1247,10 @@ namespace StudioManagement.Data.Migrations
                     b.HasIndex("PhotoFolderId");
 
                     b.HasIndex("PhotoGalleryId", "FileName");
+
+                    b.HasIndex("PhotoGalleryId", "IsActive");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PhotoGalleryId", "IsActive"), new[] { "PhotoNumber", "FileName", "PhotoFolderId", "ThumbnailPath", "PreviewPath", "Width", "Height" });
 
                     b.HasIndex("PhotoGalleryId", "PhotoNumber")
                         .IsUnique();

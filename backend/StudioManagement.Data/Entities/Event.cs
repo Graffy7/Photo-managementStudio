@@ -23,6 +23,10 @@ public class Event : ITenantEntity
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // Changed by SQL Server on every update of the row. The edit form sends back the value it
+    // loaded, so saving over someone else's newer changes is refused instead of silently winning.
+    public byte[] RowVersion { get; set; } = [];
+
     public Studio Studio { get; set; } = null!;
     public Customer Customer { get; set; } = null!;
     public EventType? EventType { get; set; }

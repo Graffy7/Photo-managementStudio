@@ -155,6 +155,12 @@ public class EventRepository(AppDbContext context) : IEventRepository
     public Task<bool> ExistsAsync(int studioId, int eventId, CancellationToken ct = default) =>
         context.Events.AnyAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
+    public Task<byte[]?> GetRowVersionAsync(int studioId, int eventId, CancellationToken ct = default) =>
+        context.Events.AsNoTracking()
+            .Where(e => e.StudioId == studioId && e.EventId == eventId)
+            .Select(e => (byte[]?)e.RowVersion)
+            .FirstOrDefaultAsync(ct);
+
     public Task<bool> HasPhotoGalleryAsync(int studioId, int eventId, CancellationToken ct = default) =>
         context.PhotoGalleries.AnyAsync(g => g.StudioId == studioId && g.EventId == eventId, ct);
 }

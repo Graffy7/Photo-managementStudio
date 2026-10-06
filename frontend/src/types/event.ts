@@ -38,6 +38,8 @@ export interface StudioEvent {
   deliveryItems: DeliveryItem[];
   createdAt: string;
   updatedAt: string;
+  // Version stamp of the event as loaded; sent back when saving an edit.
+  rowVersion?: string;
 }
 
 // One line of a completed event's delivery checklist. itemId is 0 for a standard item that has
@@ -68,7 +70,9 @@ export interface CreateEventRequest {
   notes?: string;
 }
 
-export type UpdateEventRequest = CreateEventRequest;
+// rowVersion: the version of the event the form loaded; the server refuses the save (409) if the
+// event was changed by someone else since.
+export type UpdateEventRequest = CreateEventRequest & { rowVersion?: string };
 
 // ---- Event history: the permanent record of one event ----
 

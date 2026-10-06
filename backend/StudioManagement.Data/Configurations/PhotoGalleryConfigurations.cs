@@ -76,6 +76,10 @@ public class PhotoConfiguration : IEntityTypeConfiguration<Photo>
 
         b.HasIndex(x => new { x.PhotoGalleryId, x.PhotoNumber }).IsUnique();
         b.HasIndex(x => new { x.PhotoGalleryId, x.FileName });
+        // Gallery pages, counts and summaries all ask for "this gallery's active photos": answered from
+        // this index alone instead of scanning every studio's photos.
+        b.HasIndex(x => new { x.PhotoGalleryId, x.IsActive })
+            .IncludeProperties(x => new { x.PhotoNumber, x.FileName, x.PhotoFolderId, x.ThumbnailPath, x.PreviewPath, x.Width, x.Height });
 
         b.HasOne(x => x.Gallery).WithMany(x => x.Photos)
             .HasForeignKey(x => x.PhotoGalleryId).OnDelete(DeleteBehavior.Cascade);

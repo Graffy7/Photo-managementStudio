@@ -226,6 +226,13 @@ ok(req("PUT", f"/payments/{pid}", {**pay, "paymentStatus": "Cancelled"}, Q)[0] =
 ok(float(req("GET", f"/events/{eid}", tok=Q)[1]["balance"]) == 35000, "cancelled payment gives the balance back")
 c, b, _ = req("PUT", f"/events/{eid}", {**ev, "budget": 10000}, Q)
 ok(c == 400, "event total can't go below what's already paid", (c, b))
+# Two people editing the same event: the one who saves second (with the version they loaded) is told.
+version = req("GET", f"/events/{eid}", tok=Q)[1].get("rowVersion")
+c, saved, _ = req("PUT", f"/events/{eid}", {**ev, "venue": "CI Hall 2", "rowVersion": version}, Q)
+ok(c == 200 and saved.get("rowVersion") != version, "saving an event with its current version works", (c, saved))
+c, b, _ = req("PUT", f"/events/{eid}", {**ev, "venue": "CI Hall 3", "rowVersion": version}, Q)
+ok(c == 409 and b.get("code") == "EVENT_CHANGED", "saving with an out-of-date version -> 409", (c, b))
+ok(req("PUT", f"/events/{eid}", {**ev, "venue": "CI Hall"}, Q)[0] == 200, "a save without a version still works")
 
 area("List sorting and paging")
 req("POST", "/events", {**ev, "budget": 90000, "advancePaid": 0}, Q)

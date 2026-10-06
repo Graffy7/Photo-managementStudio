@@ -22,6 +22,8 @@ public class EventDto
     public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    // Version stamp to send back when saving an edit (see UpdateEventRequestDto.RowVersion).
+    public byte[] RowVersion { get; set; } = [];
 
     // The crew already assigned, so a list of events doesn't have to fetch them one row at a time.
     public List<AssignedWorkerDto> AssignedWorkers { get; set; } = [];
@@ -62,6 +64,10 @@ public class UpdateEventRequestDto
     public string EventStatus { get; set; } = null!;
     public string? FileLocation { get; set; }
     public string? Notes { get; set; }
+
+    // The event's RowVersion as the edit form loaded it. When sent, the save is refused (409) if the
+    // event was changed since; left out (older app versions), the save goes through as before.
+    public byte[]? RowVersion { get; set; }
 }
 
 public class UpdateEventNotesRequestDto
