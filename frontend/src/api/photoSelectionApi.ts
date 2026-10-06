@@ -4,7 +4,7 @@ import { apiClient } from "./client";
 import { API_BASE_URL } from "../constants/config";
 import type { PagedResult } from "../types/studio";
 import type {
-  CompletedEventGallery,
+  CompletedEventGallery, CompletedEventsPage,
   CopyJob,
   FolderBrowseResult,
   GalleryCounts,
@@ -26,8 +26,8 @@ import type { DeviceSelectionFile } from "../utils/devicePhotos";
 // ---- Studio owner (authenticated)
 
 export const photoSelectionApi = {
-  completedEvents: (params: { search?: string; page?: number; pageSize?: number }) =>
-    apiClient.get<PagedResult<CompletedEventGallery>>("/api/photo-galleries/completed-events", { params }).then((r) => r.data),
+  completedEvents: (params: { search?: string; state?: string; page?: number; pageSize?: number }) =>
+    apiClient.get<CompletedEventsPage>("/api/photo-galleries/completed-events", { params }).then((r) => r.data),
 
   openForEvent: (eventId: number) =>
     apiClient.post<OwnerGallery>(`/api/photo-galleries/events/${eventId}`).then((r) => r.data),

@@ -93,6 +93,16 @@ export interface CompletedEventGallery {
   previewsDeleteAt: string | null;
 }
 
+// One page of completed events, plus how many events are in each state (for the filter chips).
+export interface CompletedEventsPage {
+  items: CompletedEventGallery[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  allCount: number;
+  stateCounts: Partial<Record<GalleryState, number>>;
+}
+
 // A delivery folder. FolderId 0 is the "Other" bucket the server adds for photos that were never
 // filed into a folder - it can't be renamed or removed.
 export interface PhotoFolder {

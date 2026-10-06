@@ -4,6 +4,8 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/auth/authStore";
+import { CameraCursor } from "./src/cameraCursor/CameraCursor";
+import { installWebScrollbars } from "./src/ui/webScrollbars";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
 
 // Data counts as fresh for 30 seconds, so moving between screens re-uses it instead of re-asking.
@@ -21,6 +23,8 @@ function photoSelectionToken(): string | null {
   const match = window.location.pathname.match(/^\/photo-selection\/([^/?#]+)\/?$/);
   return match ? decodeURIComponent(match[1]) : null;
 }
+
+installWebScrollbars();
 
 export default function App() {
   const [token] = useState(photoSelectionToken);
@@ -48,6 +52,8 @@ function AuthenticatedApp() {
   return (
     <QueryClientProvider client={queryClient}>
       <RootNavigator />
+      {/* Optional camera-shaped pointer for the studio app (switched on from the menu). */}
+      <CameraCursor />
       <StatusBar style="light" />
     </QueryClientProvider>
   );

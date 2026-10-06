@@ -35,8 +35,9 @@ public class PhotoGalleriesController(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? state = null,
         CancellationToken ct = default) =>
-        Ok(await galleryService.GetCompletedEventsAsync(StudioId, search, page, pageSize, ct));
+        Ok(await galleryService.GetCompletedEventsAsync(StudioId, search, page, pageSize, ct, state));
 
     // Opens the event's gallery, creating it the first time.
     [HttpPost("events/{eventId:int}")]

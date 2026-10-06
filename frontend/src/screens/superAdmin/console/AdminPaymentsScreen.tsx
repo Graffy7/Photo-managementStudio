@@ -30,7 +30,7 @@ export function AdminPaymentsScreen({ onOpenStudio }: { onOpenStudio: (studioId:
   const [page, setPage] = useState(1);
   useEffect(() => setPage(1), [range, status, kind, search]);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch, isPlaceholderData } = useQuery({
     queryKey: ["admin-payments", range.from, range.to, status, kind, search, page],
     queryFn: () => adminConsoleApi.payments({
       ...range, status: status === "All" ? undefined : status, kind: kind === "All" ? undefined : kind,
@@ -92,7 +92,7 @@ export function AdminPaymentsScreen({ onOpenStudio }: { onOpenStudio: (studioId:
                 </View>
               </ScrollView>
             )}
-        {data && <Pagination page={page} pageSize={PAGE_SIZE} total={data.totalCount} onPage={setPage} />}
+        {data && <Pagination page={page} pageSize={PAGE_SIZE} total={data.totalCount} onPage={setPage} loading={isPlaceholderData} noun="payments" />}
       </Card>
     </ScrollView>
   );

@@ -60,7 +60,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   // Any change to what's shown starts again from page 1.
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["events", search, eventStatus, eventDate, page, sort?.by, sort?.desc],
     queryFn: () => eventsApi.search({
       search: search || undefined,
@@ -177,6 +177,8 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         columns={columns}
         onRowPress={onView}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="events"
         error={isError ? "Couldn't load events. Check your connection and try again." : null}
         onRetry={() => refetch()}
         sort={sort}

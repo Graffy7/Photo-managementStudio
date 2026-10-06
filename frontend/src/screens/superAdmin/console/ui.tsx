@@ -1,3 +1,4 @@
+import { Pagination as SharedPagination } from "../../../ui/Pagination";
 import { useRef, type ReactNode } from "react";
 import { View, Text, Pressable, StyleSheet, Modal, ActivityIndicator, type ViewStyle, type StyleProp } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -228,21 +229,9 @@ export function Chips<T extends string>({ options, value, onChange }: {
   );
 }
 
-export function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (p: number) => void }) {
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  if (total === 0) return null;
-  const first = (page - 1) * pageSize + 1;
-  const last = Math.min(total, page * pageSize);
-  return (
-    <View style={s.pagination}>
-      <Text style={s.faint}>{first}–{last} of {total}</Text>
-      <View style={s.pageButtons}>
-        <Button label="Previous" small icon="chevron-back" onPress={() => onPage(page - 1)} disabled={page <= 1} />
-        <Text style={s.pageText}>Page {page} of {pages}</Text>
-        <Button label="Next" small onPress={() => onPage(page + 1)} disabled={page >= pages} />
-      </View>
-    </View>
-  );
+// The admin console uses the app's one pager (src/ui/Pagination) so every list pages the same way.
+export function Pagination({ page, pageSize, total, onPage, loading, noun }: { page: number; pageSize: number; total: number; onPage: (p: number) => void; loading?: boolean; noun?: string }) {
+  return <SharedPagination page={page} pageSize={pageSize} totalCount={total} onPageChange={onPage} loading={loading} noun={noun} />;
 }
 
 export function DateRange({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {

@@ -53,7 +53,7 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState | null>(null);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["payments", search, status, page, sort?.by, sort?.desc],
     queryFn: () => paymentsApi.search({
       search: search || undefined,
@@ -101,6 +101,8 @@ export function PaymentListScreen({ onCreate, onEdit }: { onCreate: () => void; 
         columns={columns}
         onRowPress={onEdit}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="payments"
         error={isError ? "Couldn't load payments. Check your connection and try again." : null}
         onRetry={() => refetch()}
         sort={sort}

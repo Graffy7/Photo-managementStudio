@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { photoSelectionApi } from "../../api/photoSelectionApi";
@@ -86,26 +86,24 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
   const [filter, setFilter] = useState<Filter>("All");
   const [page, setPage] = useState(1);
 
-  const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["photo-gallery-events", search],
-    queryFn: () => photoSelectionApi.completedEvents({ search: search || undefined, page: 1, pageSize: 100 }),
+  // The server filters by state, counts each state and sends just this page.
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
+    queryKey: ["photo-gallery-events", search, filter, page],
+    queryFn: () => photoSelectionApi.completedEvents({
+      search: search || undefined,
+      state: filter === "All" ? undefined : filter,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
     placeholderData: keepPreviousData,
   });
   useRefetchOnFocus(refetch);
 
-  const all = data?.items;
-  const counts = useMemo(() => {
-    const c: Partial<Record<Filter, number>> = { All: all?.length ?? 0 };
-    for (const e of all ?? []) c[e.state] = (c[e.state] ?? 0) + 1;
-    return c;
-  }, [all]);
-  const filteredItems = useMemo(() => (all ?? []).filter((e) => filter === "All" || e.state === filter), [all, filter]);
-  const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
+  const countOf = (f: Filter) => (f === "All" ? data?.allCount : data?.stateCounts[f]) ?? 0;
   // Only states that actually occur get a chip (plus the one currently chosen).
   const chips = FILTERS
-    .filter((f) => f.value === "All" || f.value === filter || (counts[f.value] ?? 0) > 0)
-    .map((f) => ({ value: f.value, label: all ? `${f.label} (${counts[f.value] ?? 0})` : f.label }));
+    .filter((f) => f.value === "All" || f.value === filter || countOf(f.value) > 0)
+    .map((f) => ({ value: f.value, label: data ? `${f.label} (${countOf(f.value)})` : f.label }));
 
   const columns: Column<CompletedEventGallery>[] = [
     { key: "customer", label: "Customer", flex: 2, render: (e) => (<><CellTitle>{e.customerName}</CellTitle><CellSub>{[e.eventTypeName, e.venue].filter(Boolean).join(" · ") || "Event"}</CellSub></>) },
@@ -121,7 +119,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
     <Screen>
       <PageHeader
         title="Photo delivery"
-        subtitle={data ? `${data.totalCount} completed event${data.totalCount === 1 ? "" : "s"}` : null}
+        subtitle={data ? `${data.allCount} completed event${data.allCount === 1 ? "" : "s"}` : null}
       />
       <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={(v) => { setSearch(v); setPage(1); }} placeholder="Search by customer or venue" />
       <View style={{ marginBottom: space.lg }}>
@@ -129,16 +127,18 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
       </View>
 
       <DataList
-        items={pageItems}
+        items={data?.items}
         keyOf={(e) => e.eventId}
         columns={columns}
         onRowPress={(e) => onOpen(e.eventId)}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="events"
         error={isError ? "Couldn't load events. Check your connection and try again." : null}
         onRetry={() => refetch()}
         page={page}
         pageSize={PAGE_SIZE}
-        totalCount={filteredItems.length}
+        totalCount={data?.totalCount ?? 0}
         onPageChange={setPage}
         empty={hasFilter ? (
           <EmptyState icon="search-outline" title="No events here" text="Try another customer name or status."

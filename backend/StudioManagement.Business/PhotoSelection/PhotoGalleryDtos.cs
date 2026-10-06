@@ -105,6 +105,14 @@ public class ImportedSourceDto
     public int SelectedCount { get; set; }
 }
 
+// One page of completed events plus how many there are in each selection state (for the filter
+// chips), whatever state the page itself is filtered to.
+public class CompletedEventsPageDto : StudioManagement.Business.Common.PagedResult<CompletedEventGalleryDto>
+{
+    public int AllCount { get; init; }
+    public Dictionary<string, int> StateCounts { get; init; } = [];
+}
+
 public class CompletedEventGalleryDto
 {
     public int EventId { get; set; }

@@ -50,7 +50,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
 
   const { data: leadStatuses } = useQuery({ queryKey: ["lookups", "leadStatuses"], queryFn: lookupApis.leadStatuses.getAll });
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["leads", search, leadStatusId, createdFrom, createdTo, page, sort?.by, sort?.desc],
     queryFn: () =>
       leadsApi.search({
@@ -153,6 +153,8 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         columns={columns}
         onRowPress={onView}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="enquiries"
         error={isError ? "Couldn't load enquiries. Check your connection and try again." : null}
         onRetry={() => refetch()}
         sort={sort}

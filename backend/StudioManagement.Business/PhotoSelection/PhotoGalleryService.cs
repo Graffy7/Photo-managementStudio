@@ -28,22 +28,41 @@ public partial class PhotoGalleryService(
 
     // ---- Owner list --------------------------------------------------------------------------
 
-    public async Task<PagedResult<CompletedEventGalleryDto>> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<CompletedEventsPageDto> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default, string? state = null)
     {
         page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (events, totalCount) = await galleryRepository.GetCompletedEventsAsync(studioId, search, page, pageSize, ct);
-        var galleries = await galleryRepository.GetByEventIdsAsync(studioId, events.Select(e => e.EventId).ToList(), ct);
-        var counts = await galleryRepository.GetCountsForGalleriesAsync(galleries.Select(g => g.PhotoGalleryId).ToList(), ct);
+        // An event's state (need to send, submitted, expired...) comes from its gallery, photo count
+        // and the clock, so it is worked out here for every matching event - ids only - to give the
+        // per-state counts and to filter by state before a page is cut. Only that page's events are
+        // then loaded in full and sent.
+        var eventIds = await galleryRepository.GetCompletedEventIdsAsync(studioId, search, ct);
+        var galleries = (await galleryRepository.GetByEventIdsAsync(studioId, eventIds, ct)).ToDictionary(g => g.EventId);
+        var counts = await galleryRepository.GetCountsForGalleriesAsync(galleries.Values.Select(g => g.PhotoGalleryId).ToList(), ct);
         var now = DateTime.UtcNow;
 
-        var items = events.Select(e =>
+        GallerySelectionCounts CountsFor(PhotoGallery? gallery) =>
+            gallery is not null && counts.TryGetValue(gallery.PhotoGalleryId, out var c) ? c : new GallerySelectionCounts(0, 0, 0);
+
+        var states = eventIds.ToDictionary(id => id, id =>
         {
-            var gallery = galleries.FirstOrDefault(g => g.EventId == e.EventId);
-            var galleryCounts = gallery is not null && counts.TryGetValue(gallery.PhotoGalleryId, out var c)
-                ? c
-                : new GallerySelectionCounts(0, 0, 0);
+            galleries.TryGetValue(id, out var gallery);
+            return ComputeState(gallery, CountsFor(gallery).Total, now);
+        });
+        var stateCounts = states.Values.GroupBy(s => s).ToDictionary(g => g.Key, g => g.Count());
+
+        var matching = string.IsNullOrWhiteSpace(state)
+            ? eventIds
+            : eventIds.Where(id => string.Equals(states[id], state, StringComparison.OrdinalIgnoreCase)).ToList();
+        var pageIds = matching.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var events = (await galleryRepository.GetEventsByIdsAsync(studioId, pageIds, ct)).ToDictionary(e => e.EventId);
+
+        var items = pageIds.Where(events.ContainsKey).Select(id =>
+        {
+            var e = events[id];
+            galleries.TryGetValue(id, out var gallery);
+            var galleryCounts = CountsFor(gallery);
 
             return new CompletedEventGalleryDto
             {
@@ -54,7 +73,7 @@ public partial class PhotoGalleryService(
                 CustomerId = e.CustomerId,
                 CustomerName = e.Customer.FullName,
                 GalleryId = gallery?.PhotoGalleryId,
-                State = ComputeState(gallery, galleryCounts.Total, now),
+                State = states[id],
                 PhotoCount = galleryCounts.Total,
                 SelectedCount = galleryCounts.Selected,
                 SubmittedAt = gallery?.SubmittedAt,
@@ -63,7 +82,15 @@ public partial class PhotoGalleryService(
             };
         }).ToList();
 
-        return new PagedResult<CompletedEventGalleryDto> { Items = items, TotalCount = totalCount, Page = page, PageSize = pageSize };
+        return new CompletedEventsPageDto
+        {
+            Items = items,
+            TotalCount = matching.Count,
+            Page = page,
+            PageSize = pageSize,
+            AllCount = eventIds.Count,
+            StateCounts = stateCounts
+        };
     }
 
     // ---- One gallery -------------------------------------------------------------------------

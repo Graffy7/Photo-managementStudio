@@ -1,10 +1,19 @@
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { useState } from "react";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { studioActivityApi } from "../../api/studioActivityApi";
 import type { AuditLogEntry } from "../../types/auditLog";
 import { actionTone, TONE_COLORS } from "../../utils/auditTone";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
+import { Screen } from "../../ui/Screen";
+import { PageHeader } from "../../ui/PageHeader";
+import { EmptyState } from "../../ui/EmptyState";
+import { PagedRows } from "../../ui/PagedRows";
+import { colors, radius, space, type } from "../../ui/theme";
+
+const PAGE_SIZE = 20;
 
 function timeAgo(value: string): string {
   const diffMs = Date.now() - new Date(value).getTime();
@@ -20,16 +29,18 @@ function timeAgo(value: string): string {
 export function ActivityScreen() {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
+  const [page, setPage] = useState(1);
 
-  const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["studio-activity"],
-    queryFn: () => studioActivityApi.search({ page: 1, pageSize: 50 }),
-    // Live while on screen only - a hidden screen further back in the stack doesn't poll.
-    refetchInterval: isFocused ? 15000 : false,
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
+    queryKey: ["studio-activity", page],
+    queryFn: () => studioActivityApi.search({ page, pageSize: PAGE_SIZE }),
+    placeholderData: keepPreviousData,
+    // Live while on screen, and only on the newest page - older pages don't change.
+    refetchInterval: isFocused && page === 1 ? 15000 : false,
   });
   useRefetchOnFocus(refetch);
 
-  const renderItem = ({ item }: { item: AuditLogEntry }) => (
+  const renderRow = (item: AuditLogEntry) => (
     <View style={styles.row}>
       <View style={[styles.dot, { backgroundColor: TONE_COLORS[actionTone(item.action)] }]} />
       <View style={styles.rowBody}>
@@ -45,48 +56,41 @@ export function ActivityScreen() {
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>‹ Settings</Text>
-        </Pressable>
-        <Text style={styles.title}>Activity</Text>
-        <Text style={styles.subtitle}>Everything created, edited, or changed in your studio — newest first.</Text>
-      </View>
+    <Screen maxWidth={760}>
+      <Pressable onPress={() => navigation.goBack()} style={styles.back} accessibilityRole="link" hitSlop={6}>
+        <Ionicons name="chevron-back" size={18} color={colors.link} />
+        <Text style={styles.backText}>Settings</Text>
+      </Pressable>
+      <PageHeader title="Activity" subtitle="Everything created, edited or changed in your studio — newest first." />
 
-      {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
-      ) : isError ? (
-        <Text style={styles.empty}>Couldn't load activity.</Text>
-      ) : (
-        <FlatList
-          data={data?.items ?? []}
-          keyExtractor={(item) => String(item.auditLogId)}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<Text style={styles.empty}>Nothing has happened yet.</Text>}
-          contentContainerStyle={{ padding: 24, paddingTop: 0, maxWidth: 640, width: "100%", alignSelf: "center" }}
-        />
-      )}
-    </View>
+      <PagedRows
+        items={data?.items}
+        keyOf={(a) => a.auditLogId}
+        renderRow={renderRow}
+        loading={isPending}
+        fetching={isPlaceholderData}
+        noun="entries"
+        error={isError ? "Couldn't load activity. Check your connection and try again." : null}
+        onRetry={() => refetch()}
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalCount={data?.totalCount ?? 0}
+        onPageChange={setPage}
+        empty={<EmptyState icon="time-outline" title="Nothing has happened yet" text="As you add customers, events and payments, each change is listed here." />}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
-  header: { padding: 24, paddingBottom: 18, maxWidth: 640, width: "100%", alignSelf: "center" },
-  backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
-  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4 },
-  row: { flexDirection: "row", gap: 12, paddingVertical: 12, alignItems: "flex-start" },
-  dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
-  rowBody: { flex: 1, gap: 3 },
-  line: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  action: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  modulePill: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
-  modulePillText: { color: "#8cc8f0", fontSize: 10, fontWeight: "700" },
-  meta: { color: "#6f83a0", fontSize: 12 },
-  separator: { height: 1, backgroundColor: "#1f3149" },
-  empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start", minHeight: 32, marginBottom: space.sm },
+  backText: { ...type.small, fontWeight: "600", color: colors.link },
+  row: { flexDirection: "row", gap: space.md, padding: space.lg, alignItems: "flex-start" },
+  dot: { width: 8, height: 8, borderRadius: 4, marginTop: 7 },
+  rowBody: { flex: 1, minWidth: 0, gap: 3 },
+  line: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  action: { ...type.body, fontWeight: "600", color: colors.text },
+  modulePill: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill, paddingVertical: 2, paddingHorizontal: 8 },
+  modulePillText: { ...type.caption, fontWeight: "700", color: colors.link },
+  meta: { ...type.small, color: colors.textFaint },
 });

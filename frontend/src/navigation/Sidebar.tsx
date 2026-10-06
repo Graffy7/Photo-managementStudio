@@ -1,3 +1,4 @@
+import { CameraCursorToggle } from "../cameraCursor/CameraCursorToggle";
 import { View, Text, Pressable, StyleSheet, ScrollView, Image } from "react-native";
 import type { NavigationContainerRefWithCurrent } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -101,6 +102,9 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
         <NavList activeRoute={activeRoute} onNavigate={(route) => navigationRef.current?.navigate(route as never)} />
       </ScrollView>
 
+      <View style={styles.extras}>
+        <CameraCursorToggle />
+      </View>
       <Pressable style={({ pressed }) => [styles.signOut, pressed && styles.itemPressed]} onPress={() => logout()} accessibilityRole="button">
         <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
         <Text style={styles.label}>Sign out</Text>
@@ -135,8 +139,9 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   badgeText: { color: colors.page, fontSize: 11, fontWeight: "700" },
+  extras: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.xs },
   signOut: {
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.md,
-    borderTopWidth: 1, borderTopColor: colors.border, marginBottom: space.sm, borderRadius: radius.control,
+    marginBottom: space.sm, borderRadius: radius.control,
   },
 });

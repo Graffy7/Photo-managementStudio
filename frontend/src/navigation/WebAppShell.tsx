@@ -1,3 +1,4 @@
+import { CameraCursorToggle } from "../cameraCursor/CameraCursorToggle";
 import { useEffect, useState, type ReactNode } from "react";
 import { Platform, View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import type { NavigationContainerRefWithCurrent } from "@react-navigation/native";
@@ -61,6 +62,7 @@ export function WebAppShell({ children, navigationRef, activeRoute }: WebAppShel
         <View style={styles.topBar}>
           <StudioMark size={32} />
           <Text style={styles.topTitle} numberOfLines={1}>{studioName}</Text>
+          <CameraCursorToggle variant="icon" />
           {isOn("NOTIFICATIONS") && (
             <Pressable style={styles.topIcon} onPress={() => go("Notifications")} accessibilityRole="button" accessibilityLabel={`Notifications${unread ? `, ${unread} unread` : ""}`}>
               <Ionicons name="notifications-outline" size={22} color={activeRoute === "Notifications" ? colors.primary : colors.text} />

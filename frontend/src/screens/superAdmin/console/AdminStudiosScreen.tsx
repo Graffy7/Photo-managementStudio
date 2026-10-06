@@ -57,7 +57,7 @@ export function AdminStudiosScreen({ initialStatus, onOpen, onCreate, onEdit }: 
   useEffect(() => setPage(1), [search, status, sort]);
   useEffect(() => { if (initialStatus) setStatus(initialStatus); }, [initialStatus]);
 
-  const { data, isPending, isError, refetch, isFetching } = useQuery({
+  const { data, isPending, isError, refetch, isFetching, isPlaceholderData } = useQuery({
     queryKey: ["admin-studios", search, status, sort, page],
     queryFn: () => adminConsoleApi.studios({
       search: search || undefined, status: status === "All" ? undefined : status, sort, page, pageSize: PAGE_SIZE,
@@ -155,7 +155,7 @@ export function AdminStudiosScreen({ initialStatus, onOpen, onCreate, onEdit }: 
             </ScrollView>
           )}
         {data && <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
-          <Pagination page={page} pageSize={PAGE_SIZE} total={data.totalCount} onPage={setPage} />
+          <Pagination page={page} pageSize={PAGE_SIZE} total={data.totalCount} onPage={setPage} loading={isPlaceholderData} noun="studios" />
         </View>}
         {isFetching && !isPending && <View style={styles.refreshing} />}
       </View>

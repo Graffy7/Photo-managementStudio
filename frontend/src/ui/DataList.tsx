@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { View, Text, Pressable, ScrollView, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "./Button";
+import { Pagination } from "./Pagination";
 import { Skeleton } from "./Skeleton";
 import { useBreakpoint } from "./useBreakpoint";
 import { colors, radius, space, type } from "./theme";
@@ -23,6 +24,9 @@ export interface SortState {
   desc: boolean;
 }
 
+// The narrowest a flexible column (flex: 1) may get before the table scrolls sideways instead.
+const MIN_FLEX_COLUMN = 84;
+
 interface Props<T> {
   items: T[] | undefined;
   keyOf: (item: T) => string | number;
@@ -31,6 +35,10 @@ interface Props<T> {
   renderCard: (item: T) => ReactNode;
   onRowPress?: (item: T) => void;
   loading: boolean;
+  // A different page / filter is being fetched while the previous rows are still shown.
+  fetching?: boolean;
+  // What the rows are, for the "1–20 of 345 customers" line under the list.
+  noun?: string;
   error?: string | null;
   onRetry?: () => void;
   empty: ReactNode;
@@ -45,8 +53,25 @@ interface Props<T> {
 // A list that is a real table on desktop (sortable headers, one line per record) and a stack of
 // cards on phones and tablets. Loading shows placeholder rows of the final size, so nothing jumps.
 export function DataList<T>(props: Props<T>) {
-  const { items, keyOf, columns, renderCard, onRowPress, loading, error, onRetry, empty, sort, onSortChange, page, pageSize, totalCount, onPageChange } = props;
+  const { items, keyOf, columns, renderCard, onRowPress, loading, fetching, noun, error, onRetry, empty, sort, onSortChange, page, pageSize, totalCount, onPageChange } = props;
   const { isDesktop } = useBreakpoint();
+  const top = useRef<View>(null);
+  // Width the table has to fill; it is exactly this wide unless its columns need more.
+  const [available, setAvailable] = useState(0);
+
+  // After a page change the list starts again from its first row, not wherever the pager was.
+  const shownPage = useRef(page);
+  useEffect(() => {
+    if (shownPage.current === page) return;
+    shownPage.current = page;
+    if (Platform.OS === "web") {
+      (top.current as unknown as HTMLElement | null)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    }
+  }, [page]);
+
+  // Narrower than its columns need (a small laptop, a split window): the table scrolls sideways
+  // inside its own box instead of squeezing every column or widening the whole page.
+  const minTableWidth = columns.reduce((sum, c) => sum + (c.width ?? MIN_FLEX_COLUMN * (c.flex ?? 1)), 0) + space.sm * 2;
 
   const header = isDesktop && (
     <View style={styles.headRow}>
@@ -122,25 +147,24 @@ export function DataList<T>(props: Props<T>) {
     );
   }
 
-  const pages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const from = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, totalCount);
+  const refreshing = !!fetching && !loading;
 
   return (
-    <View>
-      <View style={isDesktop ? styles.table : undefined}>
-        {header}
-        {body}
-      </View>
-      {!loading && !error && totalCount > pageSize && (
-        <View style={styles.pager}>
-          <Text style={styles.pagerText}>{from}–{to} of {totalCount}</Text>
-          <View style={styles.pagerButtons}>
-            <Button label="Previous" icon="chevron-back" onPress={() => onPageChange(page - 1)} disabled={page <= 1} />
-            <Text style={styles.pagerText}>Page {page} of {pages}</Text>
-            <Button label="Next" onPress={() => onPageChange(page + 1)} disabled={page >= pages} />
-          </View>
+    <View ref={top} style={styles.anchor}>
+      {isDesktop ? (
+        <View style={styles.table} onLayout={(e) => setAvailable(Math.floor(e.nativeEvent.layout.width) - 2)}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={minTableWidth > available}>
+            <View style={[{ width: Math.max(available, minTableWidth) }, refreshing && styles.refreshing]}>
+              {header}
+              {body}
+            </View>
+          </ScrollView>
         </View>
+      ) : (
+        <View style={refreshing && styles.refreshing}>{body}</View>
+      )}
+      {!loading && !error && (
+        <Pagination page={page} pageSize={pageSize} totalCount={totalCount} onPageChange={onPageChange} loading={refreshing} noun={noun} />
       )}
     </View>
   );
@@ -196,9 +220,10 @@ const styles = StyleSheet.create({
   pressed: { backgroundColor: colors.cardRaised },
   errorBox: { alignItems: "center", gap: space.md, paddingVertical: 40 },
   errorText: { ...type.body, color: colors.danger, textAlign: "center" },
-  pager: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space.md, marginTop: space.lg },
-  pagerButtons: { flexDirection: "row", alignItems: "center", gap: space.md },
-  pagerText: { ...type.small, color: colors.textMuted },
+  // Leaves room above the list when it is scrolled back into view after a page change.
+  anchor: Platform.OS === "web" ? ({ scrollMarginTop: space.lg } as object) : {},
+  // Rows of the previous page stay visible (no jump) but dimmed while the next page loads.
+  refreshing: { opacity: 0.5 },
   cellTitle: { ...type.body, fontWeight: "600", color: colors.text },
   cellSub: { ...type.small, color: colors.textMuted },
   cellMoney: { ...type.body, fontWeight: "600", color: colors.text, fontVariant: ["tabular-nums"] },

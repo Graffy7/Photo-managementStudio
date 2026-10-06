@@ -47,7 +47,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [changingStatusId, setChangingStatusId] = useState<number | null>(null);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["quotations", search, status, page, sort?.by, sort?.desc],
     queryFn: () => quotationsApi.search({
       search: search || undefined,
@@ -140,6 +140,8 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
         columns={columns}
         onRowPress={onEdit}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="quotations"
         error={isError ? "Couldn't load quotations. Check your connection and try again." : null}
         onRetry={() => refetch()}
         sort={sort}

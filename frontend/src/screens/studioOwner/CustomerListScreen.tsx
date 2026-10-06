@@ -29,7 +29,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState | null>(null);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["customers", search, active, page, sort?.by, sort?.desc],
     queryFn: () => customersApi.search({
       search: search || undefined,
@@ -94,6 +94,8 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
         columns={columns}
         onRowPress={onView}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="customers"
         error={isError ? "Couldn't load customers. Check your connection and try again." : null}
         onRetry={() => refetch()}
         sort={sort}

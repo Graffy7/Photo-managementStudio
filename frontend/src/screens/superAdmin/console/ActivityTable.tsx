@@ -23,7 +23,7 @@ export function ActivityTable({ studioId }: { studioId?: number }) {
   const [page, setPage] = useState(1);
   useEffect(() => setPage(1), [range, module, search]);
 
-  const { data: modules } = useQuery({
+  const { data: modules, isPlaceholderData } = useQuery({
     queryKey: ["admin-activity-modules", studioId ?? "all"],
     queryFn: () => adminConsoleApi.activityModules(studioId),
   });
@@ -86,7 +86,7 @@ export function ActivityTable({ studioId }: { studioId?: number }) {
               </View>
             </ScrollView>
           )}
-      {data && <Pagination page={page} pageSize={PAGE_SIZE} total={data.totalCount} onPage={setPage} />}
+      {data && <Pagination page={page} pageSize={PAGE_SIZE} total={data.totalCount} onPage={setPage} loading={isPlaceholderData} noun="entries" />}
     </Card>
   );
 }

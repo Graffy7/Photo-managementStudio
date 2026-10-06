@@ -28,7 +28,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const [active, setActive] = useState<ActiveFilter>("all");
   const [page, setPage] = useState(1);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["services", search, active, page],
     queryFn: () => servicesApi.search({
       search: search || undefined,
@@ -88,6 +88,8 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
         columns={columns}
         onRowPress={onEdit}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="services"
         error={isError ? "Couldn't load services. Check your connection and try again." : null}
         onRetry={() => refetch()}
         page={page}

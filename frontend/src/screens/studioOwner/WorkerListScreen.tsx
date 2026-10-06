@@ -26,7 +26,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
 
   const { data: workerTypes } = useQuery({ queryKey: ["lookups", "workerTypes"], queryFn: lookupApis.workerTypes.getAll });
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["workers", search, workerTypeId, page],
     queryFn: () => workersApi.search({ search: search || undefined, workerTypeId: workerTypeId ?? undefined, page, pageSize: PAGE_SIZE }),
     placeholderData: keepPreviousData,
@@ -84,6 +84,8 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
         columns={columns}
         onRowPress={onView}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="workers"
         error={isError ? "Couldn't load workers. Check your connection and try again." : null}
         onRetry={() => refetch()}
         page={page}

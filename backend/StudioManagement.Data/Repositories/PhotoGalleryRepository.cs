@@ -47,6 +47,40 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
         return (items, totalCount);
     }
 
+    public Task<List<int>> GetCompletedEventIdsAsync(int studioId, string? search, CancellationToken ct = default)
+    {
+        var query = context.Events
+            .AsNoTracking()
+            .Where(e => e.StudioId == studioId && e.EventStatus == EventStatuses.Completed);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(e => e.Customer.FullName.Contains(term) || (e.Venue != null && e.Venue.Contains(term)));
+        }
+
+        return query
+            .OrderByDescending(e => e.EventDate)
+            .ThenByDescending(e => e.EventId)
+            .Select(e => e.EventId)
+            .ToListAsync(ct);
+    }
+
+    public Task<List<Event>> GetEventsByIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default)
+    {
+        if (eventIds.Count == 0)
+        {
+            return Task.FromResult(new List<Event>());
+        }
+
+        return context.Events
+            .AsNoTracking()
+            .Include(e => e.Customer)
+            .Include(e => e.EventType)
+            .Where(e => e.StudioId == studioId && eventIds.Contains(e.EventId))
+            .ToListAsync(ct);
+    }
+
     public Task<List<PhotoGallery>> GetByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default)
     {
         if (eventIds.Count == 0)

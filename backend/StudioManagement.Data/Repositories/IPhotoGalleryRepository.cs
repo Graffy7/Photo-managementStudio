@@ -10,6 +10,10 @@ public interface IPhotoGalleryRepository
     // Bulk lookups for the owner's "completed events and their gallery state" list — one query each.
     // Completed events, newest first, with customer and type — the rows of the owner list.
     Task<(List<Event> Items, int TotalCount)> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default);
+    // Ids of every completed event matching the search, newest first (no details - used to work out
+    // each one's selection state before a page is chosen).
+    Task<List<int>> GetCompletedEventIdsAsync(int studioId, string? search, CancellationToken ct = default);
+    Task<List<Event>> GetEventsByIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);
 
     Task<List<PhotoGallery>> GetByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);
     Task<Dictionary<int, GallerySelectionCounts>> GetCountsForGalleriesAsync(List<int> galleryIds, CancellationToken ct = default);

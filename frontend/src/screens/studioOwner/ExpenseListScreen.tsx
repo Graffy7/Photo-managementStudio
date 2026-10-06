@@ -48,7 +48,7 @@ export function ExpenseListScreen({
 
   const { data: categories } = useQuery({ queryKey: ["expense-categories"], queryFn: expenseCategoriesApi.getAll });
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ["expenses", search, categoryId, page],
     queryFn: () => expensesApi.search({ search: search || undefined, expenseCategoryId: categoryId ?? undefined, page, pageSize: PAGE_SIZE }),
     placeholderData: keepPreviousData,
@@ -133,6 +133,8 @@ export function ExpenseListScreen({
         columns={columns}
         onRowPress={onEdit}
         loading={isPending}
+        fetching={isPlaceholderData}
+        noun="expenses"
         error={isError ? "Couldn't load expenses. Check your connection and try again." : null}
         onRetry={() => refetch()}
         page={page}
