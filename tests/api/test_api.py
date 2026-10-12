@@ -19,13 +19,15 @@ import time
 import urllib.error
 import urllib.request
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 API = os.environ.get("API_BASE", "http://localhost:5237/api").rstrip("/")
 ROOT = API[: -len("/api")] if API.endswith("/api") else API
 ADMIN = (os.environ.get("CI_ADMIN_EMAIL", "ci-admin@studioos.test"), os.environ.get("CI_ADMIN_PASSWORD", "CiAdmin!Pass2026"))
-TODAY = date.today()
+# "Today" as the API sees it: the studio's business day (App:TimeZone, India by default), not the
+# runner's own clock - a UTC runner is a day behind India between 18:30 and 24:00 UTC.
+TODAY = datetime.now(timezone(timedelta(minutes=int(os.environ.get("APP_UTC_OFFSET_MINUTES", "330"))))).date()
 RUN = uuid.uuid4().hex[:6]
 PHOTO = (Path(__file__).parent / "fixtures" / "photo.jpg").read_bytes()
 
