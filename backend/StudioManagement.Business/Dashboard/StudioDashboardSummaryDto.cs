@@ -34,6 +34,8 @@ public class StudioDashboardSummaryDto
     public decimal? EventsChangePercent { get; set; }
     public decimal? RevenueChangePercent { get; set; }
 
+    // What the range's events are worth in total: their agreed prices added up (cancelled left out).
+    public decimal TotalEventValue { get; set; }
     public List<TopServiceDto> TopServices { get; set; } = [];
     public List<RevenueTrendPointDto> RevenueTrend { get; set; } = [];
 }

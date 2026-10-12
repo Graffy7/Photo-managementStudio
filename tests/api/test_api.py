@@ -388,6 +388,8 @@ ok(row is not None and row["eventTotal"] == 100000 and row["expenses"] == 25000 
    "profit report: event row on the agreed price", (c, row))
 c, D, _ = req("GET", "/studio-dashboard/summary?preset=ThisMonth", tok=Q)
 ok(c == 200 and D["paidExpenses"] + D["pendingExpenses"] == D["totalExpenses"], "dashboard: paid + pending expenses = total expenses", c)
+c, D, _ = req("GET", "/studio-dashboard/summary?preset=ThisYear", tok=Q)
+ok(c == 200 and D["totalEvents"] >= 0 and isinstance(D["totalEventValue"], (int, float)) and D["totalEventValue"] >= 0, "dashboard: event count and total event value for the period", c)
 ok(req("GET", f"/expenses/event/{xeid}", tok=T)[0] == 404, "studio B can't read A's event expenses")
 ok(req("PUT", f"/expenses/{X1['expenseId']}", exp, T)[0] in (400, 404), "studio B can't change A's expense")
 ok(req("DELETE", f"/expenses/{X1['expenseId']}", tok=T)[0] == 404, "studio B can't delete A's expense")

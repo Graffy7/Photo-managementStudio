@@ -55,6 +55,8 @@ export interface StudioDashboardSummary {
   eventsChangePercent: number | null;
   revenueChangePercent: number | null;
 
+  // Agreed prices of the range's events added up (cancelled left out).
+  totalEventValue: number;
   topServices: TopService[];
   revenueTrend: RevenueTrendPoint[];
 }

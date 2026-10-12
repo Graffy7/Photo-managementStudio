@@ -38,6 +38,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
         var confirmedEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Confirmed, ct);
         var completedEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Completed, ct);
         var cancelledEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Cancelled, ct);
+        var totalEventValue = await repository.SumEventValueAsync(studioId, range.Start, range.End, ct);
 
         var quotationValue = await repository.SumAcceptedQuotationValueAsync(studioId, range.Start, range.End, ct);
         var collectedRevenue = await repository.SumCollectedRevenueAsync(studioId, range.Start, range.End, ct);
@@ -89,6 +90,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
             EventsChangePercent = PercentChange(totalEvents, previousEvents),
             RevenueChangePercent = PercentChange(collectedRevenue, previousRevenue),
 
+            TotalEventValue = totalEventValue,
             TopServices = topServices.Select(s => new TopServiceDto
             {
                 ServiceName = s.ServiceName,

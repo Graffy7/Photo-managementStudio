@@ -8,6 +8,8 @@ public interface IStudioDashboardRepository
     Task<int> CountEventsByStatusAsync(int studioId, DateTime start, DateTime end, string? status, CancellationToken ct = default);
     Task<decimal> SumAcceptedQuotationValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<decimal> SumCollectedRevenueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
+    // The agreed totals (Event.Budget) of the events dated in the range, cancelled ones left out.
+    Task<decimal> SumEventValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<decimal> SumExpensesAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     // The part of the range's expenses that is recorded but not yet paid out.
     Task<decimal> SumPendingExpensesAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);

@@ -19,6 +19,12 @@ public class StudioDashboardRepository(AppDbContext context) : IStudioDashboardR
         context.Events.CountAsync(e =>
             e.StudioId == studioId && e.EventDate >= start && e.EventDate < end && (status == null || e.EventStatus == status), ct);
 
+    public Task<decimal> SumEventValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default) =>
+        context.Events
+            .Where(e => e.StudioId == studioId && e.EventDate >= start && e.EventDate < end && e.EventStatus != EventStatuses.Cancelled)
+            .SumAsync(e => e.Budget, ct)
+            .ContinueWith(t => t.Result ?? 0m, ct);
+
     public Task<decimal> SumAcceptedQuotationValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default) =>
         context.Quotations
             .Where(q => q.StudioId == studioId && q.QuotationDate >= start && q.QuotationDate < end && q.Status == QuotationStatuses.Accepted)
