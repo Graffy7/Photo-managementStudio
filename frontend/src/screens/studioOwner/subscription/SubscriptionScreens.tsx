@@ -147,7 +147,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: T.page },
-  content: { padding: 24, gap: 16, maxWidth: 1200, width: "100%", alignSelf: "center" },
+  content: { padding: 16, paddingBottom: 32, gap: 16, maxWidth: 1600, width: "100%", alignSelf: "center" },
   expiredContent: { maxWidth: 1000, paddingTop: 40 },
   title: { color: T.text, fontSize: 22, fontWeight: "700" },
   subtitle: { color: T.faint, fontSize: 13, marginTop: 4 },

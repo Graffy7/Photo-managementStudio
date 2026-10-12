@@ -134,7 +134,7 @@ function MessageCard({ message, accent }: { message: ReminderMessagePreview; acc
           <Text style={styles.recipientName} numberOfLines={1}>
             {r.name}{r.phone ? ` · ${r.phone}` : ""}
           </Text>
-          <Text style={[styles.recipientState, { color: r.willReceive ? "#6ee0ad" : "#6f83a0" }]}>
+          <Text style={[styles.recipientState, { color: r.willReceive ? "#6ee0ad" : "#8a9cb6" }]}>
             {r.willReceive ? "will receive" : r.note ?? "not sent"}
           </Text>
         </View>
@@ -163,10 +163,10 @@ const styles = StyleSheet.create({
   messageCard: { borderWidth: 1, borderRadius: 10, padding: 12, gap: 8, backgroundColor: "#122033" },
   messageTitle: { fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
   messageBox: { backgroundColor: "#0b1522", borderRadius: 8, maxHeight: 320 },
-  messageText: { color: "#e8edf3", fontSize: 12.5, lineHeight: 19, fontFamily: "monospace" },
-  recipientsLabel: { color: "#6f83a0", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 },
+  messageText: { color: "#e8edf3", fontSize: 13, lineHeight: 19, fontFamily: "monospace" },
+  recipientsLabel: { color: "#8a9cb6", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 },
   recipient: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  recipientTag: { fontSize: 10, fontWeight: "800", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, overflow: "hidden" },
+  recipientTag: { fontSize: 12, fontWeight: "800", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, overflow: "hidden" },
   recipientName: { color: "#e8edf3", fontSize: 12, flexShrink: 1 },
-  recipientState: { fontSize: 11 },
+  recipientState: { fontSize: 12 },
 });

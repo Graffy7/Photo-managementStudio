@@ -57,7 +57,7 @@ export function FolderBrowserModal({
                 <Text style={styles.upButtonText}>Up</Text>
               </Pressable>
             )}
-            <Ionicons name="lock-closed-outline" size={12} color="#6f83a0" />
+            <Ionicons name="lock-closed-outline" size={12} color="#8a9cb6" />
             <Text style={styles.pathText} numberOfLines={1}>
               {relative ? `Studio photos › ${relative.split(/[\\/]/).join(" › ")}` : "Studio photos"}
             </Text>
@@ -76,7 +76,7 @@ export function FolderBrowserModal({
                   <Pressable key={f.fullPath} style={styles.item} onPress={() => setCurrentPath(f.fullPath)}>
                     <Ionicons name="folder" size={20} color="#8cc8f0" />
                     <Text style={styles.itemText} numberOfLines={1}>{f.name}</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#6f83a0" />
+                    <Ionicons name="chevron-forward" size={14} color="#8a9cb6" />
                   </Pressable>
                 ))}
               </ScrollView>
@@ -116,10 +116,10 @@ const styles = StyleSheet.create({
   title: { color: "#e8edf3", fontSize: 16, fontWeight: "700" },
   pathRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   upButton: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#0b1522", borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8, borderWidth: 1, borderColor: "#2c4463" },
-  upButtonText: { color: "#8cc8f0", fontSize: 11, fontWeight: "700" },
+  upButtonText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
   pathText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600", flexShrink: 1 },
   listBox: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#0b1522", minHeight: 120 },
-  empty: { color: "#6f83a0", fontSize: 12, textAlign: "center", padding: 24 },
+  empty: { color: "#8a9cb6", fontSize: 12, textAlign: "center", padding: 24 },
   item: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: "#1f3149" },
   itemText: { color: "#e8edf3", fontSize: 13, flex: 1 },
   count: { color: "#9fb0c5", fontSize: 12, marginTop: 10 },

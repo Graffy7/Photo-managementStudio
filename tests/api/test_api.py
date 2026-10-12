@@ -352,6 +352,49 @@ ok(c in (404, 410) and "stack" not in json.dumps(b).lower(), "bad link -> friend
 ok(req("DELETE", f"/photo-galleries/{gid}/link", tok=Q)[0] in (200, 204), "revoke the link")
 ok(req("GET", f"/public/photo-selection/{token}")[0] in (404, 410), "revoked link no longer opens")
 
+# ============================================================================================ EVENT EXPENSES
+area("Event expenses and profit")
+c, cat, _ = req("POST", "/expense-categories", {"categoryName": "Drone"}, Q)
+ok(c == 200 and cat.get("expenseCategoryId"), "expense category created", c)
+c, XC, _ = req("POST", "/customers", {"fullName": "CI Profit Customer", "mobileNumber": mobile("95")}, Q)
+c, XE, _ = req("POST", "/events", {"customerId": XC["customerId"], "eventDate": str(TODAY + timedelta(days=40)), "budget": 100000, "eventStatus": "Upcoming"}, Q)
+xeid = XE["eventId"]
+req("POST", "/payments", {"customerId": XC["customerId"], "eventId": xeid, "amount": 30000, "paymentDate": str(TODAY), "paymentMethod": "UPI", "paymentStatus": "Completed"}, Q)
+exp = {"expenseCategoryId": cat["expenseCategoryId"], "eventId": xeid, "expenseDate": str(TODAY), "amount": 15000,
+       "vendorName": "CI Drone Vendor", "paymentStatus": "Paid", "description": "Drone for the reception"}
+c, X1, _ = req("POST", "/expenses", exp, Q)
+ok(c == 200 and X1["vendorName"] == "CI Drone Vendor" and X1["paymentStatus"] == "Paid" and X1["eventId"] == xeid, "expense saved with vendor, status and event", (c, X1))
+c, X2, _ = req("POST", "/expenses", {**exp, "amount": 10000, "paymentStatus": "Pending", "vendorName": None}, Q)
+ok(c == 200 and X2["paymentStatus"] == "Pending", "pending expense saved", c)
+c, old, _ = req("POST", "/expenses", {**{k: v for k, v in exp.items() if k not in ("paymentStatus", "vendorName")}, "eventId": None, "amount": 1}, Q)
+ok(c == 200 and old["paymentStatus"] == "Paid", "an expense sent without a status is recorded as Paid", (c, old))
+c, S, _ = req("GET", f"/expenses/event/{xeid}", tok=Q)
+ok(c == 200 and S["totalEventAmount"] == 100000 and S["totalExpenses"] == 25000 and S["paidExpenses"] == 15000 and S["pendingExpenses"] == 10000,
+   "event summary: total, expenses, paid and pending", (c, S))
+ok(S["netProfit"] == 75000 and S["profitMarginPercent"] == 75, "profit is the agreed total minus expenses (not what was collected)", S)
+ok(S["amountReceived"] == 30000 and S["outstandingBalance"] == 70000, "customer money is reported apart: received and outstanding", S)
+ok(len(S["expenses"]) == 2 and all(x["eventId"] == xeid for x in S["expenses"]), "only this event's expenses are listed")
+c, U, _ = req("PUT", f"/expenses/{X2['expenseId']}", {**exp, "amount": 10000, "paymentStatus": "Paid"}, Q)
+S = req("GET", f"/expenses/event/{xeid}", tok=Q)[1]
+ok(c == 200 and S["pendingExpenses"] == 0 and S["paidExpenses"] == 25000 and S["netProfit"] == 75000, "marking an expense paid moves it from pending to paid; profit unchanged", S)
+for bad, why in (({**exp, "amount": 0}, "zero amount"), ({**exp, "amount": -5}, "negative amount"), ({**exp, "paymentStatus": "Maybe"}, "unknown status"),
+                 ({**exp, "vendorName": "v" * 151}, "vendor name too long"), ({**exp, "eventId": 99999999}, "unknown event")):
+    ok(req("POST", "/expenses", bad, Q)[0] == 400, f"expense refused: {why}")
+c, R, _ = req("GET", f"/reports/profit?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=Q)
+row = next((x for x in (R.get("events") or []) if x["eventId"] == xeid), None) if c == 200 else None
+ok(row is not None and row["eventTotal"] == 100000 and row["expenses"] == 25000 and row["netProfit"] == 75000 and row["outstandingBalance"] == 70000,
+   "profit report: event row on the agreed price", (c, row))
+c, D, _ = req("GET", "/studio-dashboard/summary?preset=ThisMonth", tok=Q)
+ok(c == 200 and D["paidExpenses"] + D["pendingExpenses"] == D["totalExpenses"], "dashboard: paid + pending expenses = total expenses", c)
+ok(req("GET", f"/expenses/event/{xeid}", tok=T)[0] == 404, "studio B can't read A's event expenses")
+ok(req("PUT", f"/expenses/{X1['expenseId']}", exp, T)[0] in (400, 404), "studio B can't change A's expense")
+ok(req("DELETE", f"/expenses/{X1['expenseId']}", tok=T)[0] == 404, "studio B can't delete A's expense")
+ok(req("POST", "/expenses", exp, T)[0] == 400, "studio B can't add an expense to A's event")
+ok(req("GET", f"/expenses/event/{xeid}")[0] == 401, "event expenses need a sign-in")
+ok(req("DELETE", f"/expenses/{X2['expenseId']}", tok=Q)[0] == 204, "expense deleted")
+S = req("GET", f"/expenses/event/{xeid}", tok=Q)[1]
+ok(S["totalExpenses"] == 15000 and S["netProfit"] == 85000 and S["profitMarginPercent"] == 85, "totals follow the deletion", S)
+
 # ============================================================================================ TENANCY
 area("Studio B can't touch studio A's records")
 probes = [("GET", f"/customers/{cid}"), ("PUT", f"/customers/{cid}"), ("GET", f"/events/{eid}"), ("PUT", f"/events/{eid}"),

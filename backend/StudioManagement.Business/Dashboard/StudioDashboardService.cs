@@ -42,6 +42,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
         var quotationValue = await repository.SumAcceptedQuotationValueAsync(studioId, range.Start, range.End, ct);
         var collectedRevenue = await repository.SumCollectedRevenueAsync(studioId, range.Start, range.End, ct);
         var totalExpenses = await repository.SumExpensesAsync(studioId, range.Start, range.End, ct);
+        var pendingExpenses = await repository.SumPendingExpensesAsync(studioId, range.Start, range.End, ct);
 
         var topServices = await repository.GetTopServicesAsync(studioId, range.Start, range.End, 3, ct);
         var revenueTrend = await repository.GetDailyRevenueAsync(studioId, range.Start, range.End, ct);
@@ -78,6 +79,8 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
             CollectedRevenue = collectedRevenue,
             OutstandingBalance = quotationValue - collectedRevenue,
             TotalExpenses = totalExpenses,
+            PaidExpenses = totalExpenses - pendingExpenses,
+            PendingExpenses = pendingExpenses,
             ExpectedProfit = quotationValue - totalExpenses,
             CashProfit = collectedRevenue - totalExpenses,
 

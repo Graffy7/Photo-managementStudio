@@ -23,7 +23,11 @@ public class ProfitReportRepository(AppDbContext context) : IProfitReportReposit
                 CollectedRevenue = e.Payments
                     .Where(p => p.PaymentStatus == PaymentStatuses.Completed)
                     .Sum(p => (decimal?)p.Amount) ?? 0m,
-                Expenses = e.Expenses.Sum(ex => (decimal?)ex.Amount) ?? 0m
+                Expenses = e.Expenses.Sum(ex => (decimal?)ex.Amount) ?? 0m,
+                EventTotal = e.Budget ?? 0m,
+                PendingExpenses = e.Expenses
+                    .Where(ex => ex.PaymentStatus == ExpensePaymentStatuses.Pending)
+                    .Sum(ex => (decimal?)ex.Amount) ?? 0m
             })
             .ToListAsync(ct);
 

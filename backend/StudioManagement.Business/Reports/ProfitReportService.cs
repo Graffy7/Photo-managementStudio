@@ -38,6 +38,12 @@ public class ProfitReportService(
             TotalExpectedProfit = totalQuotationValue - totalExpenses,
             TotalCashProfit = totalCollectedRevenue - totalExpenses,
 
+            EventsTotalAmount = eventRows.Sum(e => e.EventTotal),
+            EventsExpenses = eventRows.Sum(e => e.Expenses),
+            EventsPendingExpenses = eventRows.Sum(e => e.PendingExpenses),
+            EventsNetProfit = eventRows.Sum(e => e.EventTotal - e.Expenses),
+            EventsOutstandingBalance = eventRows.Sum(e => e.EventTotal - e.CollectedRevenue),
+
             Events = eventRows.Select(e => new EventProfitDto
             {
                 EventId = e.EventId,
@@ -48,7 +54,13 @@ public class ProfitReportService(
                 CollectedRevenue = e.CollectedRevenue,
                 Expenses = e.Expenses,
                 ExpectedProfit = e.QuotationValue - e.Expenses,
-                CashProfit = e.CollectedRevenue - e.Expenses
+                CashProfit = e.CollectedRevenue - e.Expenses,
+                EventTotal = e.EventTotal,
+                PaidExpenses = e.Expenses - e.PendingExpenses,
+                PendingExpenses = e.PendingExpenses,
+                NetProfit = e.EventTotal - e.Expenses,
+                ProfitMarginPercent = EventProfitMath.MarginPercent(e.EventTotal, e.Expenses),
+                OutstandingBalance = e.EventTotal - e.CollectedRevenue
             }).ToList(),
 
             ExpensesByCategory = categoryRows.Select(c => new ExpenseCategoryBreakdownDto
@@ -58,4 +70,12 @@ public class ProfitReportService(
             }).ToList()
         };
     }
+}
+
+// One definition of the profit margin, shared by the report and the event's own expense summary.
+public static class EventProfitMath
+{
+    // (total - expenses) / total as a percentage, one decimal; null when there is no total.
+    public static decimal? MarginPercent(decimal eventTotal, decimal expenses) =>
+        eventTotal > 0 ? Math.Round((eventTotal - expenses) / eventTotal * 100m, 1) : null;
 }

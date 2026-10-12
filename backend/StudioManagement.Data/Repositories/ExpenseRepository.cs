@@ -25,7 +25,9 @@ public class ExpenseRepository(AppDbContext context) : IExpenseRepository
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
-            query = query.Where(e => (e.Description != null && e.Description.Contains(term)) || (e.ReferenceNumber != null && e.ReferenceNumber.Contains(term)));
+            query = query.Where(e => (e.Description != null && e.Description.Contains(term))
+                                     || (e.ReferenceNumber != null && e.ReferenceNumber.Contains(term))
+                                     || (e.VendorName != null && e.VendorName.Contains(term)));
         }
 
         if (expenseCategoryId is not null)
@@ -42,6 +44,17 @@ public class ExpenseRepository(AppDbContext context) : IExpenseRepository
 
         return (items, totalCount);
     }
+
+    public Task<List<Expense>> GetForEventAsync(int studioId, int eventId, CancellationToken ct = default) =>
+        context.Expenses
+            .AsNoTracking()
+            .Include(e => e.ExpenseCategory)
+            .Include(e => e.Event)
+            .Include(e => e.Worker)
+            .Where(e => e.StudioId == studioId && e.EventId == eventId)
+            .OrderByDescending(e => e.ExpenseDate)
+            .ThenByDescending(e => e.ExpenseId)
+            .ToListAsync(ct);
 
     public async Task AddAsync(Expense expense, CancellationToken ct = default) =>
         await context.Expenses.AddAsync(expense, ct);

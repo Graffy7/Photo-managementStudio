@@ -12,6 +12,10 @@ public class Expense : ITenantEntity
     public string? Description { get; set; }
     public string? PaymentMethod { get; set; }
     public string? ReferenceNumber { get; set; }
+    // Who the money goes to (a vendor, a freelancer, a shop).
+    public string? VendorName { get; set; }
+    // "Paid" or "Pending" (ExpensePaymentStatuses): pending expenses count as cost but are still owed.
+    public string PaymentStatus { get; set; } = "Paid";
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = null!;

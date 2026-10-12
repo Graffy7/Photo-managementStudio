@@ -99,6 +99,15 @@ public static class QuotationPriceDisplays
     public static readonly string[] All = [Detailed, TotalOnly];
 }
 
+// Whether the studio has already paid an expense (to a vendor, freelancer...) or still owes it.
+public static class ExpensePaymentStatuses
+{
+    public const string Paid = "Paid";
+    public const string Pending = "Pending";
+
+    public static readonly string[] All = [Paid, Pending];
+}
+
 public static class QuotationStatuses
 {
     public const string Draft = "Draft";

@@ -40,7 +40,7 @@ export function ChangePasswordScreen() {
           onChangeText={setCurrentPassword}
           secureTextEntry
           placeholder="••••••••"
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
         />
 
         <Text style={styles.label}>New password</Text>
@@ -50,7 +50,7 @@ export function ChangePasswordScreen() {
           onChangeText={setNewPassword}
           secureTextEntry
           placeholder="At least 8 characters"
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
         />
 
         <Text style={styles.label}>Confirm new password</Text>
@@ -60,7 +60,7 @@ export function ChangePasswordScreen() {
           onChangeText={setConfirmPassword}
           secureTextEntry
           placeholder="Repeat your new password"
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}

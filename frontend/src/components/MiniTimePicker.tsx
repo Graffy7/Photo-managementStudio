@@ -152,13 +152,13 @@ export function MiniTimePicker({
 }
 
 const styles = StyleSheet.create({
-  label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginBottom: 6 },
+  label: { color: "#8a9cb6", fontSize: 12, fontWeight: "600", marginBottom: 6 },
   trigger: {
     flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8,
     paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#172a42", width: "100%",
   },
   triggerText: { color: "#e8edf3", fontSize: 15 },
-  placeholderText: { color: "#6f83a0" },
+  placeholderText: { color: "#8a9cb6" },
 
   backdrop: { flex: 1, backgroundColor: "rgba(3, 8, 15, 0.6)", alignItems: "center", justifyContent: "center" },
   popover: { width: 300, backgroundColor: "#172a42", borderRadius: 14, borderWidth: 1, borderColor: "#2c4463", padding: 18 },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   periodText: { color: "#9fb0c5", fontSize: 12, fontWeight: "700" },
   periodTextActive: { color: "#0b1522" },
 
-  modeHint: { color: "#6f83a0", fontSize: 11, textAlign: "center", marginTop: 12 },
+  modeHint: { color: "#8a9cb6", fontSize: 12, textAlign: "center", marginTop: 12 },
 
   dial: {
     width: DIAL_SIZE, height: DIAL_SIZE, borderRadius: DIAL_SIZE / 2, backgroundColor: "#122033",

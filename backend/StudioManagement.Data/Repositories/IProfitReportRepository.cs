@@ -9,6 +9,9 @@ public class EventProfitRow
     public decimal QuotationValue { get; set; }
     public decimal CollectedRevenue { get; set; }
     public decimal Expenses { get; set; }
+    // The agreed price of the event (Event.Budget), and the part of Expenses not yet paid out.
+    public decimal EventTotal { get; set; }
+    public decimal PendingExpenses { get; set; }
 }
 
 public class ExpenseCategoryBreakdownRow

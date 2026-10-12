@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   infoBox: { backgroundColor: "#172a42", borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", padding: 12, gap: 3 },
   infoText: { color: "#9fb0c5", fontSize: 13 },
   infoStrong: { color: "#8cc8f0", fontWeight: "600" },
-  infoMuted: { color: "#6f83a0", fontSize: 12 },
+  infoMuted: { color: "#8a9cb6", fontSize: 12 },
   warnText: { color: "#f5c66b", fontSize: 13, lineHeight: 19 },
   errorText: { color: "#ff9a93", fontSize: 13 },
   okText: { color: "#6ee0ad", fontSize: 13, lineHeight: 19 },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   statGrid: { flexDirection: "row", flexWrap: "wrap", gap: 20 },
   stat: { gap: 1 },
   statValue: { color: "#e8edf3", fontSize: 18, fontWeight: "800" },
-  statLabel: { color: "#6f83a0", fontSize: 11 },
+  statLabel: { color: "#8a9cb6", fontSize: 12 },
   jobError: { color: "#f5c66b", fontSize: 12, lineHeight: 18 },
-  jobNote: { color: "#6f83a0", fontSize: 12 },
+  jobNote: { color: "#8a9cb6", fontSize: 12 },
 });

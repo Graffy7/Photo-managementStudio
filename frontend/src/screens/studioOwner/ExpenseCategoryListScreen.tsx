@@ -73,12 +73,12 @@ export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCrea
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 24, maxWidth: 560, width: "100%", alignSelf: "center" },
+  content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { marginBottom: 14 },
   backText: { color: "#8cc8f0", fontSize: 13, fontWeight: "600" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
+  subtitle: { fontSize: 13, color: "#8a9cb6", marginTop: 2 },
   newButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
   newButtonText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
   list: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden" },
@@ -93,5 +93,5 @@ const styles = StyleSheet.create({
   actionBtn: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
   actionText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   error: { color: "#ff9a93", marginTop: 30, textAlign: "center" },
-  empty: { color: "#6f83a0", fontSize: 13, textAlign: "center", padding: 20 },
+  empty: { color: "#8a9cb6", fontSize: 13, textAlign: "center", padding: 20 },
 });

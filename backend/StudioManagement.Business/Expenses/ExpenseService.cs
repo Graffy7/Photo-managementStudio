@@ -1,5 +1,7 @@
 using StudioManagement.Business.Audit;
 using StudioManagement.Business.Common;
+using StudioManagement.Business.Reports;
+using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
 using StudioManagement.Data.Repositories;
 using StudioManagement.Data.UnitOfWork;
@@ -37,6 +39,36 @@ public class ExpenseService(
         return expense is null ? null : MapToDto(expense);
     }
 
+    public async Task<EventExpenseSummaryDto?> GetEventSummaryAsync(int studioId, int eventId, CancellationToken ct = default)
+    {
+        var @event = await eventRepository.GetByIdAsync(studioId, eventId, ct);
+        if (@event is null)
+        {
+            return null;
+        }
+
+        var expenses = await expenseRepository.GetForEventAsync(studioId, eventId, ct);
+        var total = @event.Budget ?? 0m;
+        var totalExpenses = expenses.Sum(e => e.Amount);
+        var pending = expenses.Where(e => e.PaymentStatus == ExpensePaymentStatuses.Pending).Sum(e => e.Amount);
+        // Same rule as the event page and the payment screens: only completed payments count.
+        var received = @event.Payments.Where(p => p.PaymentStatus == PaymentStatuses.Completed).Sum(p => p.Amount);
+
+        return new EventExpenseSummaryDto
+        {
+            EventId = eventId,
+            TotalEventAmount = total,
+            TotalExpenses = totalExpenses,
+            PaidExpenses = totalExpenses - pending,
+            PendingExpenses = pending,
+            NetProfit = total - totalExpenses,
+            ProfitMarginPercent = EventProfitMath.MarginPercent(total, totalExpenses),
+            AmountReceived = received,
+            OutstandingBalance = total - received,
+            Expenses = expenses.Select(MapToDto).ToList()
+        };
+    }
+
     public async Task<ExpenseWriteResult> CreateAsync(int studioId, CreateExpenseRequestDto request, CancellationToken ct = default)
     {
         var failure = await ValidateReferencesAsync(studioId, request.ExpenseCategoryId, request.EventId, request.WorkerId, ct);
@@ -57,6 +89,8 @@ public class ExpenseService(
             Description = request.Description,
             PaymentMethod = request.PaymentMethod,
             ReferenceNumber = request.ReferenceNumber,
+            VendorName = Clean(request.VendorName),
+            PaymentStatus = string.IsNullOrEmpty(request.PaymentStatus) ? ExpensePaymentStatuses.Paid : request.PaymentStatus,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -91,6 +125,12 @@ public class ExpenseService(
         expense.Description = request.Description;
         expense.PaymentMethod = request.PaymentMethod;
         expense.ReferenceNumber = request.ReferenceNumber;
+        expense.VendorName = Clean(request.VendorName);
+        // Left out by a screen that doesn't know the field: keep what is stored.
+        if (!string.IsNullOrEmpty(request.PaymentStatus))
+        {
+            expense.PaymentStatus = request.PaymentStatus;
+        }
         expense.UpdatedAt = DateTime.UtcNow;
 
         expenseRepository.Update(expense);
@@ -144,6 +184,8 @@ public class ExpenseService(
         return null;
     }
 
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static ExpenseDto MapToDto(Expense expense) => new()
     {
         ExpenseId = expense.ExpenseId,
@@ -158,6 +200,8 @@ public class ExpenseService(
         Description = expense.Description,
         PaymentMethod = expense.PaymentMethod,
         ReferenceNumber = expense.ReferenceNumber,
+        VendorName = expense.VendorName,
+        PaymentStatus = expense.PaymentStatus,
         CreatedAt = expense.CreatedAt,
         UpdatedAt = expense.UpdatedAt
     };

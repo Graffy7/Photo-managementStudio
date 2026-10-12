@@ -388,7 +388,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
             value={folder}
             onChangeText={setFolder}
             placeholder={"Server folder, e.g. D:\\Photos\\Meera Wedding\\Selected"}
-            placeholderTextColor="#6f83a0"
+            placeholderTextColor="#8a9cb6"
             editable={!running && !uploading}
             autoCapitalize="none"
             autoCorrect={false}
@@ -830,7 +830,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
         value={search}
         onChangeText={setSearch}
         placeholder="Search by file name or photo number"
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor="#8a9cb6"
         autoCapitalize="none"
       />
 
@@ -906,7 +906,7 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.page },
-  content: { padding: space.lg, paddingBottom: 48, width: "100%", maxWidth: 1100, alignSelf: "center", gap: space.lg },
+  content: { padding: space.lg, paddingBottom: 48, width: "100%", maxWidth: 1500, alignSelf: "center", gap: space.lg },
   back: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start", minHeight: 32, marginBottom: space.sm },
   backText: { ...type.small, fontWeight: "600", color: colors.link },
   header: { flexDirection: "row", alignItems: "flex-start", gap: space.md, flexWrap: "wrap" },
@@ -916,8 +916,8 @@ const styles = StyleSheet.create({
 
   section: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.md },
   hint: { color: "#9fb0c5", fontSize: 13, lineHeight: 19 },
-  hintSmall: { color: "#6f83a0", fontSize: 12 },
-  label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginTop: 6 },
+  hintSmall: { color: "#8a9cb6", fontSize: 12 },
+  label: { color: "#8a9cb6", fontSize: 12, fontWeight: "600", marginTop: 6 },
   error: { color: "#ff9a93", fontSize: 13 },
   serverLink: { color: "#8cc8f0", fontSize: 13, textDecorationLine: "underline" },
   okText: { color: "#6ee0ad", fontSize: 13 },
@@ -927,10 +927,10 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   statCard: { flexGrow: 1, flexBasis: 120, backgroundColor: "#172a42", borderRadius: 10, borderWidth: 1, borderColor: "#2c4463", padding: 14 },
   statValue: { fontSize: 26, fontWeight: "800" },
-  statLabel: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
+  statLabel: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
   metaRow: { flexDirection: "row", flexWrap: "wrap", rowGap: space.md, columnGap: space.xl, paddingHorizontal: space.xs },
   meta: { gap: 2 },
-  metaLabel: { color: "#6f83a0", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 },
+  metaLabel: { color: "#8a9cb6", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 },
   metaValue: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
 
   folderRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
 
   linkBox: { backgroundColor: "#172a42", borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", padding: 12, gap: 4 },
   linkText: { color: "#8cc8f0", fontSize: 13, textDecorationLine: "underline" },
-  linkMeta: { color: "#6f83a0", fontSize: 12 },
+  linkMeta: { color: "#8a9cb6", fontSize: 12 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
   divider: { borderTopWidth: 1, borderTopColor: "#1f3149", paddingTop: 14, marginTop: 6 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
@@ -987,13 +987,13 @@ const styles = StyleSheet.create({
   tileBig: { borderColor: "#ff9a4d" },
   tileImage: { width: "100%", height: 100, backgroundColor: "#0a1320" },
   tileEmpty: { alignItems: "center", justifyContent: "center" },
-  tileName: { color: "#9fb0c5", fontSize: 11, padding: 6 },
+  tileName: { color: "#9fb0c5", fontSize: 12, padding: 6 },
   tileBadge: { position: "absolute", top: 6, right: 6, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   tileBadgeText: { color: "#0b1522", fontSize: 10, fontWeight: "800" },
 
   tr: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1f3149" },
   trHead: { borderBottomColor: "#2c4463" },
-  th: { color: "#6f83a0", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
+  th: { color: "#8a9cb6", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   td: { color: "#e8edf3", fontSize: 13 },
   tdMuted: { color: "#4a5d78", fontSize: 13 },
 

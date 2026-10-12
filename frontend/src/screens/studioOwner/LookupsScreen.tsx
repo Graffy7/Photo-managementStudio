@@ -67,7 +67,7 @@ export function LookupsScreen() {
           value={newName}
           onChangeText={setNewName}
           placeholder={`Add a new ${TABS.find((t) => t.key === tab)!.label.toLowerCase().replace(/s$/, "")}`}
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
         />
         <Pressable style={styles.addButton} onPress={() => newName.trim() && create.mutate()} disabled={create.isPending}>
           {create.isPending ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.addButtonText}>Add</Text>}
@@ -99,11 +99,11 @@ export function LookupsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 24, maxWidth: 560, width: "100%", alignSelf: "center" },
+  content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
   backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4, marginBottom: 20 },
+  subtitle: { fontSize: 13, color: "#8a9cb6", marginTop: 4, marginBottom: 20 },
   tabRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
   tab: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
   tabActive: { backgroundColor: "rgba(255, 154, 77, 0.14)", borderColor: "#ff9a4d" },
@@ -128,5 +128,5 @@ const styles = StyleSheet.create({
   rowRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   toggleButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 10 },
   toggleButtonText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
-  empty: { color: "#6f83a0", fontSize: 13, textAlign: "center", padding: 20 },
+  empty: { color: "#8a9cb6", fontSize: 13, textAlign: "center", padding: 20 },
 });

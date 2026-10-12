@@ -44,6 +44,8 @@ export interface StudioDashboardSummary {
   collectedRevenue: number;
   outstandingBalance: number;
   totalExpenses: number;
+  paidExpenses: number;
+  pendingExpenses: number;
   expectedProfit: number;
   cashProfit: number;
 

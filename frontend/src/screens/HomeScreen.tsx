@@ -408,6 +408,15 @@ export function HomeScreen() {
                     </View>
                   </Panel>
                 )}
+                {isOn("EXPENSES") && (
+                  <Panel title="Expenses" action={isOn("REPORTS") ? <Button label="Profit by event" variant="link" onPress={() => navigation.navigate("Reports")} /> : undefined}>
+                    <View style={styles.figures}>
+                      <Figure label="Total expenses" value={formatCurrency(data.totalExpenses)} />
+                      <Figure label="Paid" value={formatCurrency(data.paidExpenses)} />
+                      <Figure label="Still to pay" value={formatCurrency(data.pendingExpenses)} tone={data.pendingExpenses > 0 ? colors.warning : undefined} />
+                    </View>
+                  </Panel>
+                )}
               </View>
               <View style={[{ gap: space.lg }, isDesktop && { flex: 1, minWidth: 0 }]}>
                 {isOn("EVENTS") && (
@@ -474,7 +483,7 @@ function daysAway(eventDate: string, today: string): string {
   return `In ${days} days`;
 }
 
-const MAX_WIDTH = 1280;
+const MAX_WIDTH = 1760;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.page },
@@ -519,7 +528,7 @@ const styles = StyleSheet.create({
   time: { ...type.small, fontWeight: "700", color: colors.link, width: 52 },
   dateBadge: { width: 44, alignItems: "center", paddingVertical: 4, borderRadius: radius.control, backgroundColor: colors.infoSoft },
   dateDay: { fontSize: 16, fontWeight: "700", color: colors.text, lineHeight: 19 },
-  dateMonth: { fontSize: 11, fontWeight: "600", color: colors.info, textTransform: "uppercase" },
+  dateMonth: { fontSize: 12, fontWeight: "600", color: colors.info, textTransform: "uppercase" },
   avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.cardRaised, alignItems: "center", justifyContent: "center" },
   avatarText: { color: colors.text, fontWeight: "700" },
   todayStrip: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, paddingVertical: space.xs, paddingHorizontal: space.md },

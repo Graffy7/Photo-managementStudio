@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   linkRow: {},
   rowLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
   rowValue: { color: "#9fb0c5", fontSize: 13 },
-  chevron: { color: "#6f83a0", fontSize: 18 },
+  chevron: { color: "#8a9cb6", fontSize: 18 },
   error: { color: "#ff9a93", fontSize: 13, marginBottom: 8 },
   dangerButton: {
     borderWidth: 1, borderColor: "#ff9a93", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",

@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1f3149",
   },
   rowLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  rowCaption: { color: "#6f83a0", fontSize: 11, marginTop: 2 },
+  rowCaption: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
   error: { color: "#ff9a93", fontSize: 13, padding: 12 },
   success: { color: "#6ee0ad", fontSize: 13, padding: 12, fontWeight: "600" },
 });

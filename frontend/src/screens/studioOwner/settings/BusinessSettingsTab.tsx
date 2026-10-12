@@ -22,7 +22,7 @@ function Field({
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor="#8a9cb6"
         keyboardType={keyboardType}
       />
     </View>
@@ -96,7 +96,7 @@ export function BusinessSettingsTab() {
           value={paymentTerms}
           onChangeText={setPaymentTerms}
           placeholder="e.g. 50% advance, balance on delivery"
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
           multiline
           numberOfLines={3}
         />
@@ -118,16 +118,16 @@ export function BusinessSettingsTab() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
-  field: { flexGrow: 1, minWidth: 200, marginBottom: 14 },
-  label: { fontSize: 13, color: "#9fb0c5", marginBottom: 6 },
+  row: { flexDirection: "row", flexWrap: "wrap", columnGap: 16 },
+  field: { flexGrow: 1, minWidth: 200, marginBottom: 16 },
+  label: { fontSize: 13, lineHeight: 18, fontWeight: "600", color: "#e8edf3", marginBottom: 6 },
   input: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: "#e8edf3", backgroundColor: "#172a42",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44,
+    fontSize: 15, color: "#e8edf3", backgroundColor: "#0b1522",
   },
   textArea: { minHeight: 64, textAlignVertical: "top" },
   error: { color: "#ff9a93", fontSize: 13, marginTop: 4 },
   success: { color: "#6ee0ad", fontSize: 13, marginTop: 4, fontWeight: "600" },
-  saveButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center", marginTop: 12, alignSelf: "flex-start", paddingHorizontal: 28 },
-  saveText: { color: "#0b1522", fontWeight: "700" },
+  saveButton: { backgroundColor: "#ff9a4d", borderRadius: 8, minHeight: 44, justifyContent: "center", alignItems: "center", marginTop: 8, alignSelf: "flex-start", paddingHorizontal: 24 },
+  saveText: { color: "#1a0f05", fontWeight: "600", fontSize: 15 },
 });

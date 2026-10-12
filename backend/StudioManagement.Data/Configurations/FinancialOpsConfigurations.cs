@@ -113,6 +113,9 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         b.Property(x => x.Description).HasMaxLength(500);
         b.Property(x => x.PaymentMethod).HasMaxLength(30);
         b.Property(x => x.ReferenceNumber).HasMaxLength(100);
+        b.Property(x => x.VendorName).HasMaxLength(150);
+        // Expenses recorded before this column existed were all money already spent.
+        b.Property(x => x.PaymentStatus).IsRequired().HasMaxLength(20).HasDefaultValue("Paid");
         b.Property(x => x.ExpenseDate).HasColumnType("datetime2");
         b.Property(x => x.CreatedAt).HasColumnType("datetime2");
         b.Property(x => x.UpdatedAt).HasColumnType("datetime2");

@@ -151,7 +151,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                   accessibilityLabel={`Actions for ${folder.name}`}
                   hitSlop={6}
                 >
-                  <Ionicons name="ellipsis-vertical" size={13} color="#6f83a0" />
+                  <Ionicons name="ellipsis-vertical" size={13} color="#8a9cb6" />
                 </Pressable>
               )}
 
@@ -188,7 +188,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Drone"
-              placeholderTextColor="#6f83a0"
+              placeholderTextColor="#8a9cb6"
               autoFocus
               maxLength={100}
               onSubmitEditing={() => newName.trim() && create.mutate(newName.trim())}
@@ -252,10 +252,10 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: "row", alignItems: "center", gap: 7 },
   cardName: { color: "#e8edf3", fontSize: 13, fontWeight: "600", flex: 1 },
   cardBottom: { flexDirection: "row", alignItems: "center", gap: 4 },
-  cardCount: { color: "#6f83a0", fontSize: 11 },
-  cardPicked: { color: "#8cc8f0", fontSize: 11 },
+  cardCount: { color: "#8a9cb6", fontSize: 12 },
+  cardPicked: { color: "#8cc8f0", fontSize: 12 },
   deliveredRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  deliveredText: { color: "#6ee0ad", fontSize: 10, fontWeight: "600" },
+  deliveredText: { color: "#6ee0ad", fontSize: 12, fontWeight: "600" },
   menuButton: { position: "absolute", top: 10, right: 8, padding: 2 },
   menuButtonSpace: { width: 17 },
 

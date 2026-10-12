@@ -38,7 +38,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
       <Text style={styles.title}>{isEdit ? "Edit category" : "New category"}</Text>
 
       <Text style={styles.label}>Category name</Text>
-      <TextInput style={styles.input} value={categoryName} onChangeText={setCategoryName} placeholder="Travel" placeholderTextColor="#6f83a0" />
+      <TextInput style={styles.input} value={categoryName} onChangeText={setCategoryName} placeholder="Travel" placeholderTextColor="#8a9cb6" />
 
       <Text style={styles.label}>Description</Text>
       <TextInput
@@ -46,7 +46,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
         value={description}
         onChangeText={setDescription}
         placeholder="Optional"
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor="#8a9cb6"
         multiline
         numberOfLines={3}
       />
@@ -67,7 +67,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
+  content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
   label: { fontSize: 13, color: "#9fb0c5", marginBottom: 6, marginTop: 14 },
   input: {

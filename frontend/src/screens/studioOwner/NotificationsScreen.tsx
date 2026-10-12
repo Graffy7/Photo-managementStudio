@@ -66,7 +66,7 @@ export function NotificationsScreen() {
   );
 
   return (
-    <Screen maxWidth={760}>
+    <Screen maxWidth={1100}>
       <PageHeader
         title="Notifications"
         subtitle={data ? `${data.totalCount} ${filter === "unread" ? "unread" : "total"}` : null}

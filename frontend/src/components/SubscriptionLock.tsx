@@ -40,5 +40,5 @@ const styles = StyleSheet.create({
   },
   compact: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6 },
   text: { color: "#f2bd5c", fontWeight: "700", fontSize: 13 },
-  textCompact: { fontSize: 11.5 },
+  textCompact: { fontSize: 13 },
 });

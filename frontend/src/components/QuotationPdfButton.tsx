@@ -60,7 +60,7 @@ export function QuotationPdfButton({ quotation, onError }: { quotation: Quotatio
             return (
               <Pressable key={o.key} style={({ hovered }: any) => [styles.item, hovered && !locked && styles.itemHover, locked && { opacity: 0.45 }]}
                 onPress={() => !locked && download(o.key)} disabled={locked} accessibilityRole="button">
-                <Ionicons name={current ? "radio-button-on" : "radio-button-off"} size={15} color={current ? "#ff9a4d" : "#6f83a0"} />
+                <Ionicons name={current ? "radio-button-on" : "radio-button-off"} size={15} color={current ? "#ff9a4d" : "#8a9cb6"} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemTitle}>{o.title}</Text>
                   <Text style={styles.itemText}>{locked ? "Not available: this quotation has a total entered by hand" : o.text}</Text>
@@ -84,10 +84,10 @@ const styles = StyleSheet.create({
     width: "100%", maxWidth: 360, backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c",
     borderRadius: 12, paddingVertical: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
   },
-  menuTitle: { color: "#6f83a0", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, paddingHorizontal: 12, paddingVertical: 6 },
+  menuTitle: { color: "#8a9cb6", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, paddingHorizontal: 12, paddingVertical: 6 },
   item: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
   itemHover: { backgroundColor: "rgba(127,192,230,0.08)" },
   itemTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
-  itemText: { color: "#6f83a0", fontSize: 11.5, marginTop: 1 },
-  note: { color: "#6f83a0", fontSize: 11, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 4 },
+  itemText: { color: "#8a9cb6", fontSize: 13, marginTop: 1 },
+  note: { color: "#8a9cb6", fontSize: 12, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 4 },
 });

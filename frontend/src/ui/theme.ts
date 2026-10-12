@@ -13,7 +13,7 @@ export const colors = {
   // Text
   text: "#e8edf3",
   textMuted: "#9fb0c5",
-  textFaint: "#6f83a0",
+  textFaint: "#8a9cb6",
 
   // The one brand colour: main actions and "you are here"
   primary: "#ff9a4d",

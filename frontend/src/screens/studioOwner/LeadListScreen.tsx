@@ -80,7 +80,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
       return (
         <View style={styles.confirm}>
           <Text style={[styles.confirmText, !isDelete && { color: colors.text }]}>{isDelete ? "Delete this enquiry?" : "Make this enquiry a customer?"}</Text>
-          {actionError && <Text style={styles.error}>{actionError}</Text>}
+          {!!actionError && <Text style={styles.error}>{actionError}</Text>}
           <View style={styles.actionRow}>
             <Button label="Cancel" variant="link" onPress={() => { setPending(null); setActionError(null); }} disabled={busy} />
             <Button
@@ -107,7 +107,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   const statusPills = (l: Lead) => (
     <View style={styles.pills}>
       {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone="info" /> : null}
-      {l.leadSourceName && <StatusPill label={l.leadSourceName} tone="neutral" />}
+      {!!l.leadSourceName && <StatusPill label={l.leadSourceName} tone="neutral" />}
     </View>
   );
 
@@ -142,7 +142,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
       <View style={styles.dates}>
         <MiniDatePicker label="Received from" value={createdFrom} onChange={setFilter(setCreatedFrom)} />
         <MiniDatePicker label="Received to" value={createdTo} onChange={setFilter(setCreatedTo)} />
-        {(createdFrom || createdTo) && (
+        {!!(createdFrom || createdTo) && (
           <Button label="Clear dates" variant="link" onPress={() => { setCreatedFrom(""); setCreatedTo(""); setPage(1); }} style={{ alignSelf: "flex-end" }} />
         )}
       </View>
@@ -178,7 +178,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
             </View>
             <Text style={styles.cardTitle} numberOfLines={1}>{l.fullName}</Text>
             <Text style={styles.cardSub} numberOfLines={1}>{l.mobileNumber}{l.email ? ` · ${l.email}` : ""}</Text>
-            {planLine(l) && <Text style={styles.cardMeta} numberOfLines={1}>{planLine(l)}</Text>}
+            {!!planLine(l) && <Text style={styles.cardMeta} numberOfLines={1}>{planLine(l)}</Text>}
             <View style={styles.cardActions}>{actions(l)}</View>
           </>
         )}

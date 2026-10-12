@@ -54,9 +54,9 @@ interface Props<T> {
 // cards on phones and tablets. Loading shows placeholder rows of the final size, so nothing jumps.
 export function DataList<T>(props: Props<T>) {
   const { items, keyOf, columns, renderCard, onRowPress, loading, fetching, noun, error, onRetry, empty, sort, onSortChange, page, pageSize, totalCount, onPageChange } = props;
-  const { isDesktop } = useBreakpoint();
+  const { isDesktop, isPhone } = useBreakpoint();
   const top = useRef<View>(null);
-  // Width the table has to fill; it is exactly this wide unless its columns need more.
+  // Native only: the width the table has to fill (the web lays this out in CSS, see below).
   const [available, setAvailable] = useState(0);
 
   // After a page change the list starts again from its first row, not wherever the pager was.
@@ -107,10 +107,13 @@ export function DataList<T>(props: Props<T>) {
     </View>
   );
 
+  // Tablets have room for two cards side by side; phones get one column.
+  const cardsStyle = !isPhone && Platform.OS === "web" ? styles.cardsTwoUp : styles.cards;
+
   let body: ReactNode;
   if (loading) {
     body = (
-      <View style={isDesktop ? undefined : styles.cards}>
+      <View style={isDesktop ? undefined : cardsStyle}>
         {Array.from({ length: Math.min(pageSize, 8) }).map((_, i) =>
           isDesktop ? (
             <View key={i} style={styles.row}><Skeleton height={18} width="70%" /></View>
@@ -132,7 +135,7 @@ export function DataList<T>(props: Props<T>) {
     body = items.map((item) => <TableRow key={keyOf(item)} item={item} columns={columns} onPress={onRowPress} />);
   } else {
     body = (
-      <View style={styles.cards}>
+      <View style={cardsStyle}>
         {items.map((item) => (
           <Pressable
             key={keyOf(item)}
@@ -151,7 +154,16 @@ export function DataList<T>(props: Props<T>) {
 
   return (
     <View ref={top} style={styles.anchor}>
-      {isDesktop ? (
+      {isDesktop && Platform.OS === "web" ? (
+        // The table always fills its box; only when the columns need more room than the box has
+        // does it keep their minimum width and scroll sideways inside the box.
+        <View style={[styles.table, styles.tableScroll]}>
+          <View style={[{ minWidth: minTableWidth }, refreshing && styles.refreshing]}>
+            {header}
+            {body}
+          </View>
+        </View>
+      ) : isDesktop ? (
         <View style={styles.table} onLayout={(e) => setAvailable(Math.floor(e.nativeEvent.layout.width) - 2)}>
           <ScrollView horizontal showsHorizontalScrollIndicator={minTableWidth > available}>
             <View style={[{ width: Math.max(available, minTableWidth) }, refreshing && styles.refreshing]}>
@@ -215,7 +227,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   rowHover: { backgroundColor: colors.cardRaised },
+  tableScroll: { overflowX: "auto", overflowY: "hidden" } as object,
   cards: { gap: space.md },
+  cardsTwoUp: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: space.md } as object,
   card: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.sm },
   pressed: { backgroundColor: colors.cardRaised },
   errorBox: { alignItems: "center", gap: space.md, paddingVertical: 40 },

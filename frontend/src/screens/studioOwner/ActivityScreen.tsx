@@ -56,7 +56,7 @@ export function ActivityScreen() {
   );
 
   return (
-    <Screen maxWidth={760}>
+    <Screen maxWidth={1100}>
       <Pressable onPress={() => navigation.goBack()} style={styles.back} accessibilityRole="link" hitSlop={6}>
         <Ionicons name="chevron-back" size={18} color={colors.link} />
         <Text style={styles.backText}>Settings</Text>

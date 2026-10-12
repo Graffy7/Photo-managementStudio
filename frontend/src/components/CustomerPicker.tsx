@@ -75,14 +75,14 @@ export function CustomerPicker({
           value={newName}
           onChangeText={setNewName}
           placeholder="Full name"
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
         />
         <TextInput
           style={[styles.input, { marginTop: 8 }]}
           value={newMobile}
           onChangeText={setNewMobile}
           placeholder="Mobile number"
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
           keyboardType="phone-pad"
         />
         {createError ? <Text style={styles.createError}>{createError}</Text> : null}
@@ -132,7 +132,7 @@ export function CustomerPicker({
         value={query}
         onChangeText={setQuery}
         placeholder="Type a name or mobile number"
-        placeholderTextColor="#6f83a0"
+        placeholderTextColor="#8a9cb6"
         accessibilityLabel="Search customer by name or mobile number"
       />
       {!searching ? (
@@ -173,21 +173,21 @@ const styles = StyleSheet.create({
     fontSize: 15, color: "#e8edf3", backgroundColor: "#0b1522",
   },
   hintRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 8 },
-  hintText: { color: "#6f83a0", fontSize: 13 },
+  hintText: { color: "#8a9cb6", fontSize: 13 },
   pickedRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#132540",
   },
   pickedName: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },
-  pickedMeta: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
+  pickedMeta: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
   changeLink: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
   pickerList: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, backgroundColor: "#132540", marginTop: 8, overflow: "hidden" },
   newCustomerRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1b2c42" },
   newCustomerText: { color: "#7fc0e6", fontSize: 14, fontWeight: "700" },
   pickerRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1b2c42" },
   pickerRowName: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  pickerRowMeta: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
-  pickerEmpty: { color: "#6f83a0", fontSize: 12, padding: 14, textAlign: "center" },
+  pickerRowMeta: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
+  pickerEmpty: { color: "#8a9cb6", fontSize: 12, padding: 14, textAlign: "center" },
 
   createBox: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, backgroundColor: "#132540", padding: 14, marginTop: 8 },
   createTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "700", marginBottom: 8 },

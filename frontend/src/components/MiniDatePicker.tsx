@@ -85,7 +85,7 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
                 <Ionicons name="chevron-forward" size={16} color="#9fb0c5" />
               </Pressable>
               <Pressable style={styles.closeButton} onPress={() => setOpen(false)}>
-                <Ionicons name="close" size={18} color="#6f83a0" />
+                <Ionicons name="close" size={18} color="#8a9cb6" />
               </Pressable>
             </View>
 
@@ -134,7 +134,7 @@ export function MiniDatePicker({ label, value, onChange, placeholder = "Select d
 }
 
 const styles = StyleSheet.create({
-  label: { color: "#6f83a0", fontSize: 12, fontWeight: "600", marginBottom: 6 },
+  label: { color: "#8a9cb6", fontSize: 12, fontWeight: "600", marginBottom: 6 },
   trigger: {
     flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8,
     paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#172a42", minWidth: 140,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   triggerText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
   triggerForm: { paddingVertical: 10, paddingHorizontal: 14, minWidth: 0, width: "100%" },
   triggerTextForm: { fontSize: 15, fontWeight: "400" },
-  placeholderText: { color: "#6f83a0", fontWeight: "400" },
+  placeholderText: { color: "#8a9cb6", fontWeight: "400" },
   footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#1f3149" },
   clearText: { color: "#ff9a93", fontSize: 12, fontWeight: "700" },
   todayText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   closeButton: { padding: 2 },
 
   weekdayRow: { flexDirection: "row" },
-  weekdayLabel: { width: `${100 / 7}%`, textAlign: "center", color: "#6f83a0", fontSize: 10, fontWeight: "700" },
+  weekdayLabel: { width: `${100 / 7}%`, textAlign: "center", color: "#8a9cb6", fontSize: 12, fontWeight: "700" },
 
   grid: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
   daySlot: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center" },

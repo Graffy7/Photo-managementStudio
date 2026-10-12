@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, useWindowDimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -56,6 +56,13 @@ export function CalendarScreen() {
   const [view, setView] = useState<CalendarView>({ name: "calendar" });
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // On phones the day's events sit under the calendar: picking a date scrolls down to them.
+  const scroller = useRef<ScrollView>(null);
+  const panelY = useRef(0);
+  const selectDay = (key: string | null) => {
+    setSelectedKey(key);
+    if (narrow && key) setTimeout(() => scroller.current?.scrollTo({ y: Math.max(panelY.current - 8, 0), animated: true }), 50);
+  };
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["calendar-month", viewedYear, viewedMonth],
@@ -159,38 +166,47 @@ export function CalendarScreen() {
   }
 
   return (
-    <View style={styles.screen}>
-      <View style={[styles.content, narrow && styles.contentNarrow]}>
+    <ScrollView ref={scroller} style={styles.screen} contentContainerStyle={[styles.content, narrow && styles.contentNarrow]}>
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.titleIcon}>
-              <Ionicons name="calendar" size={16} color="#8cc8f0" />
-            </View>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={styles.title}>Calendar</Text>
-              <Text style={styles.subtitle}>See all your booked events at a glance. Click on any date to view details.</Text>
-            </View>
-          </View>
+          <Text style={styles.title}>Calendar</Text>
+          <Text style={styles.subtitle}>{narrow ? "Tap a date to see its events." : "Click a date to see its events, add a booking or record a payment."}</Text>
         </View>
 
-        <View style={styles.statRow}>
-          <StatCard icon="calendar-outline" color="#8cc8f0" label="Total Events" value={monthlySummary.totalEvents} />
-          {CATEGORY_ORDER.filter((c) => c !== "other").map((c) => (
-            <StatCard key={c} icon={CATEGORY_ICONS[c]} color={CATEGORY_COLORS[c]} label={`${CATEGORY_LABELS[c]}s`} value={categoryCounts[c]} />
-          ))}
-          <StatCard icon={CATEGORY_ICONS.other} color={CATEGORY_COLORS.other} label="Others" value={categoryCounts.other} />
-        </View>
+        {narrow ? (
+          // Phones: the month's numbers in one compact card, so the calendar itself is on screen.
+          <View style={styles.statStrip}>
+            <Text style={styles.statStripTitle}>
+              {monthlySummary.totalEvents} event{monthlySummary.totalEvents === 1 ? "" : "s"} in {MONTH_NAMES[viewedMonth - 1]}
+            </Text>
+            <View style={styles.statStripPills}>
+              {CATEGORY_ORDER.filter((c) => categoryCounts[c] > 0).map((c) => (
+                <View key={c} style={styles.statStripPill}>
+                  <View style={[styles.legendDot, { backgroundColor: CATEGORY_COLORS[c] }]} />
+                  <Text style={styles.statStripPillText}>{CATEGORY_LABELS[c]} {categoryCounts[c]}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.statRow}>
+            <StatCard icon="calendar-outline" color="#8cc8f0" label="Total events" value={monthlySummary.totalEvents} />
+            {CATEGORY_ORDER.filter((c) => c !== "other").map((c) => (
+              <StatCard key={c} icon={CATEGORY_ICONS[c]} color={CATEGORY_COLORS[c]} label={`${CATEGORY_LABELS[c]}s`} value={categoryCounts[c]} />
+            ))}
+            <StatCard icon={CATEGORY_ICONS.other} color={CATEGORY_COLORS.other} label="Others" value={categoryCounts.other} />
+          </View>
+        )}
 
         <View style={styles.columns}>
           <View style={styles.mainColumn}>
             <View style={styles.card}>
               <View style={styles.toolbar}>
                 <View style={styles.toolbarNav}>
-                  <Pressable style={styles.navButton} onPress={() => goToMonth(-1)}>
+                  <Pressable style={styles.navButton} onPress={() => goToMonth(-1)} accessibilityRole="button" accessibilityLabel="Previous month">
                     <Ionicons name="chevron-back" size={16} color="#9fb0c5" />
                   </Pressable>
                   <Text style={styles.monthLabel}>{MONTH_NAMES[viewedMonth - 1]} {viewedYear}</Text>
-                  <Pressable style={styles.navButton} onPress={() => goToMonth(1)}>
+                  <Pressable style={styles.navButton} onPress={() => goToMonth(1)} accessibilityRole="button" accessibilityLabel="Next month">
                     <Ionicons name="chevron-forward" size={16} color="#9fb0c5" />
                   </Pressable>
                 </View>
@@ -208,33 +224,44 @@ export function CalendarScreen() {
                   <View style={styles.weekdayRow}>
                     {WEEKDAYS.map((w) => (
                       <View key={w} style={styles.weekdaySlot}>
-                        <Text style={[styles.weekdayLabel, (w === "Sun") && styles.weekendLabel]}>{w}</Text>
+                        <Text style={[styles.weekdayLabel, (w === "Sun") && styles.weekendLabel]}>{narrow ? w[0] : w}</Text>
                       </View>
                     ))}
                   </View>
 
                   <View style={styles.grid}>
                     {cells.map((cell, i) => {
-                      if (cell.day === null) return <View key={`blank-${i}`} style={styles.dayCellSlot} />;
+                      if (cell.day === null) return <View key={`blank-${i}`} style={[styles.dayCellSlot, narrow && styles.dayCellSlotNarrow]} />;
                       const dayEvents = eventsByDate[cell.key!] ?? [];
                       const isToday = cell.key === todayKey();
                       const isSelected = cell.key === selectedKey;
                       return (
-                        <View key={cell.key} style={styles.dayCellSlot}>
+                        <View key={cell.key} style={[styles.dayCellSlot, narrow && styles.dayCellSlotNarrow]}>
                           <Pressable
-                            style={[styles.dayCell, isToday && !isSelected && styles.dayCellToday, isSelected && styles.dayCellSelected]}
-                            onPress={() => setSelectedKey(cell.key)}
+                            style={[styles.dayCell, narrow && styles.dayCellNarrow, isToday && !isSelected && styles.dayCellToday, isSelected && styles.dayCellSelected]}
+                            onPress={() => selectDay(cell.key)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${cell.day} ${MONTH_NAMES[viewedMonth - 1]}, ${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"}`}
                           >
                             <View style={styles.dayCellTop}>
                               <Text style={[styles.dayNumber, isToday && !isSelected && styles.dayNumberToday, isSelected && styles.dayNumberSelected]}>
                                 {cell.day}
                               </Text>
-                              {dayEvents.length > 0 && (
+                              {dayEvents.length > 0 && !narrow && (
                                 <View style={[styles.countBadge, isSelected && styles.countBadgeSelected]}>
                                   <Text style={[styles.countBadgeText, isSelected && styles.countBadgeTextSelected]}>{dayEvents.length}</Text>
                                 </View>
                               )}
                             </View>
+                            {narrow ? (
+                              // Phone cells are too small for names: one dot per event, tap for details.
+                              <View style={styles.dotRow}>
+                                {dayEvents.slice(0, 3).map((e) => (
+                                  <View key={e.eventId} style={[styles.dayDot, { backgroundColor: isSelected ? "#0b1522" : CATEGORY_COLORS[categorizeEventType(e.eventTypeName)] }]} />
+                                ))}
+                                {dayEvents.length > 3 && <Text style={[styles.dotMore, isSelected && styles.moreLabelSelected]}>+</Text>}
+                              </View>
+                            ) : (
                             <View style={styles.chipStack}>
                               {dayEvents.slice(0, 2).map((e) => {
                                 const cat = categorizeEventType(e.eventTypeName);
@@ -251,6 +278,7 @@ export function CalendarScreen() {
                                 <Text style={[styles.moreLabel, isSelected && styles.moreLabelSelected]}>+{dayEvents.length - 2} more</Text>
                               )}
                             </View>
+                            )}
                           </Pressable>
                         </View>
                       );
@@ -270,17 +298,17 @@ export function CalendarScreen() {
             </View>
           </View>
 
-          <View style={styles.sideColumn}>
+          <View style={styles.sideColumn} onLayout={(e) => { panelY.current = e.nativeEvent.layout.y; }}>
             <View style={styles.card}>
               <View style={styles.panelHeaderRow}>
-                <Text style={styles.panelTitle}>Events on Selected Date</Text>
+                <Text style={styles.panelTitle}>{selectedLabel ? "Events on this date" : "Events on a date"}</Text>
                 <SubscriptionLock>
                   <Pressable
                     style={styles.addButton}
                     onPress={() => navigation.navigate("Events", { create: true, date: selectedKey ?? undefined, returnTo: "Calendar" })}
                   >
-                    <Ionicons name="add" size={14} color="#0b1522" />
-                    <Text style={styles.addButtonText}>Add Event</Text>
+                    <Ionicons name="add" size={16} color="#0b1522" />
+                    <Text style={styles.addButtonText}>Add event</Text>
                   </Pressable>
                 </SubscriptionLock>
               </View>
@@ -293,7 +321,7 @@ export function CalendarScreen() {
               {selectedKey === null ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="calendar-clear-outline" size={22} color="#3d5570" />
-                  <Text style={styles.empty}>Click a date to see its events.</Text>
+                  <Text style={styles.empty}>{narrow ? "Tap a date in the calendar above." : "Click a date in the calendar."}</Text>
                 </View>
               ) : selectedEvents.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -315,10 +343,12 @@ export function CalendarScreen() {
                           </View>
                           {pendingDeleteId !== e.eventId && (
                             <Pressable
-                              hitSlop={8}
+                              hitSlop={12}
                               onPress={() => { setPendingDeleteId(e.eventId); setDeleteError(null); }}
+                              accessibilityRole="button"
+                              accessibilityLabel="Delete event"
                             >
-                              <Ionicons name="trash-outline" size={15} color="#6f83a0" />
+                              <Ionicons name="trash-outline" size={18} color="#9fb0c5" />
                             </Pressable>
                           )}
                         </View>
@@ -326,7 +356,6 @@ export function CalendarScreen() {
                           {start && end ? `${start} - ${end}` : "No time set"}
                         </Text>
                         <Text style={styles.eventCardMeta}>{e.customerMobileNumber}</Text>
-                        <Text style={styles.eventCardMeta}>{e.customerName}</Text>
                         {e.venue && <Text style={styles.eventCardMeta}>{e.venue}</Text>}
                         <View style={[styles.categoryPill, { backgroundColor: `${CATEGORY_COLORS[cat]}22`, borderColor: CATEGORY_COLORS[cat] }]}>
                           <Text style={[styles.categoryPillText, { color: CATEGORY_COLORS[cat] }]}>{CATEGORY_LABELS[cat]}</Text>
@@ -352,9 +381,9 @@ export function CalendarScreen() {
                             </View>
                             <SubscriptionLock>
                               <Pressable style={styles.recordPaymentButton} onPress={() => setView({ name: "recordPayment", event: e })}>
-                                <Ionicons name="cash-outline" size={13} color="#0b1522" />
+                                <Ionicons name="cash-outline" size={16} color="#0b1522" />
                                 <Text style={styles.recordPaymentButtonText}>
-                                  {e.balance > 0 ? "Record Payment" : "Add Payment"}
+                                  {e.balance > 0 ? "Record payment" : "Add payment"}
                                 </Text>
                               </Pressable>
                             </SubscriptionLock>
@@ -381,7 +410,7 @@ export function CalendarScreen() {
                                 {deleteMutation.isPending ? (
                                   <ActivityIndicator color="#ff9a93" size="small" />
                                 ) : (
-                                  <Text style={styles.deleteConfirmButtonText}>Confirm Delete</Text>
+                                  <Text style={styles.deleteConfirmButtonText}>Delete event</Text>
                                 )}
                               </Pressable>
                             </View>
@@ -395,17 +424,17 @@ export function CalendarScreen() {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.panelTitle}>Monthly Summary</Text>
+              <Text style={styles.panelTitle}>This month</Text>
               <Text style={styles.panelSubtitle}>{MONTH_NAMES[viewedMonth - 1]} {viewedYear}</Text>
               <View style={styles.summaryGrid}>
-                <SummaryTile icon="calendar-outline" label="Total Events" value={String(monthlySummary.totalEvents)} />
-                <SummaryTile icon="cash-outline" label="Total Value" value={monthlySummary.totalValue > 0 ? formatCurrency(monthlySummary.totalValue) : "—"} />
+                <SummaryTile icon="calendar-outline" label="Events" value={String(monthlySummary.totalEvents)} />
+                <SummaryTile icon="cash-outline" label="Total value" value={monthlySummary.totalValue > 0 ? formatCurrency(monthlySummary.totalValue) : "—"} />
               </View>
             </View>
 
             <View style={styles.card}>
               <View style={styles.busiestHeader}>
-                <Text style={styles.panelTitle}>Most Active Day</Text>
+                <Text style={styles.panelTitle}>Busiest weekday</Text>
                 {busiestDay.busiestIndex !== null && (
                   <Text style={styles.busiestDayName}>{WEEKDAYS[busiestDay.busiestIndex]}</Text>
                 )}
@@ -414,7 +443,7 @@ export function CalendarScreen() {
                 <Text style={styles.empty}>No events yet this month.</Text>
               ) : (
                 <>
-                  <Text style={styles.panelSubtitle}>{busiestDay.max} {busiestDay.max === 1 ? "Event" : "Events"}</Text>
+                  <Text style={styles.panelSubtitle}>{busiestDay.max} {busiestDay.max === 1 ? "event" : "events"} this month</Text>
                   <View style={styles.barsRow}>
                     {busiestDay.perWeekday.map((count, i) => (
                       <View key={i} style={styles.barSlot}>
@@ -436,8 +465,7 @@ export function CalendarScreen() {
             </View>
           </View>
         </View>
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -465,130 +493,135 @@ function SummaryTile({ icon, label, value }: { icon: string; label: string; valu
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 28, maxWidth: 1300, width: "100%", alignSelf: "center" },
-  contentNarrow: { padding: 16 },
+  content: { padding: 24, paddingBottom: 32, maxWidth: 1760, width: "100%", alignSelf: "center" },
+  contentNarrow: { padding: 16, paddingBottom: 32 },
 
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 16, flexWrap: "wrap" },
-  headerLeft: { flexDirection: "row", gap: 12, flex: 1, minWidth: 240 },
-  titleIcon: {
-    width: 32, height: 32, borderRadius: 9, backgroundColor: "rgba(127, 192, 230, 0.14)",
-    alignItems: "center", justifyContent: "center", marginTop: 2,
-  },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3, maxWidth: 420 },
+  header: { marginBottom: 16 },
+  title: { fontSize: 24, lineHeight: 30, fontWeight: "700", color: "#e8edf3" },
+  subtitle: { fontSize: 13, lineHeight: 18, color: "#9fb0c5", marginTop: 2 },
+  statStrip: { backgroundColor: "#122033", borderRadius: 12, borderWidth: 1, borderColor: "#1f3149", padding: 12, gap: 8, marginBottom: 12 },
+  statStripTitle: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
+  statStripPills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  statStripPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#172a42", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10 },
+  statStripPillText: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
   addButton: {
     flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#8cc8f0",
-    borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10,
+    borderRadius: 8, minHeight: 36, paddingHorizontal: 12,
   },
-  addButtonText: { color: "#0b1522", fontSize: 12, fontWeight: "700" },
+  addButtonText: { color: "#0b1522", fontSize: 13, fontWeight: "700" },
   panelHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
 
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 18 },
-  statCard: { flexGrow: 1, minWidth: 130, backgroundColor: "#172a42", borderRadius: 12, borderWidth: 1, borderColor: "#2c4463", padding: 14 },
+  statCard: { flexGrow: 1, flexBasis: 0, minWidth: 130, backgroundColor: "#122033", borderRadius: 12, borderWidth: 1, borderColor: "#1f3149", padding: 14 },
   statIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 8 },
   statValue: { fontSize: 20, fontWeight: "700", color: "#e8edf3" },
-  statLabel: { fontSize: 11, color: "#9fb0c5", marginTop: 2 },
+  statLabel: { fontSize: 13, color: "#9fb0c5", marginTop: 2 },
 
   columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
   mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 560, minWidth: 0, gap: 16 },
   sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
 
-  card: { backgroundColor: "#172a42", borderRadius: 14, borderWidth: 1, borderColor: "#2c4463", padding: 18 },
+  card: { backgroundColor: "#122033", borderRadius: 12, borderWidth: 1, borderColor: "#1f3149", padding: 16 },
 
   toolbar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   toolbarNav: { flexDirection: "row", alignItems: "center", gap: 12 },
   navButton: {
-    width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", backgroundColor: "#122033",
+    width: 40, height: 40, borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", backgroundColor: "#172a42",
     alignItems: "center", justifyContent: "center",
   },
-  monthLabel: { color: "#e8edf3", fontSize: 16, fontWeight: "700", minWidth: 150, textAlign: "center" },
-  todayButton: { borderWidth: 1, borderColor: "#8cc8f0", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 14 },
-  todayButtonText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
+  monthLabel: { color: "#e8edf3", fontSize: 17, fontWeight: "700", minWidth: 132, textAlign: "center" },
+  todayButton: { borderWidth: 1, borderColor: "#8cc8f0", borderRadius: 8, minHeight: 40, justifyContent: "center", paddingHorizontal: 14 },
+  todayButtonText: { color: "#8cc8f0", fontSize: 14, fontWeight: "700" },
   error: { color: "#ff9a93", marginTop: 40, marginBottom: 40, textAlign: "center" },
 
   weekdayRow: { flexDirection: "row" },
   weekdaySlot: { width: "14.2857%", alignItems: "center", paddingBottom: 10 },
-  weekdayLabel: { color: "#6f83a0", fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  weekdayLabel: { color: "#9fb0c5", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
   weekendLabel: { color: "#ff9a93" },
 
   grid: { flexDirection: "row", flexWrap: "wrap" },
-  dayCellSlot: { width: "14.2857%", aspectRatio: 0.95, padding: 3 },
+  dayCellSlot: { width: "14.2857%", aspectRatio: 1.15, padding: 3 },
+  dayCellSlotNarrow: { aspectRatio: 0.9, padding: 2 },
   dayCell: {
-    flex: 1, borderRadius: 10, backgroundColor: "#122033", borderWidth: 1, borderColor: "#1f3149",
-    padding: 6, justifyContent: "flex-start",
+    flex: 1, borderRadius: 10, backgroundColor: "#0f1b2b", borderWidth: 1, borderColor: "#1f3149",
+    padding: 6, justifyContent: "flex-start", overflow: "hidden",
   },
+  dayCellNarrow: { padding: 4, alignItems: "center", borderRadius: 8 },
+  dotRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, marginTop: 2 },
+  dayDot: { width: 6, height: 6, borderRadius: 3 },
+  dotMore: { color: "#8cc8f0", fontSize: 12, lineHeight: 12, fontWeight: "700" },
   dayCellToday: { borderColor: "#8cc8f0", borderWidth: 1.5, backgroundColor: "rgba(127, 192, 230, 0.08)" },
   dayCellSelected: { backgroundColor: "#8cc8f0", borderColor: "#8cc8f0" },
   dayCellTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  dayNumber: { color: "#c3d0e0", fontSize: 12, fontWeight: "600" },
+  dayNumber: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
   dayNumberToday: { color: "#8cc8f0", fontWeight: "800" },
   dayNumberSelected: { color: "#0b1522", fontWeight: "800" },
-  countBadge: { backgroundColor: "#a78bfa", borderRadius: 100, minWidth: 15, height: 15, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  countBadge: { backgroundColor: "#a78bfa", borderRadius: 100, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   countBadgeSelected: { backgroundColor: "#0b1522" },
-  countBadgeText: { color: "#0b1522", fontSize: 9, fontWeight: "800" },
+  countBadgeText: { color: "#0b1522", fontSize: 12, lineHeight: 14, fontWeight: "800" },
   countBadgeTextSelected: { color: "#8cc8f0" },
   chipStack: { gap: 2 },
   eventChip: { flexDirection: "row", alignItems: "center", gap: 3 },
-  eventChipDot: { width: 4, height: 4, borderRadius: 2 },
-  eventChipText: { color: "#9fb0c5", fontSize: 8.5, flex: 1 },
+  eventChipDot: { width: 6, height: 6, borderRadius: 3 },
+  eventChipText: { color: "#c3d0e0", fontSize: 12, lineHeight: 15, flex: 1 },
   eventChipTextSelected: { color: "#0b1522" },
-  moreLabel: { color: "#8cc8f0", fontSize: 8.5, fontWeight: "700" },
+  moreLabel: { color: "#8cc8f0", fontSize: 12, lineHeight: 15, fontWeight: "700" },
   moreLabelSelected: { color: "#0b1522" },
 
   legendRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#1f3149" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: { color: "#9fb0c5", fontSize: 11, fontWeight: "600" },
+  legendLabel: { color: "#9fb0c5", fontSize: 13, fontWeight: "600" },
 
-  panelTitle: { fontSize: 15, fontWeight: "700", color: "#e8edf3" },
-  panelSubtitle: { fontSize: 12, color: "#6f83a0", marginTop: 2, marginBottom: 4 },
-  panelSubtitleAccent: { fontSize: 12, color: "#8cc8f0", fontWeight: "700", marginTop: 2, marginBottom: 4 },
+  panelTitle: { fontSize: 17, fontWeight: "700", color: "#e8edf3", flexShrink: 1 },
+  panelSubtitle: { fontSize: 13, color: "#9fb0c5", marginTop: 2, marginBottom: 4 },
+  panelSubtitleAccent: { fontSize: 14, color: "#8cc8f0", fontWeight: "700", marginTop: 2, marginBottom: 4 },
   emptyState: { alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 },
-  empty: { color: "#6f83a0", fontSize: 13, textAlign: "center" },
+  empty: { color: "#9fb0c5", fontSize: 14, textAlign: "center" },
 
-  eventCard: { backgroundColor: "#122033", borderRadius: 10, padding: 12, gap: 4 },
+  eventCard: { backgroundColor: "#172a42", borderRadius: 10, padding: 12, gap: 4 },
   eventCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   eventCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
-  eventDotSmall: { width: 7, height: 7, borderRadius: 4 },
-  eventCardTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "700", flex: 1 },
-  eventCardTime: { color: "#8cc8f0", fontSize: 11, fontWeight: "600" },
-  eventCardMeta: { color: "#9fb0c5", fontSize: 11 },
+  eventDotSmall: { width: 8, height: 8, borderRadius: 4 },
+  eventCardTitle: { color: "#e8edf3", fontSize: 15, fontWeight: "700", flex: 1 },
+  eventCardTime: { color: "#8cc8f0", fontSize: 13, fontWeight: "600" },
+  eventCardMeta: { color: "#9fb0c5", fontSize: 13 },
   categoryPill: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8, marginTop: 2 },
-  categoryPillText: { fontSize: 10, fontWeight: "700" },
+  categoryPillText: { fontSize: 12, fontWeight: "700" },
 
   deleteConfirmBox: {
     marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1f3149", gap: 8,
   },
-  deleteConfirmText: { color: "#ff9a93", fontSize: 11.5, fontWeight: "600" },
-  deleteErrorText: { color: "#ff9a93", fontSize: 11 },
+  deleteConfirmText: { color: "#ff9a93", fontSize: 13, fontWeight: "600" },
+  deleteErrorText: { color: "#ff9a93", fontSize: 13 },
   deleteConfirmButtons: { flexDirection: "row", gap: 8 },
-  deleteCancelButton: { flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 8, alignItems: "center" },
-  deleteCancelText: { color: "#9fb0c5", fontSize: 11.5, fontWeight: "700" },
+  deleteCancelButton: { flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, minHeight: 40, justifyContent: "center", alignItems: "center" },
+  deleteCancelText: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
   deleteConfirmButton: {
     flex: 1, borderWidth: 1, borderColor: "#ff9a93", backgroundColor: "rgba(255, 122, 114, 0.14)",
-    borderRadius: 8, paddingVertical: 8, alignItems: "center",
+    borderRadius: 8, minHeight: 40, justifyContent: "center", alignItems: "center",
   },
-  deleteConfirmButtonText: { color: "#ff9a93", fontSize: 11.5, fontWeight: "700" },
+  deleteConfirmButtonText: { color: "#ff9a93", fontSize: 14, fontWeight: "700" },
 
   financeRow: { flexDirection: "row", gap: 10, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1f3149" },
   financeItem: { flex: 1, gap: 1 },
-  financeLabel: { color: "#6f83a0", fontSize: 9.5 },
-  financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
+  financeLabel: { color: "#9fb0c5", fontSize: 12 },
+  financeValue: { color: "#e8edf3", fontSize: 15, fontWeight: "700", fontVariant: ["tabular-nums"] },
   recordPaymentButton: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 8, marginTop: 8,
+    backgroundColor: "#ff9a4d", borderRadius: 8, minHeight: 40, marginTop: 8,
   },
-  recordPaymentButtonText: { color: "#0b1522", fontSize: 11.5, fontWeight: "700" },
+  recordPaymentButtonText: { color: "#1a0f05", fontSize: 14, fontWeight: "700" },
 
   summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
-  summaryTile: { flexGrow: 1, minWidth: "45%", backgroundColor: "#122033", borderRadius: 10, padding: 12, gap: 4 },
-  summaryValue: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
-  summaryLabel: { color: "#6f83a0", fontSize: 10 },
+  summaryTile: { flexGrow: 1, minWidth: "45%", backgroundColor: "#172a42", borderRadius: 10, padding: 12, gap: 4 },
+  summaryValue: { color: "#e8edf3", fontSize: 17, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  summaryLabel: { color: "#9fb0c5", fontSize: 12 },
 
   busiestHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   busiestDayName: { color: "#8cc8f0", fontSize: 14, fontWeight: "700" },
-  barsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, height: 60 },
+  barsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, height: 68 },
   barSlot: { alignItems: "center", gap: 4, flex: 1 },
   bar: { width: 10, borderRadius: 4 },
-  barLabel: { color: "#6f83a0", fontSize: 9, fontWeight: "600" },
+  barLabel: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
 });

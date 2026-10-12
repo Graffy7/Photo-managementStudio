@@ -126,14 +126,14 @@ export function LogoBrandingTab() {
 }
 
 const styles = StyleSheet.create({
-  hint: { color: "#6f83a0", fontSize: 12, marginBottom: 16 },
+  hint: { color: "#8a9cb6", fontSize: 12, marginBottom: 16 },
   previewCard: {
     width: 140, height: 140, borderRadius: 12, borderWidth: 1, borderColor: "#2c4463", backgroundColor: "#172a42",
     alignItems: "center", justifyContent: "center", overflow: "hidden", marginBottom: 16,
   },
   preview: { width: "100%", height: "100%" },
   placeholder: { alignItems: "center", justifyContent: "center" },
-  placeholderText: { color: "#6f83a0", fontSize: 12 },
+  placeholderText: { color: "#8a9cb6", fontSize: 12 },
   error: { color: "#ff9a93", fontSize: 13, marginBottom: 8 },
   actions: { flexDirection: "row", gap: 12 },
   primaryButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },

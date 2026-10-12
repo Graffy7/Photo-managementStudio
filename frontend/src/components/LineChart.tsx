@@ -302,9 +302,9 @@ export function LineChart({
 
 const styles = StyleSheet.create({
   empty: { alignItems: "center", justifyContent: "center" },
-  emptyText: { color: "#6f83a0", fontSize: 13 },
+  emptyText: { color: "#8a9cb6", fontSize: 13 },
   labelRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8, marginTop: 4 },
-  label: { color: "#6f83a0", fontSize: 11 },
+  label: { color: "#8a9cb6", fontSize: 12 },
   labelFaded: { opacity: 0 },
   peakBadge: {
     position: "absolute", top: 0, right: 12, flexDirection: "row", alignItems: "center", gap: 6,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(167, 139, 250, 0.35)",
   },
   peakDot: { width: 6, height: 6, borderRadius: 3 },
-  peakText: { color: "#e8edf3", fontSize: 11, fontWeight: "600" },
+  peakText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
 
   hitArea: { position: "absolute", top: 0, left: 0 },
   tooltip: {
@@ -321,13 +321,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(167, 139, 250, 0.4)",
     boxShadow: "0 8px 28px rgba(0, 0, 0, 0.45)",
   },
-  tooltipDate: { color: "#a7b7cb", fontSize: 11, fontWeight: "600" },
+  tooltipDate: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   tooltipTotal: { color: "#e8edf3", fontSize: 18, fontWeight: "800", marginBottom: 2 },
   tooltipItems: { borderTopWidth: 1, borderTopColor: "#23405c", marginTop: 6, paddingTop: 8, gap: 7 },
   tooltipRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   tooltipBullet: { width: 7, height: 7, borderRadius: 4 },
   tooltipName: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
-  tooltipSub: { color: "#6f83a0", fontSize: 11 },
+  tooltipSub: { color: "#8a9cb6", fontSize: 12 },
   tooltipValue: { color: "#4cc493", fontSize: 12, fontWeight: "700" },
-  tooltipMore: { color: "#6f83a0", fontSize: 11, marginTop: 2 },
+  tooltipMore: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
 });

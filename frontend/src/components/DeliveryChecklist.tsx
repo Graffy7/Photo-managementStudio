@@ -97,7 +97,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
                 <Ionicons
                   name={item.isDelivered ? "checkmark-circle" : "ellipse-outline"}
                   size={13}
-                  color={item.isDelivered ? "#6ee0ad" : "#6f83a0"}
+                  color={item.isDelivered ? "#6ee0ad" : "#8a9cb6"}
                 />
                 <Text style={[styles.pillText, item.isDelivered && styles.pillTextDone]}>{item.name}</Text>
               </Pressable>
@@ -125,7 +125,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Pendrive"
-              placeholderTextColor="#6f83a0"
+              placeholderTextColor="#8a9cb6"
               autoFocus
               maxLength={100}
               onSubmitEditing={() => newName.trim() && add.mutate(newName.trim())}
@@ -147,7 +147,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Cancel"
             >
-              <Ionicons name="close" size={13} color="#6f83a0" />
+              <Ionicons name="close" size={13} color="#8a9cb6" />
             </Pressable>
           </View>
         ) : (
@@ -186,7 +186,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
   label: {
-    color: "#6f83a0", fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4,
+    color: "#8a9cb6", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4,
   },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
 
@@ -222,5 +222,5 @@ const styles = StyleSheet.create({
   confirmCancel: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   confirmYes: { color: "#ff9a93", fontSize: 12, fontWeight: "700" },
 
-  error: { color: "#ff9a93", fontSize: 11 },
+  error: { color: "#ff9a93", fontSize: 12 },
 });

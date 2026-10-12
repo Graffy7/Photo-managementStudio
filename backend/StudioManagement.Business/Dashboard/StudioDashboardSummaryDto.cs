@@ -21,6 +21,9 @@ public class StudioDashboardSummaryDto
     public decimal CollectedRevenue { get; set; }
     public decimal OutstandingBalance { get; set; }
     public decimal TotalExpenses { get; set; }
+    // TotalExpenses split by whether the studio has paid them yet.
+    public decimal PaidExpenses { get; set; }
+    public decimal PendingExpenses { get; set; }
     public decimal ExpectedProfit { get; set; }
     public decimal CashProfit { get; set; }
 

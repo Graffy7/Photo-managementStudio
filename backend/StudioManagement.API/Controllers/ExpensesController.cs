@@ -36,6 +36,14 @@ public class ExpensesController(
         return expense is null ? NotFound() : Ok(expense);
     }
 
+    // One event's expenses and profit figures (agreed price, costs, what is still owed either way).
+    [HttpGet("event/{eventId:int}")]
+    public async Task<IActionResult> GetForEvent(int eventId, CancellationToken ct)
+    {
+        var summary = await expenseService.GetEventSummaryAsync(StudioId, eventId, ct);
+        return summary is null ? NotFound() : Ok(summary);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateExpenseRequestDto request, CancellationToken ct)
     {

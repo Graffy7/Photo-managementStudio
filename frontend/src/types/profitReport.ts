@@ -8,6 +8,13 @@ export interface EventProfit {
   expenses: number;
   expectedProfit: number;
   cashProfit: number;
+  // On the event's agreed price.
+  eventTotal: number;
+  paidExpenses: number;
+  pendingExpenses: number;
+  netProfit: number;
+  profitMarginPercent: number | null;
+  outstandingBalance: number;
 }
 
 export interface ExpenseCategoryBreakdown {
@@ -23,6 +30,11 @@ export interface ProfitReport {
   totalExpenses: number;
   totalExpectedProfit: number;
   totalCashProfit: number;
+  eventsTotalAmount: number;
+  eventsExpenses: number;
+  eventsPendingExpenses: number;
+  eventsNetProfit: number;
+  eventsOutstandingBalance: number;
   events: EventProfit[];
   expensesByCategory: ExpenseCategoryBreakdown[];
 }

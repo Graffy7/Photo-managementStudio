@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 18 },
   center: { position: "absolute", top: 0, left: 0, alignItems: "center", justifyContent: "center" },
   centerValue: { fontSize: 30, fontWeight: "800", color: "#e8edf3" },
-  centerLabel: { fontSize: 11, color: "#6f83a0", marginTop: 2 },
+  centerLabel: { fontSize: 12, color: "#8a9cb6", marginTop: 2 },
   hitArea: { position: "absolute", top: 0, left: 0 },
 
   legend: { gap: 4, flex: 1 },
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   dot: { width: 9, height: 9, borderRadius: 5 },
   legendLabel: { color: "#a7b7cb", fontSize: 13, flex: 1 },
   legendValue: { color: "#e8edf3", fontSize: 13, fontWeight: "700" },
-  legendShare: { color: "#6f83a0", fontSize: 11, width: 34, textAlign: "right" },
+  legendShare: { color: "#8a9cb6", fontSize: 12, width: 34, textAlign: "right" },
   bar: { height: 3, borderRadius: 2, backgroundColor: "#1b2c42", overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 2 },
 });

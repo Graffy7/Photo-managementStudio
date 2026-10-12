@@ -147,7 +147,7 @@ function EventNotesSection({ customerId, eventId, notes }: { customerId: number;
           value={draft}
           onChangeText={setDraft}
           placeholder="Add a note about this event..."
-          placeholderTextColor="#6f83a0"
+          placeholderTextColor="#8a9cb6"
           multiline
           numberOfLines={3}
           autoFocus
@@ -167,7 +167,7 @@ function EventNotesSection({ customerId, eventId, notes }: { customerId: number;
 
   return (
     <Pressable style={styles.notesRow} onPress={() => { setDraft(notes ?? ""); setEditing(true); setError(null); }}>
-      <Ionicons name="document-text-outline" size={12} color="#6f83a0" />
+      <Ionicons name="document-text-outline" size={12} color="#8a9cb6" />
       {notes ? (
         <Text style={styles.notesText} numberOfLines={2}>{notes}</Text>
       ) : (
@@ -194,11 +194,11 @@ function EventRow({ event, customerId, onViewEvent }: { event: CustomerEventSumm
       </View>
 
       <View style={styles.eventMetaRow}>
-        <Ionicons name="time-outline" size={13} color="#6f83a0" />
+        <Ionicons name="time-outline" size={13} color="#8a9cb6" />
         <Text style={styles.eventMetaText}>
           {event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}` : "No time set"}
         </Text>
-        <Ionicons name="location-outline" size={13} color="#6f83a0" style={{ marginLeft: 12 }} />
+        <Ionicons name="location-outline" size={13} color="#8a9cb6" style={{ marginLeft: 12 }} />
         <Text style={styles.eventMetaText}>{event.venue ?? "No venue set"}</Text>
       </View>
 
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   viewButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#122033" },
   viewButtonText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
   field: { minWidth: 120, gap: 3 },
-  fieldLabel: { color: "#6f83a0", fontSize: 11 },
+  fieldLabel: { color: "#8a9cb6", fontSize: 12 },
   fieldValue: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
 
   eventRow: { gap: 10 },
@@ -277,11 +277,11 @@ const styles = StyleSheet.create({
   eventMetaRow: { flexDirection: "row", alignItems: "center" },
   eventMetaText: { color: "#9fb0c5", fontSize: 12, marginLeft: 4 },
   notesRow: { flexDirection: "row", alignItems: "flex-start", gap: 5 },
-  notesText: { color: "#6f83a0", fontSize: 11.5, fontStyle: "italic", flex: 1, lineHeight: 16 },
-  notesPlaceholder: { color: "#8cc8f0", fontSize: 11.5, fontStyle: "italic", flex: 1, lineHeight: 16 },
+  notesText: { color: "#8a9cb6", fontSize: 13, fontStyle: "italic", flex: 1, lineHeight: 16 },
+  notesPlaceholder: { color: "#8cc8f0", fontSize: 13, fontStyle: "italic", flex: 1, lineHeight: 16 },
   notesEditCard: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, padding: 10, backgroundColor: "#122033", gap: 6 },
   notesInput: {
-    color: "#e8edf3", fontSize: 12.5, lineHeight: 17, minHeight: 54, textAlignVertical: "top",
+    color: "#e8edf3", fontSize: 13, lineHeight: 17, minHeight: 54, textAlignVertical: "top",
     borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, padding: 8, backgroundColor: "#0b1522",
   },
   notesEditActions: { flexDirection: "row", justifyContent: "flex-end", gap: 16 },
@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
   eventFinanceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, backgroundColor: "#122033", borderRadius: 8, padding: 12 },
 
   crewCard: { backgroundColor: "#122033", borderRadius: 8, padding: 12 },
-  smallLabel: { fontSize: 11, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
-  hint: { color: "#6f83a0", fontSize: 12, marginTop: 6 },
+  smallLabel: { fontSize: 12, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
+  hint: { color: "#8a9cb6", fontSize: 12, marginTop: 6 },
   crewRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
   crewChip: {
     flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463", borderRadius: 100,

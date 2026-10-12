@@ -222,7 +222,7 @@ function Field({ label, value, onChange, placeholder, max }: { label: string; va
   return (
     <View style={styles.field}>
       <Label>{label}</Label>
-      <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#6f83a0" maxLength={max} />
+      <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#8a9cb6" maxLength={max} />
     </View>
   );
 }
@@ -260,7 +260,7 @@ function ColorField({ label, value, onChange, hint }: { label: string; value: st
         {PRESET_COLORS.map((c) => (
           <Pressable key={c} style={[styles.colorDot, { backgroundColor: c }, value.toUpperCase() === c && styles.colorOn]} onPress={() => onChange(c)} accessibilityLabel={c} />
         ))}
-        <TextInput style={[styles.input, styles.hexInput, invalid && styles.inputBad]} value={value} placeholder="#1976D2" placeholderTextColor="#6f83a0"
+        <TextInput style={[styles.input, styles.hexInput, invalid && styles.inputBad]} value={value} placeholder="#1976D2" placeholderTextColor="#8a9cb6"
           onChangeText={(v) => onChange(v.trim().slice(0, 7))} autoCapitalize="characters" />
       </View>
       <Text style={[styles.small, invalid && { color: "#ff9a93" }]}>{invalid ? "Use a colour like #1976D2." : hint}</Text>
@@ -278,8 +278,8 @@ const styles = StyleSheet.create({
   templateTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   swatch: { width: 14, height: 14, borderRadius: 4 },
   templateName: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
-  defaultTag: { color: "#8cc8f0", fontSize: 10, fontWeight: "700", borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingHorizontal: 6 },
-  small: { color: "#6f83a0", fontSize: 12 },
+  defaultTag: { color: "#8cc8f0", fontSize: 12, fontWeight: "700", borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingHorizontal: 6 },
+  small: { color: "#8a9cb6", fontSize: 12 },
   label: { fontSize: 13, color: "#9fb0c5", marginTop: 2 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   field: { flexGrow: 1, flexBasis: 200, gap: 6 },
@@ -296,18 +296,18 @@ const styles = StyleSheet.create({
   colors: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
   colorDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "transparent" },
   colorAuto: { width: 44, backgroundColor: "#172a42", borderColor: "#2c4463", alignItems: "center", justifyContent: "center" },
-  autoText: { color: "#9fb0c5", fontSize: 10, fontWeight: "700" },
+  autoText: { color: "#9fb0c5", fontSize: 12, fontWeight: "700" },
   colorOn: { borderColor: "#e8edf3" },
   sigRow: { flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" },
   sigImage: { width: 200, height: 70, borderRadius: 8, backgroundColor: "#ffffff" },
   sigEmpty: { backgroundColor: "#172a42", borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
   secondary: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#172a42" },
   secondaryText: { color: "#8cc8f0", fontWeight: "700", fontSize: 13 },
-  remove: { color: "#ff9a93", fontSize: 12.5, fontWeight: "600" },
+  remove: { color: "#ff9a93", fontSize: 13, fontWeight: "600" },
   actions: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
   save: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 24, alignItems: "center" },
   saveText: { color: "#0b1522", fontWeight: "700" },
-  reset: { color: "#6f83a0", fontSize: 13, fontWeight: "600" },
+  reset: { color: "#8a9cb6", fontSize: 13, fontWeight: "600" },
   disabled: { opacity: 0.5 },
   error: { color: "#ff9a93", fontSize: 13 },
   success: { color: "#6ee0ad", fontSize: 13, fontWeight: "600" },

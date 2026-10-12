@@ -1,12 +1,14 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
-import type { CreateExpenseRequest, Expense, UpdateExpenseRequest } from "../types/expense";
+import type { CreateExpenseRequest, EventExpenseSummary, Expense, UpdateExpenseRequest } from "../types/expense";
 
 export const expensesApi = {
   search: (params: { search?: string; expenseCategoryId?: number; page?: number; pageSize?: number }) =>
     apiClient.get<PagedResult<Expense>>("/api/expenses", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<Expense>(`/api/expenses/${id}`).then((res) => res.data),
+
+  forEvent: (eventId: number) => apiClient.get<EventExpenseSummary>(`/api/expenses/event/${eventId}`).then((res) => res.data),
 
   create: (request: CreateExpenseRequest) => apiClient.post<Expense>("/api/expenses", request).then((res) => res.data),
 

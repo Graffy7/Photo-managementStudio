@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { dayBoardApi } from "../../api/dayBoardApi";
 import { workersApi } from "../../api/workersApi";
 import type { DayBoardEvent } from "../../types/dayBoard";
-import { StatusPill } from "../../components/StatusPill";
+import { StatusPill, eventStatusTone } from "../../components/StatusPill";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { localDateString } from "../../utils/localDate";
+import { Screen } from "../../ui/Screen";
+import { PageHeader } from "../../ui/PageHeader";
+import { EmptyState } from "../../ui/EmptyState";
+import { Button } from "../../ui/Button";
+import { Skeleton } from "../../ui/Skeleton";
+import { colors, radius, space, touch, type } from "../../ui/theme";
 
 // Today on the studio's calendar (the device's own day, not UTC's).
 function todayLocal(): string {
@@ -22,24 +29,18 @@ function shiftDate(date: string, days: number): string {
 }
 
 function formatDateLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-function statusTone(status: string): "good" | "bad" | "warn" | "neutral" {
-  if (status === "Completed") return "good";
-  if (status === "Cancelled") return "bad";
-  return "neutral";
-}
-
 function WorkerPicker({ eventId, assignedWorkerIds, onDone }: { eventId: number; assignedWorkerIds: number[]; onDone: () => void }) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
-  const { data: workers } = useQuery({
+  const { data: workers, isPending } = useQuery({
     queryKey: ["workers-active-picker"],
     queryFn: () => workersApi.search({ isActive: true, pageSize: 100 }),
   });
@@ -57,19 +58,19 @@ function WorkerPicker({ eventId, assignedWorkerIds, onDone }: { eventId: number;
 
   return (
     <View style={styles.pickerCard}>
-      <Text style={styles.smallLabel}>Assign a worker</Text>
+      <Text style={styles.pickerTitle}>Choose a worker to add</Text>
       <View style={styles.chipRow}>
         {available.map((w) => (
-          <Pressable key={w.workerId} style={styles.chip} onPress={() => assign.mutate(w.workerId)} disabled={assign.isPending}>
+          <Pressable key={w.workerId} style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]} onPress={() => assign.mutate(w.workerId)} disabled={assign.isPending} accessibilityRole="button">
+            <Ionicons name="add" size={16} color={colors.link} />
             <Text style={styles.chipText}>{w.fullName}</Text>
           </Pressable>
         ))}
-        {available.length === 0 && <Text style={styles.hint}>No other active workers to assign.</Text>}
+        {isPending && <Text style={styles.hint}>Loading workers…</Text>}
+        {!isPending && available.length === 0 && <Text style={styles.hint}>All your active workers are already on this event.</Text>}
       </View>
       {error ? <Text style={styles.rowError}>{error}</Text> : null}
-      <Pressable onPress={onDone} style={{ marginTop: 10 }}>
-        <Text style={styles.cancelLink}>Cancel</Text>
-      </Pressable>
+      <Button label="Close" variant="link" onPress={onDone} style={styles.pickerClose} />
     </View>
   );
 }
@@ -85,22 +86,40 @@ function EventCard({ event }: { event: DayBoardEvent }) {
     onError: (err) => setRemoveError(extractErrorMessage(err)),
   });
 
+  const place = [event.venue, event.venueAddress].filter(Boolean).join(" · ");
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.time}>{event.startTime ?? "No time set"}{event.endTime ? ` – ${event.endTime}` : ""}</Text>
-        <StatusPill label={event.eventStatus} tone={statusTone(event.eventStatus)} />
+        <View style={styles.timeRow}>
+          <Ionicons name="time-outline" size={18} color={colors.primary} />
+          <Text style={styles.time}>{event.startTime ?? "Time not set"}{event.endTime ? ` – ${event.endTime}` : ""}</Text>
+        </View>
+        <StatusPill label={event.eventStatus} tone={eventStatusTone(event.eventStatus)} />
       </View>
 
-      <Text style={styles.customerName}>{event.customerName}</Text>
-      <Text style={styles.contact}>{event.customerMobileNumber}</Text>
+      <View>
+        <Text style={styles.customerName}>{event.customerName}</Text>
+        {event.eventTypeName ? <Text style={styles.eventType}>{event.eventTypeName}</Text> : null}
+      </View>
 
-      {(event.venue || event.venueAddress) && (
-        <Text style={styles.venue}>{[event.venue, event.venueAddress].filter(Boolean).join(" · ")}</Text>
-      )}
-
-      <View style={styles.pillRow}>
-        {event.eventTypeName && <StatusPill label={event.eventTypeName} tone="neutral" />}
+      <View style={styles.facts}>
+        <View style={styles.fact}>
+          <Ionicons name="call-outline" size={16} color={colors.textMuted} />
+          <Text style={styles.factText} selectable>{event.customerMobileNumber}</Text>
+        </View>
+        {place ? (
+          <View style={styles.fact}>
+            <Ionicons name="location-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.factText}>{place}</Text>
+          </View>
+        ) : null}
+        {event.notes ? (
+          <View style={styles.fact}>
+            <Ionicons name="document-text-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.factText}>{event.notes}</Text>
+          </View>
+        ) : null}
       </View>
 
       {event.budget !== null && (
@@ -110,54 +129,53 @@ function EventCard({ event }: { event: DayBoardEvent }) {
             <Text style={styles.financeValue}>{formatCurrency(event.budget)}</Text>
           </View>
           <View style={styles.financeItem}>
-            <Text style={styles.financeLabel}>Advance paid</Text>
+            <Text style={styles.financeLabel}>Paid</Text>
             <Text style={styles.financeValue}>{formatCurrency(event.amountPaid)}</Text>
           </View>
           <View style={styles.financeItem}>
             <Text style={styles.financeLabel}>{event.balance < 0 ? "Overpaid" : "Balance"}</Text>
-            <Text style={[styles.financeValue, { color: event.balance === 0 ? "#6ee0ad" : "#f5c66b" }]}>
+            <Text style={[styles.financeValue, { color: event.balance === 0 ? colors.success : colors.warning }]}>
               {formatCurrency(Math.abs(event.balance))}
             </Text>
           </View>
         </View>
       )}
 
-      {event.notes ? <Text style={styles.notes}>{event.notes}</Text> : null}
+      <View style={styles.crew}>
+        <Text style={styles.crewTitle}>Crew{event.workers.length > 0 ? ` (${event.workers.length})` : ""}</Text>
+        {event.workers.length === 0 ? (
+          <Text style={styles.hint}>No one assigned yet.</Text>
+        ) : (
+          <View style={styles.chipRow}>
+            {event.workers.map((w) => (
+              <View key={w.eventWorkerId} style={styles.crewChip}>
+                <Text style={styles.crewChipText}>{w.workerName}{w.workerTypeName ? ` · ${w.workerTypeName}` : ""}</Text>
+                <Pressable onPress={() => unassign.mutate(w.workerId)} disabled={unassign.isPending} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remove ${w.workerName}`}>
+                  <Ionicons name="close" size={16} color={colors.danger} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+        {removeError ? <Text style={styles.rowError}>{removeError}</Text> : null}
 
-      <Text style={styles.smallLabel}>Crew</Text>
-      {event.workers.length === 0 && !showPicker ? (
-        <Text style={styles.hint}>No one assigned yet.</Text>
-      ) : (
-        <View style={styles.crewRow}>
-          {event.workers.map((w) => (
-            <View key={w.eventWorkerId} style={styles.crewChip}>
-              <Text style={styles.crewChipText}>{w.workerName}{w.workerTypeName ? ` · ${w.workerTypeName}` : ""}</Text>
-              <Pressable onPress={() => unassign.mutate(w.workerId)} disabled={unassign.isPending}>
-                <Text style={styles.crewRemove}>×</Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      )}
-      {removeError ? <Text style={styles.rowError}>{removeError}</Text> : null}
-
-      {showPicker ? (
-        <WorkerPicker
-          eventId={event.eventId}
-          assignedWorkerIds={event.workers.map((w) => w.workerId)}
-          onDone={() => setShowPicker(false)}
-        />
-      ) : (
-        <Pressable style={styles.assignTrigger} onPress={() => setShowPicker(true)}>
-          <Text style={styles.assignTriggerText}>+ Assign worker</Text>
-        </Pressable>
-      )}
+        {showPicker ? (
+          <WorkerPicker
+            eventId={event.eventId}
+            assignedWorkerIds={event.workers.map((w) => w.workerId)}
+            onDone={() => setShowPicker(false)}
+          />
+        ) : (
+          <Button label="Assign worker" icon="person-add-outline" onPress={() => setShowPicker(true)} style={styles.assign} />
+        )}
+      </View>
     </View>
   );
 }
 
 export function DayBoardScreen() {
   const [date, setDate] = useState(todayLocal());
+  const isToday = date === todayLocal();
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["day-board", date],
@@ -165,84 +183,101 @@ export function DayBoardScreen() {
   });
   useRefetchOnFocus(refetch);
 
+  const count = data?.events.length ?? 0;
+  const balance = data?.events.reduce((sum, e) => sum + Math.max(e.balance, 0), 0) ?? 0;
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Day board</Text>
-          <Text style={styles.subtitle}>{data ? formatDateLabel(date) : ""}</Text>
-        </View>
-      </View>
+    <Screen>
+      <PageHeader
+        title="Day board"
+        subtitle={`${isToday ? "Today · " : ""}${formatDateLabel(date)}`}
+      />
 
       <View style={styles.dateNav}>
-        <Pressable style={styles.navButton} onPress={() => setDate((d) => shiftDate(d, -1))}>
-          <Text style={styles.navButtonText}>‹ Prev</Text>
+        <Pressable style={({ pressed }) => [styles.arrow, pressed && styles.chipPressed]} onPress={() => setDate((d) => shiftDate(d, -1))} accessibilityRole="button" accessibilityLabel="Previous day">
+          <Ionicons name="chevron-back" size={20} color={colors.text} />
         </Pressable>
         <View style={styles.datePickerSlot}>
           <MiniDatePicker value={date} onChange={(d) => d && setDate(d)} />
         </View>
-        <Pressable style={styles.navButton} onPress={() => setDate(todayLocal())}>
-          <Text style={styles.navButtonText}>Today</Text>
+        <Pressable style={({ pressed }) => [styles.arrow, pressed && styles.chipPressed]} onPress={() => setDate((d) => shiftDate(d, 1))} accessibilityRole="button" accessibilityLabel="Next day">
+          <Ionicons name="chevron-forward" size={20} color={colors.text} />
         </Pressable>
-        <Pressable style={styles.navButton} onPress={() => setDate((d) => shiftDate(d, 1))}>
-          <Text style={styles.navButtonText}>Next ›</Text>
-        </Pressable>
+        <Button label="Today" onPress={() => setDate(todayLocal())} disabled={isToday} />
       </View>
 
       {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
+        <View style={styles.grid}>
+          <Skeleton height={260} rounded={radius.card} />
+          <Skeleton height={260} rounded={radius.card} />
+        </View>
       ) : isError || !data ? (
-        <Text style={styles.error}>Couldn't load the day board.</Text>
-      ) : data.events.length === 0 ? (
-        <Text style={styles.empty}>No events scheduled for this day.</Text>
+        <EmptyState icon="cloud-offline-outline" title="Couldn't load this day" text="Check your connection and try again."
+          action={<Button label="Try again" onPress={() => refetch()} />} />
+      ) : count === 0 ? (
+        <EmptyState icon="calendar-clear-outline" title="No events on this day"
+          text="Pick another date, or use the arrows to move one day at a time." />
       ) : (
-        data.events.map((event) => <EventCard key={event.eventId} event={event} />)
+        <>
+          <Text style={styles.summary}>
+            {count} event{count === 1 ? "" : "s"}{balance > 0 ? ` · ${formatCurrency(balance)} still to collect` : ""}
+          </Text>
+          <View style={styles.grid}>
+            {data.events.map((event) => <EventCard key={event.eventId} event={event} />)}
+          </View>
+        </>
       )}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 24, maxWidth: 640, width: "100%", alignSelf: "center" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 2 },
-  dateNav: { flexDirection: "row", gap: 8, marginBottom: 20 },
-  navButton: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#172a42" },
-  navButtonText: { color: "#8cc8f0", fontSize: 13, fontWeight: "600" },
-  datePickerSlot: { flex: 1, justifyContent: "center" },
-  error: { color: "#ff9a93", marginTop: 40, textAlign: "center" },
-  empty: { color: "#6f83a0", marginTop: 40, textAlign: "center" },
-  card: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", padding: 16, marginBottom: 14, gap: 4,
+  dateNav: { flexDirection: "row", alignItems: "center", gap: space.sm, marginBottom: space.lg, maxWidth: 520 },
+  arrow: {
+    width: touch, height: touch, borderRadius: radius.control, borderWidth: 1, borderColor: colors.borderStrong,
+    backgroundColor: colors.card, alignItems: "center", justifyContent: "center",
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  time: { color: "#ff9a4d", fontSize: 13, fontWeight: "700" },
-  customerName: { color: "#e8edf3", fontSize: 16, fontWeight: "600", marginTop: 4 },
-  contact: { color: "#9fb0c5", fontSize: 13 },
-  venue: { color: "#9fb0c5", fontSize: 13 },
-  notes: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
-  pillRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  financeRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 6 },
-  financeItem: { gap: 1 },
-  financeLabel: { color: "#6f83a0", fontSize: 10 },
-  financeValue: { color: "#e8edf3", fontSize: 12, fontWeight: "700" },
-  smallLabel: { fontSize: 11, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 10, marginBottom: 6 },
-  hint: { color: "#6f83a0", fontSize: 12 },
-  crewRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  datePickerSlot: { flex: 1, minWidth: 0, justifyContent: "center" },
+  summary: { ...type.body, color: colors.textMuted, marginBottom: space.md },
+  // As many cards side by side as fit (one on phones, two or three on wider screens).
+  grid: (Platform.OS === "web"
+    ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 360px), 1fr))", gap: space.lg, alignItems: "start" }
+    : { gap: space.lg }) as object,
+
+  card: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.md },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.sm },
+  timeRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1, minWidth: 0 },
+  time: { ...type.body, fontWeight: "700", color: colors.primary },
+  customerName: { ...type.heading, fontSize: 18, color: colors.text },
+  eventType: { ...type.small, color: colors.textMuted, marginTop: 2 },
+  facts: { gap: 6 },
+  fact: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
+  factText: { ...type.small, lineHeight: 20, color: colors.text, flex: 1 },
+
+  financeRow: { flexDirection: "row", backgroundColor: colors.cardRaised, borderRadius: radius.control, paddingVertical: space.sm },
+  financeItem: { flex: 1, minWidth: 0, paddingHorizontal: space.md, gap: 2 },
+  financeLabel: { ...type.caption, color: colors.textMuted },
+  financeValue: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
+
+  crew: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: space.sm },
+  crewTitle: { ...type.small, fontWeight: "700", color: colors.text },
+  hint: { ...type.small, color: colors.textMuted },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   crewChip: {
-    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463", borderRadius: 100,
-    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#0b1522",
+    flexDirection: "row", alignItems: "center", gap: space.sm, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill,
+    minHeight: 36, paddingHorizontal: space.md, backgroundColor: colors.page,
   },
-  crewChipText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
-  crewRemove: { color: "#ff9a93", fontSize: 14, fontWeight: "700" },
-  rowError: { color: "#ff9a93", fontSize: 12, marginTop: 4 },
-  assignTrigger: { marginTop: 10, alignSelf: "flex-start" },
-  assignTriggerText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
-  pickerCard: { marginTop: 10, borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", borderRadius: 8, padding: 12, backgroundColor: "#0b1522" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
-  chipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
-  cancelLink: { color: "#ff9a93", fontSize: 12, fontWeight: "600" },
+  crewChipText: { ...type.small, fontWeight: "600", color: colors.text },
+  rowError: { ...type.small, color: colors.danger },
+  assign: { alignSelf: "flex-start", minHeight: 40 },
+
+  pickerCard: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.control, padding: space.md, backgroundColor: colors.page, gap: space.sm },
+  pickerTitle: { ...type.small, fontWeight: "600", color: colors.textMuted },
+  pickerClose: { alignSelf: "flex-start", minHeight: 36, paddingHorizontal: 0 },
+  chip: {
+    flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill,
+    minHeight: 36, paddingHorizontal: space.md, backgroundColor: colors.card,
+  },
+  chipPressed: { backgroundColor: colors.cardRaised },
+  chipText: { ...type.small, fontWeight: "600", color: colors.text },
 });

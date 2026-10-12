@@ -133,7 +133,7 @@ export function LookupTypeField({
             value={newName}
             onChangeText={setNewName}
             placeholder={`${noun[0].toUpperCase()}${noun.slice(1)} name`}
-            placeholderTextColor="#6f83a0"
+            placeholderTextColor="#8a9cb6"
             autoFocus
             onSubmitEditing={confirmNew}
           />
@@ -164,9 +164,9 @@ const styles = StyleSheet.create({
   chipDeletePending: { borderColor: "#ff9a93", backgroundColor: "rgba(255, 122, 114, 0.18)" },
   chipDeleteText: { color: "#ff9a93", fontSize: 12, fontWeight: "600" },
 
-  deleteHint: { color: "#6f83a0", fontSize: 11.5, marginTop: 8 },
+  deleteHint: { color: "#8a9cb6", fontSize: 13, marginTop: 8 },
   confirmRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 10 },
-  confirmText: { color: "#ff9a93", fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
+  confirmText: { color: "#ff9a93", fontSize: 13, fontWeight: "600", flexShrink: 1 },
   confirmActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   cancelInline: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   confirmButton: { borderWidth: 1, borderColor: "#ff9a93", backgroundColor: "rgba(255, 122, 114, 0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },

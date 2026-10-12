@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { SearchInput } from "../../components/SearchInput";
+import { StatusPill } from "../../components/StatusPill";
 import { expensesApi } from "../../api/expensesApi";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
 import type { Expense } from "../../types/expense";
@@ -27,7 +28,7 @@ function formatCurrency(value: number): string {
 }
 
 function details(e: Expense): string {
-  return [e.paymentMethod, e.referenceNumber ? `Ref: ${e.referenceNumber}` : null, e.workerName, e.eventVenue].filter(Boolean).join(" · ");
+  return [e.vendorName, e.paymentMethod, e.referenceNumber ? `Ref: ${e.referenceNumber}` : null, e.workerName, e.eventVenue].filter(Boolean).join(" · ");
 }
 
 export function ExpenseListScreen({
@@ -61,6 +62,9 @@ export function ExpenseListScreen({
       setPendingDeleteId(null);
       setActionError(null);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["event-expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["profit-report"] });
+      queryClient.invalidateQueries({ queryKey: ["studio-dashboard-summary"] });
     },
     onError: (err) => setActionError(extractErrorMessage(err, "Couldn't delete this expense. Please try again.")),
   });
@@ -98,6 +102,7 @@ export function ExpenseListScreen({
       key: "description", label: "Description", flex: 2,
       render: (e) => (<><CellTitle>{e.description || "—"}</CellTitle>{details(e) ? <CellSub>{details(e)}</CellSub> : null}{rowError(e)}</>),
     },
+    { key: "status", label: "Status", width: 110, render: (e) => <StatusPill label={e.paymentStatus} tone={e.paymentStatus === "Paid" ? "good" : "warn"} /> },
     { key: "amount", label: "Amount", width: 130, align: "right", render: (e) => <CellMoney>{formatCurrency(e.amount)}</CellMoney> },
     { key: "actions", label: "", width: 190, align: "right", render: actions },
   ];
@@ -154,7 +159,7 @@ export function ExpenseListScreen({
               <Text style={styles.cardTitle} numberOfLines={1}>{e.description || e.expenseCategoryName}</Text>
               <Text style={styles.cardAmount}>{formatCurrency(e.amount)}</Text>
             </View>
-            <Text style={styles.cardSub} numberOfLines={1}>{formatDate(e.expenseDate)} · {e.expenseCategoryName}</Text>
+            <Text style={styles.cardSub} numberOfLines={1}>{formatDate(e.expenseDate)} · {e.expenseCategoryName} · {e.paymentStatus === "Paid" ? "Paid" : "Payment pending"}</Text>
             {details(e) ? <Text style={styles.cardMeta} numberOfLines={1}>{details(e)}</Text> : null}
             {rowError(e)}
             <View style={styles.cardActions}>{actions(e)}</View>

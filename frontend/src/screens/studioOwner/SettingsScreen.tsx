@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StudioProfileTab } from "./settings/StudioProfileTab";
 import { LogoBrandingTab } from "./settings/LogoBrandingTab";
@@ -8,105 +9,114 @@ import { NotificationSettingsTab } from "./settings/NotificationSettingsTab";
 import { QuotationSettingsTab } from "./settings/QuotationSettingsTab";
 import { PdfSettingsTab } from "./settings/PdfSettingsTab";
 import { SecurityTab } from "./settings/SecurityTab";
+import { Screen } from "../../ui/Screen";
+import { PageHeader } from "../../ui/PageHeader";
+import { FilterChips } from "../../ui/FilterChips";
+import { useBreakpoint } from "../../ui/useBreakpoint";
+import { colors, radius, space, type } from "../../ui/theme";
 
 type TabKey = "profile" | "logo" | "business" | "notifications" | "quotation" | "pdf" | "security";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "profile", label: "Studio Profile" },
-  { key: "logo", label: "Logo & Branding" },
-  { key: "business", label: "Business" },
-  { key: "notifications", label: "Notifications" },
-  { key: "quotation", label: "Quotations" },
-  { key: "pdf", label: "Quotation PDF" },
-  { key: "security", label: "Security" },
+const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "profile", label: "Studio profile", icon: "business-outline" },
+  { key: "logo", label: "Logo & branding", icon: "image-outline" },
+  { key: "business", label: "Business", icon: "briefcase-outline" },
+  { key: "notifications", label: "Notifications", icon: "notifications-outline" },
+  { key: "quotation", label: "Quotations", icon: "document-text-outline" },
+  { key: "pdf", label: "Quotation PDF", icon: "print-outline" },
+  { key: "security", label: "Security", icon: "lock-closed-outline" },
 ];
 
-function SettingsRow({ title, subtitle, onPress }: { title: string; subtitle: string; onPress: () => void }) {
-  return (
-    <Pressable style={styles.row} onPress={onPress}>
-      <View>
-        <Text style={styles.rowTitle}>{title}</Text>
-        <Text style={styles.rowSubtitle}>{subtitle}</Text>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
-  );
-}
+const MORE: { route: string; label: string; hint: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { route: "Lookups", label: "Dropdown lists", hint: "Event types, enquiry sources, statuses, worker types", icon: "list-outline" },
+  { route: "LeadFormConfig", label: "Enquiry form fields", hint: "Show, hide, require, or add fields to your enquiry form", icon: "create-outline" },
+  { route: "Activity", label: "Activity", hint: "See who did what and when in your studio", icon: "time-outline" },
+];
 
 export function SettingsScreen() {
   const navigation = useNavigation<any>();
+  const { isDesktop } = useBreakpoint();
   const [tab, setTab] = useState<TabKey>("profile");
+  const current = TABS.find((t) => t.key === tab)!;
+
+  const content = (
+    <View style={styles.tabContent}>
+      {isDesktop && <Text style={styles.tabTitle}>{current.label}</Text>}
+      {tab === "profile" && <StudioProfileTab />}
+      {tab === "logo" && <LogoBrandingTab />}
+      {tab === "business" && <BusinessSettingsTab />}
+      {tab === "notifications" && <NotificationSettingsTab />}
+      {tab === "quotation" && <QuotationSettingsTab />}
+      {tab === "pdf" && <PdfSettingsTab />}
+      {tab === "security" && <SecurityTab />}
+    </View>
+  );
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Studio settings</Text>
-      <Text style={styles.subtitle}>Manage your studio's profile, branding, and defaults.</Text>
+    <Screen maxWidth={1400}>
+      <PageHeader title="Settings" subtitle="Your studio's profile, branding and defaults." />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow} contentContainerStyle={styles.tabRowContent}>
-        {TABS.map((t) => (
-          <Pressable key={t.key} style={[styles.tab, tab === t.key && styles.tabActive]} onPress={() => setTab(t.key)}>
-            <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <View style={styles.tabContent}>
-        {tab === "profile" && <StudioProfileTab />}
-        {tab === "logo" && <LogoBrandingTab />}
-        {tab === "business" && <BusinessSettingsTab />}
-        {tab === "notifications" && <NotificationSettingsTab />}
-        {tab === "quotation" && <QuotationSettingsTab />}
-        {tab === "pdf" && <PdfSettingsTab />}
-        {tab === "security" && <SecurityTab />}
-      </View>
-
-      <Text style={styles.moreLabel}>More</Text>
-      <View style={styles.list}>
-        <SettingsRow
-          title="Dropdown lists"
-          subtitle="Event types, enquiry sources, statuses, worker types"
-          onPress={() => navigation.navigate("Lookups")}
-        />
-        <View style={styles.separator} />
-        <SettingsRow
-          title="Enquiry form fields"
-          subtitle="Show, hide, require, or add fields to your enquiry form"
-          onPress={() => navigation.navigate("LeadFormConfig")}
-        />
-        <View style={styles.separator} />
-        <SettingsRow
-          title="Activity"
-          subtitle="See who did what and when in your studio"
-          onPress={() => navigation.navigate("Activity")}
-        />
-      </View>
-    </ScrollView>
+      {isDesktop ? (
+        // Desktop: every settings area listed on the left, the chosen one on the right.
+        <View style={styles.panes}>
+          <View style={styles.menu}>
+            {TABS.map((t) => (
+              <Pressable key={t.key} style={({ pressed }) => [styles.menuItem, tab === t.key && styles.menuItemActive, pressed && tab !== t.key && styles.menuItemPressed]} onPress={() => setTab(t.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }}>
+                <Ionicons name={t.icon} size={18} color={tab === t.key ? colors.primary : colors.textMuted} />
+                <Text style={[styles.menuText, tab === t.key && styles.menuTextActive]}>{t.label}</Text>
+              </Pressable>
+            ))}
+            <View style={styles.menuSeparator} />
+            {MORE.map((m) => (
+              <Pressable key={m.route} style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]} onPress={() => navigation.navigate(m.route)} accessibilityRole="link">
+                <Ionicons name={m.icon} size={18} color={colors.textMuted} />
+                <Text style={styles.menuText}>{m.label}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+              </Pressable>
+            ))}
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>{content}</View>
+        </View>
+      ) : (
+        <>
+          <View style={{ marginBottom: space.lg }}>
+            <FilterChips<TabKey> options={TABS.map((t) => ({ value: t.key, label: t.label }))} value={tab} onChange={setTab} />
+          </View>
+          {content}
+          <Text style={styles.moreLabel}>More settings</Text>
+          <View style={styles.list}>
+            {MORE.map((m, i) => (
+              <Pressable key={m.route} style={({ pressed }) => [styles.row, i > 0 && styles.rowSeparator, pressed && styles.menuItemPressed]} onPress={() => navigation.navigate(m.route)} accessibilityRole="link">
+                <Ionicons name={m.icon} size={20} color={colors.textMuted} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.rowTitle}>{m.label}</Text>
+                  <Text style={styles.rowSubtitle}>{m.hint}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+              </Pressable>
+            ))}
+          </View>
+        </>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 24, maxWidth: 760, width: "100%", alignSelf: "center" },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4, marginBottom: 20 },
-  tabRow: { marginBottom: 20 },
-  tabRowContent: { gap: 8, paddingRight: 8 },
-  tab: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 8, paddingHorizontal: 16, backgroundColor: "#172a42" },
-  tabActive: { backgroundColor: "rgba(255, 154, 77, 0.14)", borderColor: "#ff9a4d" },
-  tabText: { color: "#9fb0c5", fontSize: 13, fontWeight: "600" },
-  tabTextActive: { color: "#ff9a4d" },
-  tabContent: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 12, backgroundColor: "#122033", padding: 20, marginBottom: 28,
-  },
-  moreLabel: {
-    fontSize: 12, color: "#8cc8f0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10,
-  },
-  list: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden",
-  },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 },
-  rowTitle: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },
-  rowSubtitle: { color: "#6f83a0", fontSize: 12, marginTop: 2 },
-  chevron: { color: "#6f83a0", fontSize: 18 },
-  separator: { height: 1, backgroundColor: "#1f3149" },
+  panes: { flexDirection: "row", alignItems: "flex-start", gap: space.xl },
+  menu: { width: 240, backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.sm, gap: 2 },
+  menuItem: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 42, paddingHorizontal: space.md, borderRadius: radius.control },
+  menuItemActive: { backgroundColor: colors.primarySoft },
+  menuItemPressed: { backgroundColor: colors.cardRaised },
+  menuText: { ...type.small, fontSize: 14, fontWeight: "600", color: colors.text, flex: 1 },
+  menuTextActive: { color: colors.primary },
+  menuSeparator: { height: 1, backgroundColor: colors.border, marginVertical: space.sm },
+  tabContent: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, backgroundColor: colors.card, padding: space.lg },
+  tabTitle: { ...type.heading, color: colors.text, marginBottom: space.lg },
+  moreLabel: { ...type.heading, color: colors.text, marginTop: space.xl, marginBottom: space.md },
+  list: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, backgroundColor: colors.card, overflow: "hidden" },
+  row: { flexDirection: "row", alignItems: "center", gap: space.md, padding: space.lg, minHeight: 64 },
+  rowSeparator: { borderTopWidth: 1, borderTopColor: colors.border },
+  rowTitle: { ...type.body, fontWeight: "600", color: colors.text },
+  rowSubtitle: { ...type.small, color: colors.textMuted, marginTop: 2 },
 });

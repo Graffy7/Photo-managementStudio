@@ -97,7 +97,7 @@ export function EmptyLine({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.page },
-  content: { width: "100%", maxWidth: 1200, alignSelf: "center", paddingBottom: space.xxl },
+  content: { width: "100%", maxWidth: 1600, alignSelf: "center", paddingBottom: space.xxl },
   back: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start", minHeight: 32, marginBottom: space.sm },
   backText: { ...type.small, fontWeight: "600", color: colors.link },
   header: { flexDirection: "row", alignItems: "flex-start", gap: space.md },

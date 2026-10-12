@@ -48,7 +48,11 @@ export function WebAppShell({ children, navigationRef, activeRoute }: WebAppShel
     return <>{children}</>;
   }
 
-  const go = (route: string) => navigationRef.current?.navigate(route as never);
+  // Also closes the menu: picking the page you are already on must not leave the sheet open.
+  const go = (route: string) => {
+    setMoreOpen(false);
+    navigationRef.current?.navigate(route as never);
+  };
   const tabs = BOTTOM_TABS.filter((t) => isOn(ROUTE_MODULES[t.route] ?? ""));
   const onTab = tabs.some((t) => t.route === activeRoute);
 
@@ -142,7 +146,7 @@ const styles = StyleSheet.create({
     height: 64, flexDirection: "row", backgroundColor: colors.bar, borderTopWidth: 1, borderTopColor: colors.border,
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
-  tabLabel: { fontSize: 11, fontWeight: "600", color: colors.textMuted },
+  tabLabel: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
   tabLabelActive: { color: colors.primary },
 
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, justifyContent: "flex-end" },

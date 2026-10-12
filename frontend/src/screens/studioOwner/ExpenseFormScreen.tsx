@@ -3,10 +3,10 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { expensesApi } from "../../api/expensesApi";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
-import type { Expense } from "../../types/expense";
+import type { Expense, ExpensePaymentStatus } from "../../types/expense";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
-import { FormScreen, FormSection, FieldRow, Field, TextField } from "../../ui/Form";
+import { FormScreen, FormSection, FieldRow, Field, TextField, ChoiceChips } from "../../ui/Form";
 import { colors, radius, space, type } from "../../ui/theme";
 
 interface Props {
@@ -31,6 +31,8 @@ export function ExpenseFormScreen({ expense, onDone, onCancel }: Props) {
   const [description, setDescription] = useState(expense?.description ?? "");
   const [paymentMethod, setPaymentMethod] = useState(expense?.paymentMethod ?? "");
   const [referenceNumber, setReferenceNumber] = useState(expense?.referenceNumber ?? "");
+  const [vendorName, setVendorName] = useState(expense?.vendorName ?? "");
+  const [paymentStatus, setPaymentStatus] = useState<ExpensePaymentStatus>(expense?.paymentStatus ?? "Paid");
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
 
@@ -40,6 +42,11 @@ export function ExpenseFormScreen({ expense, onDone, onCancel }: Props) {
     mutationFn: () => {
       const payload = {
         expenseCategoryId: expenseCategoryId!,
+        // An expense linked to an event or worker elsewhere keeps that link when edited here.
+        eventId: expense?.eventId ?? undefined,
+        workerId: expense?.workerId ?? undefined,
+        vendorName: vendorName.trim() || undefined,
+        paymentStatus,
         expenseDate: expenseDate.trim(),
         amount: Number(amount),
         description: description.trim() || undefined,
@@ -50,6 +57,9 @@ export function ExpenseFormScreen({ expense, onDone, onCancel }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["event-expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["profit-report"] });
+      queryClient.invalidateQueries({ queryKey: ["studio-dashboard-summary"] });
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the expense. Please try again.")),
@@ -98,6 +108,18 @@ export function ExpenseFormScreen({ expense, onDone, onCancel }: Props) {
           </Field>
           <Field label="Date" required error={dateError} flex>
             <MiniDatePicker variant="form" value={expenseDate} onChange={setExpenseDate} placeholder="Select date" />
+          </Field>
+        </FieldRow>
+        <FieldRow>
+          <Field label="Paid to (vendor)" flex>
+            <TextField value={vendorName} onChangeText={setVendorName} placeholder="Ravi Drone Services" maxLength={150} />
+          </Field>
+          <Field label="Payment status" required flex>
+            <ChoiceChips<ExpensePaymentStatus>
+              options={[{ value: "Paid", label: "Paid" }, { value: "Pending", label: "Pending" }]}
+              value={paymentStatus}
+              onChange={setPaymentStatus}
+            />
           </Field>
         </FieldRow>
         <Field label="Description">

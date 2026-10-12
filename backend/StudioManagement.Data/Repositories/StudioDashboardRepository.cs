@@ -37,6 +37,12 @@ public class StudioDashboardRepository(AppDbContext context) : IStudioDashboardR
             .SumAsync(e => (decimal?)e.Amount, ct)
             .ContinueWith(t => t.Result ?? 0m, ct);
 
+    public Task<decimal> SumPendingExpensesAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default) =>
+        context.Expenses
+            .Where(e => e.StudioId == studioId && e.ExpenseDate >= start && e.ExpenseDate < end && e.PaymentStatus == ExpensePaymentStatuses.Pending)
+            .SumAsync(e => (decimal?)e.Amount, ct)
+            .ContinueWith(t => t.Result ?? 0m, ct);
+
     public Task<int> CountNewCustomersAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default) =>
         context.Customers.CountAsync(c => c.StudioId == studioId && c.CreatedAt >= start && c.CreatedAt < end, ct);
 

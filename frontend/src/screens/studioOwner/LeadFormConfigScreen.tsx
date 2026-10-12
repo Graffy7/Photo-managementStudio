@@ -26,7 +26,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
         </View>
       </View>
 
-      <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Field label" placeholderTextColor="#6f83a0" />
+      <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Field label" placeholderTextColor="#8a9cb6" />
 
       {field.options.length > 0 && (
         <Text style={styles.optionsPreview}>Options: {field.options.map((o) => o.optionLabel).join(", ")}</Text>
@@ -134,10 +134,10 @@ export function LeadFormConfigScreen() {
           <Text style={styles.addTitle}>New custom field</Text>
 
           <Text style={styles.smallLabel}>Field key (no spaces)</Text>
-          <TextInput style={styles.labelInput} value={fieldKey} onChangeText={setFieldKey} placeholder="InstagramId" placeholderTextColor="#6f83a0" autoCapitalize="none" />
+          <TextInput style={styles.labelInput} value={fieldKey} onChangeText={setFieldKey} placeholder="InstagramId" placeholderTextColor="#8a9cb6" autoCapitalize="none" />
 
           <Text style={styles.smallLabel}>Label</Text>
-          <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Instagram ID" placeholderTextColor="#6f83a0" />
+          <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Instagram ID" placeholderTextColor="#8a9cb6" />
 
           <Text style={styles.smallLabel}>Field type</Text>
           <View style={styles.typeChipRow}>
@@ -156,7 +156,7 @@ export function LeadFormConfigScreen() {
                 value={optionsText}
                 onChangeText={setOptionsText}
                 placeholder="Friend, Instagram Ad, Google Search"
-                placeholderTextColor="#6f83a0"
+                placeholderTextColor="#8a9cb6"
               />
             </>
           )}
@@ -187,24 +187,24 @@ export function LeadFormConfigScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0b1522" },
-  content: { padding: 24, maxWidth: 560, width: "100%", alignSelf: "center" },
+  content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
   backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 4, marginBottom: 20 },
+  subtitle: { fontSize: 13, color: "#8a9cb6", marginTop: 4, marginBottom: 20 },
   card: {
     borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42",
     padding: 16, marginBottom: 12,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  fieldKey: { color: "#6f83a0", fontSize: 11, fontFamily: "monospace" },
+  fieldKey: { color: "#8a9cb6", fontSize: 12, fontFamily: "monospace" },
   typeBadge: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
-  typeBadgeText: { color: "#8cc8f0", fontSize: 10, fontWeight: "700" },
+  typeBadgeText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
   labelInput: {
     borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
     fontSize: 14, color: "#e8edf3", backgroundColor: "#0b1522", marginBottom: 8,
   },
-  optionsPreview: { color: "#6f83a0", fontSize: 12, marginBottom: 8 },
+  optionsPreview: { color: "#8a9cb6", fontSize: 12, marginBottom: 8 },
   switchRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   switchItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   switchLabel: { color: "#9fb0c5", fontSize: 12 },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   typeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
   typeChip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
   typeChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.12)" },
-  typeChipText: { color: "#9fb0c5", fontSize: 10, fontWeight: "600" },
+  typeChipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
   typeChipTextSelected: { color: "#ff9a4d" },
   error: { color: "#ff9a93", fontSize: 12, marginTop: 4 },
   addFieldButtonRow: { flexDirection: "row", gap: 10, marginTop: 4 },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, useWindowDimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { billingApi } from "../../../api/billingApi";
@@ -9,7 +9,7 @@ import type { BillingHistoryItem, Plan, SubscriptionStatus } from "../../../type
 
 export const T = {
   page: "#0b1522", surface: "#122033", raised: "#172a42", border: "#1f3149", text: "#e8edf3",
-  muted: "#9fb0c5", faint: "#6f83a0", accent: "#8cc8f0", brand: "#ff9a4d", good: "#6ee0ad", warn: "#f5c66b", bad: "#ff9a93",
+  muted: "#9fb0c5", faint: "#8a9cb6", accent: "#8cc8f0", brand: "#ff9a4d", good: "#6ee0ad", warn: "#f5c66b", bad: "#ff9a93",
 };
 
 const asUtc = (v: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(v) ? v : `${v}Z`);
@@ -217,12 +217,15 @@ export function PaymentHistory({ items }: { items: BillingHistoryItem[] }) {
 const COLS = [1, 1.2, 0.9, 0.8, 1, 1.9, 1.8];
 
 const styles = StyleSheet.create({
-  plans: { gap: 12 },
-  plansWide: { flexDirection: "row" },
+  // One per row on phones, two on tablets (desktop puts all four in a row, see plansWide).
+  plans: (Platform.OS === "web"
+    ? { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 12 }
+    : { gap: 12 }) as object,
+  plansWide: { display: "flex", flexDirection: "row" },
   plan: { flex: 1, minWidth: 0, backgroundColor: T.raised, borderWidth: 1, borderColor: T.border, borderRadius: 12, padding: 16, gap: 4 },
   planHover: { borderColor: `${T.brand}99` },
   planSelected: { borderColor: T.brand, backgroundColor: `${T.brand}14`, boxShadow: `0 0 0 1px ${T.brand}` },
-  bestTag: { alignSelf: "flex-start", color: T.brand, fontSize: 10.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
+  bestTag: { alignSelf: "flex-start", color: T.brand, fontSize: 12, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
   planName: { color: T.muted, fontSize: 13, fontWeight: "700" },
   planPrice: { color: T.text, fontSize: 26, fontWeight: "800", fontVariant: ["tabular-nums"] },
   planMeta: { color: T.faint, fontSize: 12 },
@@ -240,19 +243,19 @@ const styles = StyleSheet.create({
   secure: { flexDirection: "row", alignItems: "center", gap: 6 },
   small: { color: T.faint, fontSize: 12 },
   fields: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
-  field: { flexBasis: 170, flexGrow: 1, gap: 4 },
-  fieldLabel: { color: T.faint, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
+  field: { flexBasis: 130, flexGrow: 1, gap: 4 },
+  fieldLabel: { color: T.faint, fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   fieldValue: { color: T.text, fontSize: 14.5, fontWeight: "600" },
   badge: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 100, paddingHorizontal: 10, paddingVertical: 2 },
   badgeText: { fontSize: 12, fontWeight: "700" },
   tr: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: T.border },
   thead: { paddingVertical: 8 },
-  th: { color: T.faint, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
+  th: { color: T.faint, fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   td: { color: T.text, fontSize: 13 },
   tdStrong: { fontWeight: "700", fontVariant: ["tabular-nums"] },
   tdMuted: { color: T.muted, fontSize: 12 },
   hCard: { borderWidth: 1, borderColor: T.border, borderRadius: 10, padding: 12, gap: 3, backgroundColor: T.raised },
   hTop: { flexDirection: "row", justifyContent: "space-between" },
   hAmount: { color: T.text, fontWeight: "700", fontSize: 14 },
-  hStatus: { fontWeight: "700", fontSize: 12.5 },
+  hStatus: { fontWeight: "700", fontSize: 13 },
 });

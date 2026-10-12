@@ -9,6 +9,8 @@ public interface IStudioDashboardRepository
     Task<decimal> SumAcceptedQuotationValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<decimal> SumCollectedRevenueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<decimal> SumExpensesAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
+    // The part of the range's expenses that is recorded but not yet paid out.
+    Task<decimal> SumPendingExpensesAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<int> CountNewCustomersAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<List<(string ServiceName, int Count)>> GetTopServicesAsync(int studioId, DateTime start, DateTime end, int take, CancellationToken ct = default);
     Task<List<(DateTime Date, decimal Amount)>> GetDailyRevenueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);

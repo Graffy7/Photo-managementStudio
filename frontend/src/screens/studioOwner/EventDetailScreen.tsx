@@ -11,6 +11,8 @@ import { Skeleton } from "../../ui/Skeleton";
 import { colors, radius, space, type } from "../../ui/theme";
 import { DeliveryChecklist } from "../../components/DeliveryChecklist";
 import { EventTeam } from "../../components/EventTeam";
+import { EventExpenses } from "../../components/EventExpenses";
+import { useModules } from "../../hooks/useModules";
 import { eventsApi } from "../../api/eventsApi";
 import { quotationsApi } from "../../api/quotationsApi";
 import { downloadAndSharePdf } from "../../utils/downloadPdf";
@@ -46,6 +48,7 @@ export function EventDetailScreen({
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const isOn = useModules();
 
   // The event's permanent record. Everything below is read-only: old quotations and their PDFs are
   // never rewritten, so a customer coming back in two years still sees what they were quoted.
@@ -145,6 +148,8 @@ export function EventDetailScreen({
               <EmptyLine>No workers were assigned.</EmptyLine>
             )}
           </InfoCard>
+
+          {isOn("EXPENSES") && <EventExpenses eventId={current.eventId} />}
 
           {current.eventStatus === "Completed" && (
             <InfoCard title="Delivery">
