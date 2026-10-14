@@ -22,8 +22,15 @@ public class AdminConsoleController(
     IStudioPhotoRootService photoRoots,
     IGalleryCleanupService galleryCleanup,
     IStudioRepository studioRepository,
+    IStorageUsageService storageUsage,
     IAuditService auditService) : ControllerBase
 {
+    // Storage report: every file the app stores, measured (not estimated), per studio, with cost.
+    // ?refresh=true measures again instead of using the last few minutes' result.
+    [HttpGet("storage")]
+    public async Task<IActionResult> Storage([FromQuery] bool refresh, CancellationToken ct) =>
+        Ok(await storageUsage.GetReportAsync(refresh, ct));
+
     // The one folder a studio's photos may be browsed, imported and copied in. Only the platform
     // admin sets it; no two studios' folders may overlap.
     // Old customer photo links (sent before the 5/10-day rule). GET previews what would change;

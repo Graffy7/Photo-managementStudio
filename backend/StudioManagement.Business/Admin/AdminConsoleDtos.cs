@@ -27,10 +27,69 @@ public class StudioStorageDto
     public long PreviewBytes { get; set; }
     public long ThumbnailBytes { get; set; }
 
-    // What the app itself stores (previews + thumbnails). Originals stay on the studio's own disk.
+    // What the app itself stores (previews + thumbnails). Originals are never stored by the app.
     public long AppBytes => PreviewBytes + ThumbnailBytes;
     public int PhotoCount { get; set; }
+    // Originals that couldn't be measured (moved/deleted, or added before sizes were recorded).
     public int MissingOriginals { get; set; }
+
+    // ---- Storage report detail -----------------------------------------------------------------
+    public int GalleryCount { get; set; }
+    // Galleries whose preview files are still on the server (not yet cleaned up).
+    public int ActiveGalleryCount { get; set; }
+    public int PhotosWithPreviews { get; set; }
+    // Originals in the studio's photo folder on the server (read in place, measured on disk).
+    public long OriginalsOnServerBytes { get; set; }
+    public int OriginalsOnServerCount { get; set; }
+    // Originals on the studio's own computer (never uploaded); size as the browser reported it.
+    public long OriginalsOnComputerBytes { get; set; }
+    public int OriginalsOnComputerCount { get; set; }
+    // Preview files of galleries the cleanup rule already allows to delete (link expired and sent
+    // more than the retention period ago) - removed on the next daily cleanup.
+    public long AwaitingCleanupBytes { get; set; }
+    public int AwaitingCleanupGalleries { get; set; }
+    // Previews of galleries whose link was never sent: the cleanup rule doesn't cover them.
+    public long NeverSentBytes { get; set; }
+    public int NeverSentGalleries { get; set; }
+    // Files in this studio's gallery folders that no photo points to (left behind).
+    public long OrphanBytes { get; set; }
+    public int OrphanFiles { get; set; }
+    // Photo records pointing to a preview/thumbnail file that isn't there.
+    public int MissingPreviewFiles { get; set; }
+}
+
+// The platform storage report (Super Admin): measured from the stored files themselves.
+public class StorageReportDto
+{
+    public DateTime MeasuredAt { get; set; }
+    public List<StudioStorageDto> Studios { get; set; } = [];
+
+    // Every file the app stores, by area ("photo-gallery", "logos", "signatures"...), in bytes.
+    public Dictionary<string, long> StoredBytesByArea { get; set; } = [];
+    public long TotalStoredBytes { get; set; }
+    public int TotalStoredFiles { get; set; }
+    // Gallery-folder files not attributable to any studio (their gallery no longer exists).
+    public long UnassignedOrphanBytes { get; set; }
+    public int UnassignedOrphanFiles { get; set; }
+
+    // Price per decimal GB (1,000,000,000 bytes) per month, from configuration (StorageReport).
+    public decimal PricePerGbMonth { get; set; }
+    public string Currency { get; set; } = "INR";
+    public decimal EstimatedMonthlyCost { get; set; }
+
+    // The settings the measured files were made with, for context.
+    public int PreviewMaxDimension { get; set; }
+    public int PreviewQuality { get; set; }
+    public int ThumbnailMaxDimension { get; set; }
+    public int ThumbnailQuality { get; set; }
+    public int PreviewRetentionDays { get; set; }
+}
+
+// "StorageReport" configuration section.
+public class StorageReportOptions
+{
+    public decimal PricePerGbMonth { get; set; }
+    public string Currency { get; set; } = "INR";
 }
 
 public class AdminOverviewDto

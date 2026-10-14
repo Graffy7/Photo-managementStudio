@@ -4,7 +4,10 @@ namespace StudioManagement.Data.Repositories;
 
 // Where a studio's photo files live: the original (on the studio's own disk) and the app's
 // preview/thumbnail copies.
-public record PhotoFileRef(int StudioId, string? OriginalFolder, string RelativePath, string? PreviewPath, string? ThumbnailPath);
+// GalleryId / FileSize (the original's size as recorded when it was added, when known) feed the
+// storage report.
+public record PhotoFileRef(int StudioId, string? OriginalFolder, string RelativePath, string? PreviewPath, string? ThumbnailPath,
+    int GalleryId = 0, long? FileSize = null);
 
 public record StudioRecordCounts(
     int Customers, int Events, int Leads, int Quotations, int Payments, int Workers, int Expenses,

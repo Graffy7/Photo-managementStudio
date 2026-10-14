@@ -66,6 +66,28 @@ public class LocalFileStorage : IFileStorage
         return info.Exists ? info.Length : 0;
     }
 
+    public async IAsyncEnumerable<StoredFileInfo> ListAsync(string prefix, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var start = string.IsNullOrEmpty(prefix) ? root : PathFor(prefix.TrimEnd('/') + "/x") is { } probe ? Path.GetDirectoryName(probe)! : null;
+        if (start is null || !Directory.Exists(start))
+        {
+            yield break;
+        }
+        var enumeration = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+        foreach (var path in Directory.EnumerateFiles(start, "*", enumeration))
+        {
+            ct.ThrowIfCancellationRequested();
+            var info = new FileInfo(path);
+            if (!info.Exists)
+            {
+                continue;
+            }
+            var key = Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/');
+            yield return new StoredFileInfo(key, info.Length, info.LastWriteTimeUtc);
+        }
+        await Task.CompletedTask;
+    }
+
     // Null for anything that isn't a clean key or would resolve outside the storage folder.
     private string? PathFor(string key)
     {

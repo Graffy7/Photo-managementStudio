@@ -156,3 +156,48 @@ export interface ManualPaymentRequest {
   referenceNumber?: string;
   notes?: string;
 }
+
+// ---- Storage report (GET /api/admin/storage) -----------------------------------------------------
+
+export interface StudioStorage {
+  studioId: number;
+  studioName: string;
+  photoCount: number;
+  photosWithPreviews: number;
+  galleryCount: number;
+  activeGalleryCount: number;
+  previewBytes: number;
+  thumbnailBytes: number;
+  appBytes: number;
+  originalBytes: number;
+  originalsOnServerBytes: number;
+  originalsOnServerCount: number;
+  originalsOnComputerBytes: number;
+  originalsOnComputerCount: number;
+  missingOriginals: number;
+  awaitingCleanupBytes: number;
+  awaitingCleanupGalleries: number;
+  neverSentBytes: number;
+  neverSentGalleries: number;
+  orphanBytes: number;
+  orphanFiles: number;
+  missingPreviewFiles: number;
+}
+
+export interface StorageReport {
+  measuredAt: string;
+  studios: StudioStorage[];
+  storedBytesByArea: Record<string, number>;
+  totalStoredBytes: number;
+  totalStoredFiles: number;
+  unassignedOrphanBytes: number;
+  unassignedOrphanFiles: number;
+  pricePerGbMonth: number;
+  currency: string;
+  estimatedMonthlyCost: number;
+  previewMaxDimension: number;
+  previewQuality: number;
+  thumbnailMaxDimension: number;
+  thumbnailQuality: number;
+  previewRetentionDays: number;
+}

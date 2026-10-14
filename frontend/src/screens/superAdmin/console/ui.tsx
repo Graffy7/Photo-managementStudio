@@ -30,12 +30,22 @@ export function money(v: number): string {
   return `₹${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
+// Decimal units (1 MB = 1,000,000 bytes, 1 GB = 10^9), as storage providers bill.
 export function bytes(v: number): string {
   if (v <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
+  const units = ["B", "kB", "MB", "GB", "TB"];
+  const i = Math.min(units.length - 1, Math.floor(Math.log10(v) / 3));
+  const n = v / 1000 ** i;
+  return `${n >= 100 || i === 0 ? n.toFixed(0) : n.toFixed(n >= 10 ? 1 : 2)} ${units[i]}`;
+}
+
+// Binary units (1 MiB = 1,048,576 bytes, 1 GiB = 2^30), as Windows Explorer shows sizes.
+export function bytesBinary(v: number): string {
+  if (v <= 0) return "0 B";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
   const i = Math.min(units.length - 1, Math.floor(Math.log(v) / Math.log(1024)));
   const n = v / 1024 ** i;
-  return `${n >= 100 || i === 0 ? n.toFixed(0) : n.toFixed(1)} ${units[i]}`;
+  return `${n >= 100 || i === 0 ? n.toFixed(0) : n.toFixed(n >= 10 ? 1 : 2)} ${units[i]}`;
 }
 
 export function date(v: string | null | undefined): string {

@@ -26,7 +26,7 @@ public class AdminConsoleRepository(AppDbContext context) : IAdminConsoleReposit
     public Task<List<PhotoFileRef>> GetPhotoFilesAsync(int? studioId = null, CancellationToken ct = default) =>
         context.Photos.AsNoTracking()
             .Where(p => studioId == null || p.Gallery.StudioId == studioId)
-            .Select(p => new PhotoFileRef(p.Gallery.StudioId, p.SourceFolder ?? p.Gallery.SourceFolder, p.SourceRelativePath, p.PreviewPath, p.ThumbnailPath))
+            .Select(p => new PhotoFileRef(p.Gallery.StudioId, p.SourceFolder ?? p.Gallery.SourceFolder, p.SourceRelativePath, p.PreviewPath, p.ThumbnailPath, p.PhotoGalleryId, p.FileSize))
             .ToListAsync(ct);
 
     public async Task<StudioRecordCounts> GetCountsAsync(int studioId, CancellationToken ct = default)

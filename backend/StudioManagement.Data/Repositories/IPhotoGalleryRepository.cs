@@ -34,6 +34,9 @@ public interface IPhotoGalleryRepository
     // Galleries whose link has expired and was generated before sentBefore, with previews still on disk.
     Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime now, DateTime sentBefore, CancellationToken ct = default);
 
+    // Platform storage report: every gallery's link / cleanup state (all studios).
+    Task<List<GalleryStorageRow>> GetStorageGalleriesAsync(CancellationToken ct = default);
+
     // Live customer links that run longer than maxDays after they were sent (made before the 5/10-day
     // rule), optionally for one studio only.
     Task<List<PhotoGallery>> GetLinksLongerThanAsync(int? studioId, int maxDays, DateTime now, CancellationToken ct = default);

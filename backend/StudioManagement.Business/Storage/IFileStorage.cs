@@ -19,4 +19,10 @@ public interface IFileStorage
 
     // Size in bytes of a stored file, or 0 when it doesn't exist.
     long GetSize(string key);
+
+    // Every stored file whose key starts with the prefix ("" = everything), with its real size as the
+    // provider reports it. Used for storage reporting, so usage is measured rather than estimated.
+    IAsyncEnumerable<StoredFileInfo> ListAsync(string prefix, CancellationToken ct = default);
 }
+
+public record StoredFileInfo(string Key, long Size, DateTime LastWriteUtc);

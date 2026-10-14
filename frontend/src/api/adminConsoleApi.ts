@@ -1,7 +1,7 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
 import type {
-  AdminActivity, AdminOverview, LedgerPage, AdminStudioDetail, AdminStudioRow, AdminStudioUsage, AdminSubscription, ManualPaymentRequest,
+  AdminActivity, AdminOverview, LedgerPage, AdminStudioDetail, AdminStudioRow, AdminStudioUsage, AdminSubscription, ManualPaymentRequest, StorageReport,
 } from "../types/adminConsole";
 
 // The platform admin's console (api/admin). Studio edits, block/unblock and module switches keep
@@ -14,6 +14,10 @@ export interface PhotoRoot {
 }
 
 export const adminConsoleApi = {
+  // Measured storage of every studio (refresh = measure again now instead of the last few minutes' result).
+  storage: (refresh = false) =>
+    apiClient.get<StorageReport>("/api/admin/storage", { params: refresh ? { refresh: true } : undefined }).then((r) => r.data),
+
   overview: (params: { from?: string; to?: string }) =>
     apiClient.get<AdminOverview>("/api/admin/overview", { params }).then((r) => r.data),
 

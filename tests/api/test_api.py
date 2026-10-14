@@ -350,6 +350,14 @@ ok(c == 200 and sorted((x["selectionType"], x["source"]) for x in sel) == [("Big
    "owner gets the picks with their folder (Normal / Big Size)", (c, sel))
 ok(req("GET", f"/photo-galleries/{gid}/device-photos/selection", tok=T)[0] == 404, "another studio can't read the picks")
 
+# Storage report (platform admin only): measured from the stored files.
+c, sr, _ = req("GET", "/admin/storage?refresh=true", tok=A)
+mine = next((x for x in (sr.get("studios") or []) if x["photoCount"] >= 3 and x["photosWithPreviews"] >= 3), None) if c == 200 else None
+ok(c == 200 and sr["totalStoredBytes"] > 0 and sr["totalStoredFiles"] > 0 and mine is not None and mine["previewBytes"] > 0 and mine["thumbnailBytes"] > 0,
+   "storage report measures previews and thumbnails", (c, mine))
+ok(mine is not None and mine["previewBytes"] + mine["thumbnailBytes"] <= sr["totalStoredBytes"], "per-studio bytes fit inside the measured total", mine)
+ok(req("GET", "/admin/storage", tok=Q)[0] == 403, "a studio owner can't see the storage report")
+
 # Export of the selected originals: these photos were added from the studio's computer, so the
 # server lists them (with their sorted destination) but never hands out a file for them.
 c, xm, _ = req("GET", f"/photo-galleries/{gid}/selection-export", tok=Q)

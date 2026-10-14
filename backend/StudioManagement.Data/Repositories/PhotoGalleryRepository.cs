@@ -168,6 +168,12 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
                 selections.FirstOrDefault(s => s.PhotoGalleryId == id && s.SelectionType == SelectionTypes.Big)?.Count ?? 0));
     }
 
+    public Task<List<GalleryStorageRow>> GetStorageGalleriesAsync(CancellationToken ct = default) =>
+        context.PhotoGalleries
+            .AsNoTracking()
+            .Select(g => new GalleryStorageRow(g.PhotoGalleryId, g.StudioId, g.SourceFolder, g.IsLinkActive, g.LinkGeneratedAt, g.ExpiresAt, g.PreviewsPurgedAt))
+            .ToListAsync(ct);
+
     public Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime now, DateTime sentBefore, CancellationToken ct = default) =>
         context.PhotoGalleries
             .AsNoTracking()

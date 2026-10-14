@@ -121,6 +121,8 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IStudioUsageRepository, StudioUsageRepository>();
 builder.Services.AddScoped<IAdminConsoleRepository, AdminConsoleRepository>();
 builder.Services.AddScoped<IStorageUsageService, StorageUsageService>();
+// Price per decimal GB per month for the Super Admin storage report (StorageReport section).
+builder.Services.AddSingleton(builder.Configuration.GetSection("StorageReport").Get<StorageReportOptions>() ?? new StorageReportOptions());
 builder.Services.AddScoped<IAdminConsoleService, AdminConsoleService>();
 builder.Services.AddScoped<IStudioAccessService, StudioAccessService>();
 builder.Services.AddScoped<ISubscriptionLedger, SubscriptionLedger>();
