@@ -28,7 +28,7 @@ public partial class PhotoGalleryService(
 
     // ---- Owner list --------------------------------------------------------------------------
 
-    public async Task<CompletedEventsPageDto> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default, string? state = null)
+    public async Task<CompletedEventsPageDto> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default, string? state = null, DateTime? eventFrom = null, DateTime? eventTo = null)
     {
         page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
@@ -37,7 +37,7 @@ public partial class PhotoGalleryService(
         // and the clock, so it is worked out here for every matching event - ids only - to give the
         // per-state counts and to filter by state before a page is cut. Only that page's events are
         // then loaded in full and sent.
-        var eventIds = await galleryRepository.GetCompletedEventIdsAsync(studioId, search, ct);
+        var eventIds = await galleryRepository.GetCompletedEventIdsAsync(studioId, search, ct, eventFrom, eventTo);
         var galleries = (await galleryRepository.GetByEventIdsAsync(studioId, eventIds, ct)).ToDictionary(g => g.EventId);
         var counts = await galleryRepository.GetCountsForGalleriesAsync(galleries.Values.Select(g => g.PhotoGalleryId).ToList(), ct);
         var now = DateTime.UtcNow;

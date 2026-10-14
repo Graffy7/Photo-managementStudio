@@ -19,14 +19,13 @@ import type {
   PublicSelectionResult,
   SelectionType,
   ShareMessage,
-  SubmitResult,
-} from "../types/photoSelection";
+  SubmitResult, SelectionExportManifest } from "../types/photoSelection";
 import type { DeviceSelectionFile } from "../utils/devicePhotos";
 
 // ---- Studio owner (authenticated)
 
 export const photoSelectionApi = {
-  completedEvents: (params: { search?: string; state?: string; page?: number; pageSize?: number }) =>
+  completedEvents: (params: { search?: string; state?: string; page?: number; pageSize?: number; eventFrom?: string; eventTo?: string }) =>
     apiClient.get<CompletedEventsPage>("/api/photo-galleries/completed-events", { params }).then((r) => r.data),
 
   openForEvent: (eventId: number) =>
@@ -67,6 +66,10 @@ export const photoSelectionApi = {
 
   deviceDone: (galleryId: number, folder: string, added: number, skipped: number, failed: number) =>
     apiClient.post(`/api/photo-galleries/${galleryId}/device-photos/done`, { folder, added, skipped, failed }).then(() => undefined),
+
+  // What "Export selected photos" will write, and where each original comes from.
+  selectionExportManifest: (galleryId: number) =>
+    apiClient.get<SelectionExportManifest>(`/api/photo-galleries/${galleryId}/selection-export`).then((r) => r.data),
 
   deviceSelection: (galleryId: number) =>
     apiClient.get<DeviceSelectionFile[]>(`/api/photo-galleries/${galleryId}/device-photos/selection`).then((r) => r.data),

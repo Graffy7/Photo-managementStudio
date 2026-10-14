@@ -349,6 +349,31 @@ c, sel, _ = req("GET", f"/photo-galleries/{gid}/device-photos/selection", tok=Q)
 ok(c == 200 and sorted((x["selectionType"], x["source"]) for x in sel) == [("Big Size", "CI Wedding"), ("Normal", "CI Wedding")],
    "owner gets the picks with their folder (Normal / Big Size)", (c, sel))
 ok(req("GET", f"/photo-galleries/{gid}/device-photos/selection", tok=T)[0] == 404, "another studio can't read the picks")
+
+# Export of the selected originals: these photos were added from the studio's computer, so the
+# server lists them (with their sorted destination) but never hands out a file for them.
+c, xm, _ = req("GET", f"/photo-galleries/{gid}/selection-export", tok=Q)
+ok(c == 200 and xm["selectedCount"] == 2 and xm["normalCount"] == 1 and xm["bigCount"] == 1 and xm["computerCount"] == 2,
+   "export lists the 2 picks (1 Normal, 1 Big Size)", (c, xm))
+ok(xm["rootFolderName"].endswith("_Selected") and all(f["sizeFolder"] in ("Normal", "Big Size") and f["category"] for f in xm["files"]),
+   "each pick has a category and a Normal / Big Size folder", xm)
+ok(all("/" not in f["fileName"] and "\\" not in f["fileName"] for f in xm["files"]), "export file names never contain a path", xm)
+pick = xm["files"][0]["photoId"]
+c, b, _ = req("GET", f"/photo-galleries/{gid}/selection-export/photos/{pick}", tok=Q)
+ok(c == 409 and b.get("code") == "ORIGINAL_ON_COMPUTER", "an original kept on the studio's computer isn't served", (c, b))
+not_picked = next(p["photoId"] for p in photos if p["photoId"] not in {f["photoId"] for f in xm["files"]})
+ok(req("GET", f"/photo-galleries/{gid}/selection-export/photos/{not_picked}", tok=Q)[0] == 404, "a photo that isn't selected can't be exported")
+ok(req("GET", f"/photo-galleries/{gid}/selection-export", tok=T)[0] == 404, "another studio can't see the export list")
+ok(req("GET", f"/photo-galleries/{gid}/selection-export/photos/{pick}", tok=T)[0] == 404, "another studio can't download an original")
+ok(req("GET", f"/photo-galleries/{gid}/selection-export/photos/{pick}")[0] == 401, "originals need a sign-in")
+c, zl, _ = req("POST", f"/photo-galleries/{gid}/selection-export/zip-link", tok=Q)
+ok(c == 200 and zl["url"].startswith("/api/selection-export-zip?t="), "ZIP link issued to the owner", (c, zl))
+ok(req("POST", f"/photo-galleries/{gid}/selection-export/zip-link", tok=T)[0] == 404, "another studio can't get a ZIP link")
+zt = zl["url"].split("t=", 1)[1]
+ok(req("GET", "/selection-export-zip?t=" + zt.replace(f".{gid}.", f".{gid + 1}.", 1))[0] == 403, "a ZIP link edited to another gallery is refused")
+ok(req("GET", "/selection-export-zip?t=1.1.9999999999.forged")[0] == 403, "a forged ZIP link is refused")
+c, zb, zh = req("GET", "/selection-export-zip?t=" + zt)
+ok(c == 200 and isinstance(zb, bytes) and zb[:2] == b"PK" and b"Export report.txt" in zb, "ZIP downloads with its export report", (c, zb[:60] if isinstance(zb, bytes) else zb))
 c, b, _ = req("GET", "/public/photo-selection/not-a-real-token")
 ok(c in (404, 410) and "stack" not in json.dumps(b).lower(), "bad link -> friendly 404/410", (c, b))
 ok(req("DELETE", f"/photo-galleries/{gid}/link", tok=Q)[0] in (200, 204), "revoke the link")

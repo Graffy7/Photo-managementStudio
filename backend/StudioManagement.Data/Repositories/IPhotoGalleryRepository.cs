@@ -12,7 +12,8 @@ public interface IPhotoGalleryRepository
     Task<(List<Event> Items, int TotalCount)> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default);
     // Ids of every completed event matching the search, newest first (no details - used to work out
     // each one's selection state before a page is chosen).
-    Task<List<int>> GetCompletedEventIdsAsync(int studioId, string? search, CancellationToken ct = default);
+    // eventFrom / eventTo: optional event-date range, both days included.
+    Task<List<int>> GetCompletedEventIdsAsync(int studioId, string? search, CancellationToken ct = default, DateTime? eventFrom = null, DateTime? eventTo = null);
     Task<List<Event>> GetEventsByIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);
 
     Task<List<PhotoGallery>> GetByEventIdsAsync(int studioId, List<int> eventIds, CancellationToken ct = default);

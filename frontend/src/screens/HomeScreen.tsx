@@ -7,7 +7,6 @@ import { useAuthStore } from "../auth/authStore";
 import { studioDashboardApi } from "../api/studioDashboardApi";
 import { notificationsApi } from "../api/notificationsApi";
 import { dayBoardApi } from "../api/dayBoardApi";
-import { leadsApi } from "../api/leadsApi";
 import { eventsApi } from "../api/eventsApi";
 import { LineChart } from "../components/LineChart";
 import { DonutChart } from "../components/DonutChart";
@@ -54,16 +53,6 @@ function formatDateRange(start: string, end: string): string {
   const e = new Date(new Date(end).getTime() - 86400000);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   return `${s.toLocaleDateString("en-US", opts)} – ${e.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`;
-}
-
-function timeAgo(value: string): string {
-  const diffMs = Date.now() - new Date(value).getTime();
-  const minutes = Math.round(diffMs / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
 }
 
 function greeting(): string {
@@ -193,19 +182,12 @@ export function HomeScreen() {
     enabled: dashboardOn && isOn("EVENTS"),
   });
 
-  const { data: recentLeads, refetch: refetchRecentLeads } = useQuery({
-    queryKey: ["leads-recent"],
-    queryFn: () => leadsApi.search({ page: 1, pageSize: 4 }),
-    enabled: dashboardOn && isOn("LEADS"),
-  });
-
   const refetchAll = useCallback(() => {
     refetchUnreadCount();
     refetch();
     refetchDayBoard();
     refetchUpcoming();
-    refetchRecentLeads();
-  }, [refetchUnreadCount, refetch, refetchDayBoard, refetchUpcoming, refetchRecentLeads]);
+  }, [refetchUnreadCount, refetch, refetchDayBoard, refetchUpcoming]);
   useRefetchOnFocus(refetchAll);
 
   const revenuePoints = (data?.revenueTrend ?? []).map((p) => ({
@@ -498,35 +480,6 @@ export function HomeScreen() {
               </Panel>
               )}
 
-              {isOn("LEADS") && (
-              <Panel
-                title="Recent Enquiries"
-                action={
-                  <Pressable onPress={() => navigation.navigate("Leads")}>
-                    <Text style={styles.panelLink}>View All →</Text>
-                  </Pressable>
-                }
-              >
-                {!recentLeads || recentLeads.items.length === 0 ? (
-                  <Text style={styles.empty}>No enquiries yet.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {recentLeads.items.map((lead) => (
-                      <View key={lead.leadId} style={styles.leadRow}>
-                        <View style={styles.leadAvatar}>
-                          <Text style={styles.leadAvatarText}>{lead.fullName.charAt(0).toUpperCase()}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.leadName} numberOfLines={1}>{lead.fullName}</Text>
-                          <Text style={styles.leadSubtitle} numberOfLines={1}>{lead.eventTypeName ?? "General enquiry"}</Text>
-                        </View>
-                        <Text style={styles.leadTime}>{timeAgo(lead.createdAt)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Panel>
-              )}
             </View>
           </View>
 
@@ -645,12 +598,6 @@ const styles = StyleSheet.create({
   statusPill: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 3, paddingHorizontal: 8 },
   statusPillText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
 
-  leadRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  leadAvatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#23405c", alignItems: "center", justifyContent: "center" },
-  leadAvatarText: { color: "#e8edf3", fontWeight: "700", fontSize: 12 },
-  leadName: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
-  leadSubtitle: { color: "#6f83a0", fontSize: 12, marginTop: 1 },
-  leadTime: { color: "#6f83a0", fontSize: 12 },
 
   welcomeCard: {
     alignItems: "center", gap: 6, paddingVertical: 40, paddingHorizontal: 20, borderRadius: 12,

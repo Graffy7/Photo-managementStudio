@@ -47,7 +47,7 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
         return (items, totalCount);
     }
 
-    public Task<List<int>> GetCompletedEventIdsAsync(int studioId, string? search, CancellationToken ct = default)
+    public Task<List<int>> GetCompletedEventIdsAsync(int studioId, string? search, CancellationToken ct = default, DateTime? eventFrom = null, DateTime? eventTo = null)
     {
         var query = context.Events
             .AsNoTracking()
@@ -57,6 +57,18 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
         {
             var term = search.Trim();
             query = query.Where(e => e.Customer.FullName.Contains(term) || (e.Venue != null && e.Venue.Contains(term)));
+        }
+
+        // EventDate is a calendar day at midnight; the "to" day is included.
+        if (eventFrom is not null)
+        {
+            var from = eventFrom.Value.Date;
+            query = query.Where(e => e.EventDate >= from);
+        }
+        if (eventTo is not null)
+        {
+            var before = eventTo.Value.Date.AddDays(1);
+            query = query.Where(e => e.EventDate < before);
         }
 
         return query

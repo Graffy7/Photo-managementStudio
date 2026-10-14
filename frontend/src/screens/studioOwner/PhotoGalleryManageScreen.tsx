@@ -12,6 +12,7 @@ import { StatusPill } from "../../components/StatusPill";
 import { FolderBrowserModal } from "../../components/FolderBrowserModal";
 import { DeliveryFolders } from "../../components/DeliveryFolders";
 import { SelectionCopyPanel } from "./SelectionCopyPanel";
+import { SelectionExportPanel } from "./SelectionExportPanel";
 import { downloadBytes } from "../../utils/downloadFile";
 import {
   canPickFolder, FolderWindowUnavailableError, importPickedFolder, isDeviceSource, pickFolder, rememberFolder,
@@ -139,6 +140,7 @@ export function PhotoGalleryManageScreen({ eventId, onBack }: { eventId: number;
       <View {...anchor(3)}><PhotosPanel gallery={gallery} /></View>
       {/* Delivery (folders, copying selected originals) and WhatsApp can be switched off per studio. */}
       {isOn("PHOTO_DELIVERY") && <View {...anchor(4)}><SelectionCopyPanel gallery={gallery} onChanged={refresh} /></View>}
+      {isOn("PHOTO_DELIVERY") && <SelectionExportPanel gallery={gallery} />}
     </ScrollView>
   );
 }

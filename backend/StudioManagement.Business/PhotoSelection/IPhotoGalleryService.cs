@@ -7,7 +7,7 @@ namespace StudioManagement.Business.PhotoSelection;
 public interface IPhotoGalleryService
 {
     // state: one of GallerySelectionStates to show only those events (null/empty = all).
-    Task<CompletedEventsPageDto> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default, string? state = null);
+    Task<CompletedEventsPageDto> GetCompletedEventsAsync(int studioId, string? search, int page, int pageSize, CancellationToken ct = default, string? state = null, DateTime? eventFrom = null, DateTime? eventTo = null);
 
     // Opens the event's gallery, creating an empty one the first time. Null = no such event.
     Task<OwnerGalleryDto?> GetOrCreateForEventAsync(int studioId, int eventId, CancellationToken ct = default);

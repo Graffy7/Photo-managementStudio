@@ -238,6 +238,7 @@ builder.Services.AddScoped<IPhotoImportService, PhotoImportService>();
 builder.Services.AddScoped<IDevicePhotoService, DevicePhotoService>();
 builder.Services.AddScoped<IStudioPhotoRootService, StudioPhotoRootService>();
 builder.Services.AddScoped<IPhotoSelectionCopyService, PhotoSelectionCopyService>();
+builder.Services.AddScoped<ISelectionExportService, SelectionExportService>();
 builder.Services.AddScoped<IPhotoGalleryService, PhotoGalleryService>();
 builder.Services.AddScoped<IPhotoFolderService, PhotoFolderService>();
 builder.Services.AddScoped<IPublicPhotoSelectionService, PublicPhotoSelectionService>();

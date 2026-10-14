@@ -8,6 +8,7 @@ import type { Lead } from "../../types/lead";
 import { StatusPill } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { PERIODS, periodRange, type Period } from "../../utils/periods";
 import { SearchInput } from "../../components/SearchInput";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Screen } from "../../ui/Screen";
@@ -43,6 +44,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   const [leadStatusId, setLeadStatusId] = useState<number | null>(null);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [period, setPeriod] = useState<Period>("all");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState | null>(null);
   const [pending, setPending] = useState<PendingAction>(null);
@@ -122,6 +124,18 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
   const filtered = !!search || leadStatusId !== null || !!createdFrom || !!createdTo;
 
+  const choosePeriod = (p: Period) => {
+    setPeriod(p);
+    // Custom keeps whatever dates are already picked; the other choices fill them in.
+    if (p !== "custom") {
+      const r = periodRange(p);
+      setCreatedFrom(r.from);
+      setCreatedTo(r.to);
+    }
+    setPage(1);
+  };
+  const clearAll = () => { setSearch(""); setLeadStatusId(null); setCreatedFrom(""); setCreatedTo(""); setPeriod("all"); setPage(1); };
+
   return (
     <Screen>
       <PageHeader
@@ -139,13 +153,18 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
           />
         </View>
       )}
-      <View style={styles.dates}>
-        <MiniDatePicker label="Received from" value={createdFrom} onChange={setFilter(setCreatedFrom)} />
-        <MiniDatePicker label="Received to" value={createdTo} onChange={setFilter(setCreatedTo)} />
-        {!!(createdFrom || createdTo) && (
-          <Button label="Clear dates" variant="link" onPress={() => { setCreatedFrom(""); setCreatedTo(""); setPage(1); }} style={{ alignSelf: "flex-end" }} />
-        )}
+      <View style={{ marginBottom: space.md }}>
+        <FilterChips<Period> options={PERIODS} value={period} onChange={choosePeriod} />
       </View>
+      {period === "custom" && (
+        <View style={styles.dates}>
+          <MiniDatePicker label="Received from" value={createdFrom} onChange={setFilter(setCreatedFrom)} />
+          <MiniDatePicker label="Received to" value={createdTo} onChange={setFilter(setCreatedTo)} />
+          {!!(createdFrom || createdTo) && (
+            <Button label="Clear dates" variant="link" onPress={() => { setCreatedFrom(""); setCreatedTo(""); setPage(1); }} style={{ alignSelf: "flex-end" }} />
+          )}
+        </View>
+      )}
 
       <DataList
         items={data?.items}
@@ -165,7 +184,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         onPageChange={setPage}
         empty={filtered ? (
           <EmptyState icon="search-outline" title="No enquiries match" text="Try another search, status or date range."
-            action={<Button label="Clear filters" onPress={() => { setSearch(""); setLeadStatusId(null); setCreatedFrom(""); setCreatedTo(""); setPage(1); }} />} />
+            action={<Button label="Clear filters" onPress={clearAll} />} />
         ) : (
           <EmptyState icon="person-add-outline" title="No enquiries yet" text="Add an enquiry when someone asks about a shoot. Convert it into a customer once they book."
             action={<Button label="New enquiry" icon="add" variant="primary" onPress={onCreate} />} />

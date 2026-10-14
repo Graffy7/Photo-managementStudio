@@ -23,6 +23,7 @@ public class PhotoGalleriesController(
     IPhotoSelectionCopyService copyService,
     IPhotoFolderService folderService,
     IDevicePhotoService devicePhotos,
+    ISelectionExportService exportService,
     IValidator<ImportRequestDto> importValidator,
     IValidator<GenerateLinkRequestDto> linkValidator,
     IValidator<SaveFolderRequestDto> folderValidator,
@@ -36,8 +37,10 @@ public class PhotoGalleriesController(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? state = null,
+        [FromQuery] DateTime? eventFrom = null,
+        [FromQuery] DateTime? eventTo = null,
         CancellationToken ct = default) =>
-        Ok(await galleryService.GetCompletedEventsAsync(StudioId, search, page, pageSize, ct, state));
+        Ok(await galleryService.GetCompletedEventsAsync(StudioId, search, page, pageSize, ct, state, eventFrom, eventTo));
 
     // Opens the event's gallery, creating it the first time.
     [HttpPost("events/{eventId:int}")]
@@ -382,6 +385,52 @@ public class PhotoGalleriesController(
             FolderFailureReason.DuplicateName => Conflict(new { message = "This event already has a folder with that name." }),
             _ => BadRequest(new { message = "Invalid request." })
         };
+    }
+
+    // ---- Export the selected originals to a folder the owner chooses (or as a ZIP) ----------------
+
+    // What to export and where each file goes: <root>\<category>\<Normal|Big Size>\<file>.
+    [HttpGet("{id:int}/selection-export")]
+    [EnableRateLimiting("expensive")]
+    public async Task<IActionResult> SelectionExportManifest(int id, CancellationToken ct)
+    {
+        var manifest = await exportService.GetManifestAsync(StudioId, id, ct);
+        return manifest is null ? NotFound() : Ok(manifest);
+    }
+
+    // One selected photo's ORIGINAL file, read from where the server recorded it. The caller only
+    // names a photo id; the path is never taken from the request.
+    [HttpGet("{id:int}/selection-export/photos/{photoId:int}")]
+    public async Task<IActionResult> SelectionExportOriginal(int id, int photoId, CancellationToken ct)
+    {
+        var (problem, file) = await exportService.OpenOriginalAsync(StudioId, id, photoId, ct);
+        return problem switch
+        {
+            OriginalProblem.None => File(file!.Content, "application/octet-stream", file.FileName, enableRangeProcessing: false),
+            OriginalProblem.NotFound => NotFound(new { message = "This photo isn't selected in this gallery." }),
+            OriginalProblem.Missing => NotFound(new { message = SelectionExportService.Describe(problem), code = "ORIGINAL_MISSING" }),
+            OriginalProblem.NotOnServer => Conflict(new { message = SelectionExportService.Describe(problem), code = "ORIGINAL_ON_COMPUTER" }),
+            OriginalProblem.PathNotAllowed => Conflict(new { message = SelectionExportService.Describe(problem), code = "ORIGINAL_PATH_NOT_ALLOWED" }),
+            OriginalProblem.NoStudioFolder => Conflict(new { message = SelectionExportService.Describe(problem), code = "NO_STUDIO_PHOTO_FOLDER" }),
+            _ => StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = SelectionExportService.Describe(problem), code = "ORIGINAL_UNREADABLE" })
+        };
+    }
+
+    // A ten-minute link for the ZIP download; the download itself can't carry the sign-in header.
+    [HttpPost("{id:int}/selection-export/zip-link")]
+    [EnableRateLimiting("expensive")]
+    public async Task<IActionResult> SelectionExportZipLink(int id, CancellationToken ct)
+    {
+        if (await exportService.GetManifestAsync(StudioId, id, ct) is not { } manifest)
+        {
+            return NotFound();
+        }
+        if (manifest.SelectedCount == 0)
+        {
+            return BadRequest(new { message = "The customer hasn't selected any photos yet." });
+        }
+        var token = exportService.CreateZipLink(StudioId, id, TimeSpan.FromMinutes(10));
+        return Ok(new { url = $"/api/selection-export-zip?t={Uri.EscapeDataString(token)}" });
     }
 
     [HttpGet("{id:int}/export")]

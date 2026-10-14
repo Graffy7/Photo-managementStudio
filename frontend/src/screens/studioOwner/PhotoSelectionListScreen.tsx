@@ -4,6 +4,8 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { StatusPill } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
+import { MiniDatePicker } from "../../components/MiniDatePicker";
+import { PERIODS, periodRange, type Period } from "../../utils/periods";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Screen } from "../../ui/Screen";
 import { PageHeader } from "../../ui/PageHeader";
@@ -81,19 +83,28 @@ function progressText(item: CompletedEventGallery): string {
 
 // Completed events and where each one stands with its customer photo selection. Tapping one opens
 // (creating, the first time) that event's gallery.
+// Photo delivery is planned month by month, so the week buttons are left out here.
+const MONTH_PERIODS = PERIODS.filter((p) => p.value !== "thisWeek" && p.value !== "lastWeek");
+
 export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number) => void }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("All");
   const [page, setPage] = useState(1);
+  // Event date range (by the date the event took place).
+  const [period, setPeriod] = useState<Period>("all");
+  const [eventFrom, setEventFrom] = useState("");
+  const [eventTo, setEventTo] = useState("");
 
   // The server filters by state, counts each state and sends just this page.
   const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
-    queryKey: ["photo-gallery-events", search, filter, page],
+    queryKey: ["photo-gallery-events", search, filter, page, eventFrom, eventTo],
     queryFn: () => photoSelectionApi.completedEvents({
       search: search || undefined,
       state: filter === "All" ? undefined : filter,
       page,
       pageSize: PAGE_SIZE,
+      eventFrom: eventFrom || undefined,
+      eventTo: eventTo || undefined,
     }),
     placeholderData: keepPreviousData,
   });
@@ -113,7 +124,18 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
     { key: "next", label: "Next step", flex: 1, render: (e) => <Text style={styles.next} numberOfLines={1}>{nextStep(e.state)} ›</Text> },
   ];
 
-  const hasFilter = !!search || filter !== "All";
+  const hasFilter = !!search || filter !== "All" || !!eventFrom || !!eventTo;
+
+  const choosePeriod = (p: Period) => {
+    setPeriod(p);
+    // Custom keeps whatever dates are already picked; the other choices fill them in.
+    if (p !== "custom") {
+      const r = periodRange(p);
+      setEventFrom(r.from);
+      setEventTo(r.to);
+    }
+    setPage(1);
+  };
 
   return (
     <Screen>
@@ -122,9 +144,18 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
         subtitle={data ? `${data.allCount} completed event${data.allCount === 1 ? "" : "s"}` : null}
       />
       <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={(v) => { setSearch(v); setPage(1); }} placeholder="Search by customer or venue" />
-      <View style={{ marginBottom: space.lg }}>
+      <View style={{ marginBottom: space.md }}>
         <FilterChips<Filter> options={chips} value={filter} onChange={(v) => { setFilter(v); setPage(1); }} />
       </View>
+      <View style={{ marginBottom: space.lg }}>
+        <FilterChips<Period> options={MONTH_PERIODS} value={period} onChange={choosePeriod} />
+      </View>
+      {period === "custom" && (
+        <View style={styles.dates}>
+          <MiniDatePicker label="Event from" value={eventFrom} onChange={(v) => { setEventFrom(v); setPage(1); }} />
+          <MiniDatePicker label="Event to" value={eventTo} onChange={(v) => { setEventTo(v); setPage(1); }} />
+        </View>
+      )}
 
       <DataList
         items={data?.items}
@@ -142,7 +173,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
         onPageChange={setPage}
         empty={hasFilter ? (
           <EmptyState icon="search-outline" title="No events here" text="Try another customer name or status."
-            action={<Button label="Show all" onPress={() => { setSearch(""); setFilter("All"); setPage(1); }} />} />
+            action={<Button label="Show all" onPress={() => { setSearch(""); setFilter("All"); setPeriod("all"); setEventFrom(""); setEventTo(""); setPage(1); }} />} />
         ) : (
           <EmptyState icon="images-outline" title="No completed events yet"
             text="Photo delivery opens once an event is marked Completed. Then add the photos, send the customer their link, and deliver what they pick." />
@@ -168,6 +199,7 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
 }
 
 const styles = StyleSheet.create({
+  dates: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
   cardSub: { ...type.small, color: colors.textMuted },

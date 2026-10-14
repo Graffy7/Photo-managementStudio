@@ -220,3 +220,31 @@ export interface CopyJob {
   startedAt: string | null;
   completedAt: string | null;
 }
+
+// ---- Export of the selected originals (Choose destination folder / ZIP) ---------------------------
+
+export interface SelectionExportFile {
+  photoId: number;
+  photoNumber: number;
+  category: string;
+  sizeFolder: "Normal" | "Big Size";
+  fileName: string;
+  renamedFrom: string | null;
+  // "Server": the original is in the studio's photo folder on the server.
+  // "Computer": it was added from the studio's own computer; the browser reads it there.
+  location: "Server" | "Computer";
+  computerFolder: string | null;
+  computerRelativePath: string | null;
+  fileSize: number | null;
+}
+
+export interface SelectionExportManifest {
+  rootFolderName: string;
+  selectedCount: number;
+  normalCount: number;
+  bigCount: number;
+  serverCount: number;
+  computerCount: number;
+  categories: string[];
+  files: SelectionExportFile[];
+}
