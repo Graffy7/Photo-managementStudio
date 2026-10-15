@@ -247,6 +247,8 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
   const [browsing, setBrowsing] = useState(false);
   const [starting, setStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // The folder is already in another event's gallery: the owner decides whether to import it here too.
+  const [duplicateNote, setDuplicateNote] = useState<string | null>(null);
   const [removedNote, setRemovedNote] = useState<string | null>(null);
   const [skippedNote, setSkippedNote] = useState<string | null>(null);
   const [device, setDevice] = useState<{ folder: string; progress: DeviceImportProgress | null } | null>(null);
@@ -279,15 +281,18 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
     setDeviceNote(null);
   };
 
-  const start = async () => {
+  const start = async (importIntoAnotherEvent = false) => {
     clearNotes();
+    setDuplicateNote(null);
     setStarting(true);
     try {
-      const started = await photoSelectionApi.startImport(gallery.galleryId, folder.trim());
+      const started = await photoSelectionApi.startImport(gallery.galleryId, folder.trim(), importIntoAnotherEvent);
       setSkippedNote(describeSkipped(started.skipped));
       onChanged();
     } catch (err) {
-      setMessage(extractErrorMessage(err, "Couldn't start the import."));
+      const data = (err as { response?: { data?: { code?: string; message?: string } } }).response?.data;
+      if (data?.code === "IMPORTED_IN_ANOTHER_EVENT" && data.message) setDuplicateNote(data.message);
+      else setMessage(extractErrorMessage(err, "Couldn't start the import."));
     } finally {
       setStarting(false);
     }
@@ -402,7 +407,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
             <Pressable
               style={[devicePicker ? styles.secondaryButton : styles.primaryButton, (running || uploading || starting || !folder.trim()) && styles.disabled]}
               disabled={running || uploading || starting || !folder.trim()}
-              onPress={start}
+              onPress={() => start()}
             >
               <Text style={devicePicker ? styles.secondaryButtonText : styles.primaryButtonText}>
                 {gallery.counts.total > 0 ? "Import new photos" : "Import photos"}
@@ -413,6 +418,15 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
       )}
 
       {!!message && <Text style={styles.error}>{message}</Text>}
+      {!!duplicateNote && (
+        <View style={styles.duplicateBox}>
+          <Text style={styles.duplicateText}>{duplicateNote}</Text>
+          <View style={styles.duplicateActions}>
+            <Button label="Don't import" onPress={() => setDuplicateNote(null)} />
+            <Button label="Import anyway" variant="primary" onPress={() => start(true)} loading={starting} />
+          </View>
+        </View>
+      )}
       {!!deviceNote && <Text style={deviceNote.tone === "ok" ? styles.okText : styles.warnText}>{deviceNote.text}</Text>}
       {!!skippedNote && <Text style={styles.warnText}>{skippedNote}</Text>}
 
@@ -907,6 +921,9 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
 }
 
 const styles = StyleSheet.create({
+  duplicateBox: { backgroundColor: colors.warningSoft, borderRadius: radius.control, padding: space.md, gap: space.sm },
+  duplicateText: { ...type.small, color: colors.text },
+  duplicateActions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   screen: { flex: 1, backgroundColor: colors.page },
   content: { padding: space.lg, paddingBottom: 48, width: "100%", maxWidth: 1500, alignSelf: "center", gap: space.lg },
   back: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start", minHeight: 32, marginBottom: space.sm },

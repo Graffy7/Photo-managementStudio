@@ -145,15 +145,13 @@ public class DevicePhotoService(
             if (existing is not null)
             {
                 // Its preview was removed by the cleanup: same photo, same number, same selection.
-                var photo = await photoRepository.GetByIdAsync(galleryId, existing.PhotoId, ct);
-                if (photo is null)
-                {
-                    return DeviceUploadOutcome.GalleryNotFound;
-                }
-                photo.ThumbnailPath = generated.ThumbnailKey;
-                photo.PreviewPath = generated.PreviewKey;
-                photo.Width = generated.Width;
-                photo.Height = generated.Height;
+                // "existing" is the tracked record loaded above (GetBySourceAsync), so the change is
+                // saved on it. (Re-reading it with GetByIdAsync gave an untracked copy whose change
+                // was never saved: the rebuild reported success but the preview never came back.)
+                existing.ThumbnailPath = generated.ThumbnailKey;
+                existing.PreviewPath = generated.PreviewKey;
+                existing.Width = generated.Width;
+                existing.Height = generated.Height;
                 await unitOfWork.SaveChangesAsync(ct);
                 return DeviceUploadOutcome.PreviewRebuilt;
             }

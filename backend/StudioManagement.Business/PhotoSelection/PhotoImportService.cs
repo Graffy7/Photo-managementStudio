@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using StudioManagement.Business.Audit;
+using StudioManagement.Business.Common;
 using StudioManagement.Business.Storage;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Entities;
@@ -176,7 +177,7 @@ public class PhotoImportService(
 
     // ---- Starting an import ------------------------------------------------------------------
 
-    public async Task<ImportStartResult> StartAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default)
+    public async Task<ImportStartResult> StartAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default, bool importIntoAnotherEvent = false)
     {
         var gallery = await galleryRepository.GetByIdAsync(studioId, galleryId, ct);
         if (gallery is null)
@@ -192,49 +193,110 @@ public class PhotoImportService(
             case PhotoPathProblem.OutsideRoot: return ImportStartResult.Fail(ImportFailureReason.FolderNotAllowed);
             case PhotoPathProblem.NotFound: return ImportStartResult.Fail(ImportFailureReason.FolderNotFound);
         }
-        var full = checkedPath!;
+        var full = PhotoSourcePath.Folder(checkedPath) ?? checkedPath!;
 
-        var latest = await galleryRepository.GetLatestJobAsync(galleryId, ct);
-        if (latest is not null && latest.Status is ImportJobStatuses.Queued or ImportJobStatuses.Running)
+        List<string> scanned;
+        SkippedFilesDto skipped;
+        try
         {
-            return ImportStartResult.Fail(ImportFailureReason.AlreadyRunning);
+            (scanned, skipped) = ScanFolder(full);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Couldn't read photo folder {Folder}", full);
+            return ImportStartResult.Fail(ImportFailureReason.FolderNotFound);
         }
 
-        // New files in the folder, plus photos whose previews were deleted after the retention period
-        // (they are rebuilt from their originals in the same job).
-        var imported = await photoRepository.GetImportedPathsAsync(galleryId, ct);
-        var scan = ScanFolder(full);
-        var pending = scan.Photos.Count(f => !imported.Contains(Path.GetRelativePath(full, f)))
-                      + await photoRepository.CountWithoutPreviewsAsync(galleryId, ct);
-        if (pending == 0)
+        // The checks and the new job are one step under a per-studio lock, so two requests at the same
+        // moment can't both decide the folder is new.
+        PhotoImportJob? job = null;
+        var outcome = await unitOfWork.ExecuteInTransactionAsync(async tx =>
         {
-            return ImportStartResult.Fail(ImportFailureReason.NoImages, scan.Skipped);
+            await unitOfWork.AcquireLockAsync(LockNames.PhotoImport(studioId), tx);
+
+            var latest = await galleryRepository.GetLatestJobAsync(galleryId, tx);
+            if (latest is not null && latest.Status is ImportJobStatuses.Queued or ImportJobStatuses.Running)
+            {
+                return ImportStartResult.Fail(ImportFailureReason.AlreadyRunning);
+            }
+            var busyElsewhere = (await galleryRepository.GetActiveImportJobsAsync(studioId, tx))
+                .FirstOrDefault(j => j.GalleryId != galleryId && PhotoSourcePath.Overlaps(j.SourceFolder, full));
+            if (busyElsewhere is not null)
+            {
+                return ImportStartResult.Duplicate(ImportFailureReason.RunningInAnotherEvent, 0, busyElsewhere.EventId);
+            }
+
+            // Every original already imported anywhere in this studio, by its full canonical path.
+            var files = scanned.Select(f => (Full: f, Key: PhotoSourcePath.Of(full, Path.GetRelativePath(full, f)) ?? f)).ToList();
+            var entries = await photoRepository.GetSourceEntriesAsync(studioId, null, tx);
+            var known = new Dictionary<string, PhotoSourceEntry>(PhotoSourcePath.Comparer);
+            var elsewhere = new Dictionary<string, PhotoSourceEntry>(PhotoSourcePath.Comparer);
+            foreach (var e in entries)
+            {
+                if (PhotoSourcePath.Of(e.SourceFolder, e.RelativePath) is not { } key) continue;
+                if (e.GalleryId == galleryId) known.TryAdd(key, e);
+                else elsewhere.TryAdd(key, e);
+            }
+
+            var inOtherEvent = files.Where(f => !known.ContainsKey(f.Key) && elsewhere.ContainsKey(f.Key)).ToList();
+            if (inOtherEvent.Count > 0 && !importIntoAnotherEvent)
+            {
+                return ImportStartResult.Duplicate(ImportFailureReason.ImportedInAnotherEvent, inOtherEvent.Count, elsewhere[inOtherEvent[0].Key].EventId);
+            }
+
+            var newFiles = files.Count(f => !known.ContainsKey(f.Key));
+            var changed = files.Count(f => known.TryGetValue(f.Key, out var e) && e.FileSize is long size && SizeOf(f.Full) is long now && now != size);
+            var pending = newFiles + changed + await photoRepository.CountWithoutPreviewsAsync(galleryId, tx);
+            if (pending == 0)
+            {
+                return scanned.Count > 0
+                    ? ImportStartResult.Duplicate(ImportFailureReason.AlreadyImported, scanned.Count)
+                    : ImportStartResult.Fail(ImportFailureReason.NoImages, skipped);
+            }
+
+            var stamp = DateTime.UtcNow;
+            if (gallery.PreviewsPurgedAt is not null)
+            {
+                await galleryRepository.ResetForPreviewRebuildAsync(galleryId, stamp, tx);
+            }
+
+            job = new PhotoImportJob
+            {
+                PhotoGalleryId = galleryId,
+                Status = ImportJobStatuses.Queued,
+                SourceFolder = full,
+                TotalCount = pending,
+                CreatedAt = stamp
+            };
+            await galleryRepository.AddJobAsync(job, tx);
+            await unitOfWork.SaveChangesAsync(tx);
+            await galleryRepository.SetSourceFolderAsync(galleryId, full, stamp, tx);
+            return ImportStartResult.Success(ToDto(job));
+        }, ct);
+
+        if (!outcome.Succeeded || job is null)
+        {
+            return outcome;
         }
 
-        var now = DateTime.UtcNow;
-        if (gallery.PreviewsPurgedAt is not null)
-        {
-            await galleryRepository.ResetForPreviewRebuildAsync(galleryId, now, ct);
-        }
-
-        var job = new PhotoImportJob
-        {
-            PhotoGalleryId = galleryId,
-            Status = ImportJobStatuses.Queued,
-            SourceFolder = full,
-            TotalCount = pending,
-            CreatedAt = now
-        };
-
-        await galleryRepository.AddJobAsync(job, ct);
-        await unitOfWork.SaveChangesAsync(ct);
-        await galleryRepository.SetSourceFolderAsync(galleryId, full, now, ct);
-        await auditService.LogAsync($"Photo import started ({pending} photos)", Module, studioId, ct);
+        await auditService.LogAsync($"Photo import started ({job.TotalCount} photos)", Module, studioId, ct);
         await queue.EnqueueAsync(job.PhotoImportJobId, ct);
-
         var started = ToDto(job);
-        started.Skipped = scan.Skipped;
+        started.Skipped = skipped;
         return ImportStartResult.Success(started);
+    }
+
+    private static long? SizeOf(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists ? info.Length : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     public async Task<ImportStartResult> StartRebuildAsync(int studioId, int galleryId, CancellationToken ct = default)
@@ -386,12 +448,27 @@ public class PhotoImportService(
                 throw new InvalidOperationException("The photo folder is outside this studio's photo folder.");
             }
 
-            var imported = await photoRepository.GetImportedPathsAsync(job.PhotoGalleryId, ct);
-            var todo = ListFiles(job.SourceFolder).Where(f => !imported.Contains(f.Relative)).ToList();
+            // A photo is "already here" when its full canonical path matches - never by file name alone,
+            // so two folders that both hold IMG_0001.jpg are two different photos.
+            var known = new Dictionary<string, PhotoSourceEntry>(PhotoSourcePath.Comparer);
+            foreach (var e in await photoRepository.GetSourceEntriesAsync(owner.StudioId, job.PhotoGalleryId, ct))
+            {
+                if (PhotoSourcePath.Of(e.SourceFolder, e.RelativePath) is { } key) known.TryAdd(key, e);
+            }
+            var listed = ListFiles(job.SourceFolder)
+                .Select(f => (File: f, Key: PhotoSourcePath.Of(job.SourceFolder, f.Relative) ?? f.FullPath))
+                .ToList();
+            var todo = listed.Where(x => !known.ContainsKey(x.Key)).Select(x => x.File).ToList();
+            // Same file, different size: the photo was edited or replaced since it was imported.
+            var changed = listed
+                .Where(x => known.TryGetValue(x.Key, out var e) && e.FileSize is long size && SizeOf(x.File.FullPath) is long now && now != size)
+                .Select(x => (x.File, known[x.Key].PhotoId))
+                .ToList();
             var withoutPreviews = await photoRepository.GetWithoutPreviewsAsync(job.PhotoGalleryId, ct);
-            job.TotalCount = todo.Count + withoutPreviews.Count;
+            job.TotalCount = todo.Count + changed.Count + withoutPreviews.Count;
 
             await RebuildPreviewsAsync(job, withoutPreviews, ct);
+            await RefreshChangedAsync(job, changed, ct);
 
             var nextNumber = await photoRepository.GetMaxPhotoNumberAsync(job.PhotoGalleryId, ct) + 1;
 
@@ -446,7 +523,16 @@ public class PhotoImportService(
                 job.ProcessedCount += chunk.Length;
                 job.FailedCount += chunk.Length - succeeded.Count;
                 galleryRepository.UpdateJob(job);
-                await unitOfWork.SaveChangesAsync(ct);
+                try
+                {
+                    await unitOfWork.SaveChangesAsync(ct);
+                }
+                catch (Exception) when (!ct.IsCancellationRequested)
+                {
+                    // The records weren't saved, so their new preview files would be left behind.
+                    DeleteQuietly(succeeded.SelectMany(p => new[] { p.PreviewPath, p.ThumbnailPath }));
+                    throw;
+                }
             }
 
             job.Status = job.FailedCount == 0
@@ -507,6 +593,71 @@ public class PhotoImportService(
             job.FailedCount += chunk.Length - rebuilt;
             galleryRepository.UpdateJob(job);
             await unitOfWork.SaveChangesAsync(ct);
+        }
+    }
+
+    // Photos whose original changed since import (same path, different size) get new previews; their
+    // number, folder and the customer's selection stay as they are. The old preview files are removed
+    // only after the new ones are saved.
+    private async Task RefreshChangedAsync(PhotoImportJob job, List<(FileEntry File, int PhotoId)> changed, CancellationToken ct)
+    {
+        foreach (var (file, photoId) in changed)
+        {
+            ct.ThrowIfCancellationRequested();
+            var photo = await photoRepository.GetByIdAsync(job.PhotoGalleryId, photoId, ct);
+            if (photo is null)
+            {
+                job.ProcessedCount++;
+                continue;
+            }
+            GeneratedPreview preview;
+            try
+            {
+                preview = await previewGenerator.GenerateAsync(file.FullPath, job.PhotoGalleryId, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex, "Preview refresh failed for {File}", file.FullPath);
+                job.ProcessedCount++;
+                job.FailedCount++;
+                continue;
+            }
+            var old = new[] { photo.PreviewPath, photo.ThumbnailPath };
+            photo.PreviewPath = preview.PreviewKey;
+            photo.ThumbnailPath = preview.ThumbnailKey;
+            photo.Width = preview.Width;
+            photo.Height = preview.Height;
+            photo.FileSize = SizeOf(file.FullPath);
+            // GetByIdAsync reads without tracking: the change has to be attached to be saved.
+            photoRepository.UpdateRange([photo]);
+            job.ProcessedCount++;
+            galleryRepository.UpdateJob(job);
+            try
+            {
+                await unitOfWork.SaveChangesAsync(ct);
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                DeleteQuietly([preview.PreviewKey, preview.ThumbnailKey]);
+                throw;
+            }
+            DeleteQuietly(old);
+        }
+    }
+
+    private void DeleteQuietly(IEnumerable<string?> keys)
+    {
+        foreach (var key in keys)
+        {
+            if (key is null) continue;
+            try
+            {
+                fileStorage.Delete(key);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Couldn't delete preview {Key}", key);
+            }
         }
     }
 

@@ -70,6 +70,12 @@ public class PhotoRepository(AppDbContext context) : IPhotoRepository
         Project(GalleryPhotos(galleryId).AsNoTracking().Where(p => p.Selection != null).OrderBy(p => p.PhotoNumber))
             .ToListAsync(ct);
 
+    public Task<List<PhotoSourceEntry>> GetSourceEntriesAsync(int studioId, int? galleryId, CancellationToken ct = default) =>
+        context.Photos.AsNoTracking()
+            .Where(p => p.Gallery.StudioId == studioId && (galleryId == null || p.PhotoGalleryId == galleryId))
+            .Select(p => new PhotoSourceEntry(p.PhotoId, p.PhotoGalleryId, p.Gallery.EventId, p.SourceFolder ?? p.Gallery.SourceFolder, p.SourceRelativePath, p.FileSize))
+            .ToListAsync(ct);
+
     public async Task<HashSet<string>> GetImportedPathsAsync(int galleryId, CancellationToken ct = default) =>
         (await context.Photos.AsNoTracking()
             .Where(p => p.PhotoGalleryId == galleryId)

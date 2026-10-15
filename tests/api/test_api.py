@@ -432,6 +432,173 @@ ok(req("DELETE", f"/expenses/{X2['expenseId']}", tok=Q)[0] == 204, "expense dele
 S = req("GET", f"/expenses/event/{xeid}", tok=Q)[1]
 ok(S["totalExpenses"] == 15000 and S["netProfit"] == 85000 and S["profitMarginPercent"] == 85, "totals follow the deletion", S)
 
+# ============================================================================================ FOLDER IMPORTS
+area("Folder imports: duplicates, rescans, concurrency")
+import tempfile
+import threading
+
+# Each studio gets its own photo folder on the API's machine (the tests run on the same machine).
+work = Path(tempfile.mkdtemp(prefix="studioos-ci-"))
+root_a, root_b = work / "studio-a", work / "studio-b"
+
+
+def put(path, content=PHOTO):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+
+
+for rel in ["ShootX/Candid/IMG_0001.jpg", "ShootX/Candid/IMG_0002.jpg", "ShootX/Traditional/IMG_0001.jpg",
+            "ShootY/IMG_0001.jpg", "ShootW/IMG_1.jpg", "ShootW/IMG_2.jpg", "ShootV/IMG_1.jpg", "ShootZ/good.jpg"]:
+    put(root_a / rel)
+put(root_a / "ShootZ/broken.jpg", b"\xff\xd8\xff\xe0" + os.urandom(2000))   # looks like a JPEG, isn't one
+put(root_b / "ShootX/Candid/IMG_0001.jpg")
+ok(req("PUT", f"/admin/studios/{studios['a']['id']}/photo-root", {"path": str(root_a)}, A)[0] == 200, "studio A's photo folder set")
+ok(req("PUT", f"/admin/studios/{studios['b']['id']}/photo-root", {"path": str(root_b)}, A)[0] == 200, "studio B's photo folder set")
+
+
+cust_b = req("POST", "/customers", {"fullName": "CI Studio B Customer", "mobileNumber": mobile("93")}, T)[1]["customerId"]
+
+
+def new_gallery(tok=Q, customer=None):
+    cust_id = customer or cid
+    c, e, _ = req("POST", "/events", {"customerId": cust_id, "eventDate": str(TODAY - timedelta(days=3)), "eventStatus": "Completed", "budget": 5000}, tok)
+    return req("POST", f"/photo-galleries/events/{e['eventId']}", tok=tok)[1]["galleryId"]
+
+
+def start_import(gallery, folder, tok=Q, anyway=False):
+    return req("POST", f"/photo-galleries/{gallery}/import", {"sourceFolder": str(folder), "importIntoAnotherEvent": anyway}, tok)
+
+
+def wait_job(gallery, job_id, tok=Q):
+    for _ in range(120):
+        c, j, _ = req("GET", f"/photo-galleries/{gallery}/import/{job_id}", tok=tok)
+        if c == 200 and j["status"] not in ("Queued", "Running"):
+            return j
+        time.sleep(0.5)
+    return None
+
+
+def import_and_wait(gallery, folder, tok=Q, anyway=False):
+    c, j, _ = start_import(gallery, folder, tok, anyway)
+    return c, (wait_job(gallery, j["jobId"], tok) if c == 202 else j)
+
+
+def gallery_photos(gallery, tok=Q):
+    return items(req("GET", f"/photo-galleries/{gallery}/photos?page=1&pageSize=100", tok=tok)[1])
+
+
+g1 = new_gallery()
+c, j = import_and_wait(g1, root_a / "ShootX")
+ok(c == 202 and j and j["status"] == "Completed" and len(gallery_photos(g1)) == 3,
+   "folder imported: 3 photos, including two different files both named IMG_0001.jpg", (c, j))
+c, b, _ = start_import(g1, root_a / "ShootX")
+ok(c == 409 and b.get("code") == "ALREADY_IMPORTED" and len(gallery_photos(g1)) == 3, "the same folder again: nothing imported twice", (c, b))
+c, b, _ = start_import(g1, str(root_a / "ShootX") + os.sep + "." + os.sep)
+ok(c == 409 and b.get("code") == "ALREADY_IMPORTED", "the same folder typed differently is still recognised", (c, b))
+c, b, _ = start_import(g1, root_a / "ShootX" / "Candid")
+ok(c == 409 and b.get("code") == "ALREADY_IMPORTED" and len(gallery_photos(g1)) == 3, "a sub-folder of an imported folder isn't imported twice", (c, b))
+c, j = import_and_wait(g1, root_a / "ShootY")
+ok(c == 202 and j and j["status"] == "Completed" and len(gallery_photos(g1)) == 4,
+   "another folder with a file of the same name (IMG_0001.jpg) is a different photo", (c, j))
+
+# Another event's gallery: refused unless the owner confirms.
+g2 = new_gallery()
+c, b, _ = start_import(g2, root_a / "ShootX")
+ok(c == 409 and b.get("code") == "IMPORTED_IN_ANOTHER_EVENT" and b.get("matchingPhotos") == 3 and len(gallery_photos(g2)) == 0,
+   "a folder already in another event's gallery is refused with a clear message", (c, b))
+c, j = import_and_wait(g2, root_a / "ShootX", anyway=True)
+ok(c == 202 and j and j["status"] == "Completed" and len(gallery_photos(g2)) == 3, "...and imported when the owner confirms", (c, j))
+
+# Two requests at the same moment: exactly one import starts.
+g3, g4 = new_gallery(), new_gallery()
+codes = []
+def fire(gallery, folder):
+    codes.append(start_import(gallery, folder)[0])
+threads = [threading.Thread(target=fire, args=(g3, root_a / "ShootW")) for _ in range(2)]
+[t.start() for t in threads]; [t.join() for t in threads]
+ok(sorted(codes) == [202, 409], "two simultaneous imports of a folder into one gallery: one starts, one is refused", codes)
+codes = []
+threads = [threading.Thread(target=fire, args=(g, root_a / "ShootV")) for g in (g3, g4)]
+time.sleep(3)  # let the ShootW job above finish first
+[t.start() for t in threads]; [t.join() for t in threads]
+ok(sorted(codes) == [202, 409], "two simultaneous imports of a folder into two events: one starts, one is refused", codes)
+time.sleep(3)
+ok(len(gallery_photos(g3)) + len(gallery_photos(g4)) == 2 + 1, "no photo was imported twice by the simultaneous requests",
+   (len(gallery_photos(g3)), len(gallery_photos(g4))))
+
+# A photo changed on disk: the rescan refreshes it in place (same photo, new preview).
+before = {p["fileName"] + str(p["photoNumber"]): p for p in gallery_photos(g1)}
+put(root_a / "ShootX/Candid/IMG_0002.jpg", PHOTO + b"\0" * 777)   # same picture, different file
+c, j = import_and_wait(g1, root_a / "ShootX")
+after = {p["fileName"] + str(p["photoNumber"]): p for p in gallery_photos(g1)}
+changed = [k for k in after if k.startswith("IMG_0002") and before.get(k, {}).get("previewUrl", "").split("?")[0] != after[k].get("previewUrl", "").split("?")[0]]
+ok(c == 202 and j and j["status"] == "Completed" and len(after) == 4 and len(changed) == 1
+   and all(after[k]["photoId"] == before[k]["photoId"] for k in after),
+   "a changed photo gets a new preview; same photo record, nothing duplicated", (c, j, len(after), changed))
+
+# Studios never share: studio B can't read studio A's folder; its own identical folder is separate.
+ok(start_import(new_gallery(T, customer=cust_b), root_a / "ShootX", tok=T)[0] in (400, 403), "studio B can't import studio A's folder")
+c, j = import_and_wait(new_gallery(T, customer=cust_b), root_b / "ShootX", tok=T)
+ok(c == 202 and j and j["status"] == "Completed", "studio B's own folder with the same names imports independently", (c, j))
+
+# One unreadable file: the rest are imported and the job says it wasn't fully successful.
+g5 = new_gallery()
+c, j = import_and_wait(g5, root_a / "ShootZ")
+ok(c == 202 and j and j["status"] == "CompletedWithErrors" and j["failedCount"] == 1 and len(gallery_photos(g5)) == 1,
+   "partial import: 1 good photo imported, the broken one reported, not 'Completed'", (c, j))
+
+# ============================================================================================ PREVIEW CLEANUP
+area("Preview cleanup (never-sent galleries)")
+def iso(d):
+    return d.strftime("%Y-%m-%dT%H:%M:%SZ")
+now_utc = datetime.now(timezone.utc)
+c, plan, _ = req("GET", f"/admin/photo-cleanup?galleryId={g2}", tok=A)
+ok(c == 200 and not plan["eligible"] and any(x["galleryId"] == g2 and "Still being prepared" in x["reason"] for x in plan["skipped"]),
+   "never-sent gallery within the retention period is kept", (c, plan))
+c, plan, _ = req("GET", f"/admin/photo-cleanup?galleryId={g2}&asOf={iso(now_utc + timedelta(days=11))}", tok=A)
+el = plan.get("eligible") or []
+ok(c == 200 and len(el) == 1 and el[0]["rule"] == "NeverSent" and len(el[0]["files"]) == 6 and el[0]["bytes"] > 0,
+   "never-sent gallery older than the retention period is listed (dry run: 3 previews + 3 thumbnails)", (c, plan))
+c, plan, _ = req("GET", f"/admin/photo-cleanup?galleryId={gid}", tok=A)
+ok(c == 200 and not plan["eligible"] and not plan["skipped"], "a gallery whose link was sent recently isn't touched by either rule", (c, plan))
+ok(req("GET", "/admin/photo-cleanup", tok=Q)[0] == 403, "a studio owner can't see the cleanup plan")
+ok(len(gallery_photos(g2)) == 3 and all(p.get("previewUrl") for p in gallery_photos(g2)), "the dry run deleted nothing")
+
+c, run, _ = req("POST", f"/admin/photo-cleanup/run?galleryId={g2}&asOf={iso(now_utc + timedelta(days=11))}", tok=A)
+ok(c == 200 and run["galleriesCleaned"] == 1 and run["filesDeleted"] == 6 and not run["galleriesWithFailures"], "cleanup removes the 6 preview files", (c, run))
+c, g, _ = req("GET", f"/photo-galleries/{g2}", tok=Q)
+ok(c == 200 and g.get("previewsPurged") is True and g["counts"]["total"] == 3, "photo records stay; the gallery shows previews were removed", (c, g.get("counts")))
+c, run2, _ = req("POST", f"/admin/photo-cleanup/run?galleryId={g2}&asOf={iso(now_utc + timedelta(days=11))}", tok=A)
+ok(c == 200 and run2["galleriesCleaned"] == 0 and run2["filesDeleted"] == 0 and not run2["failures"], "running it again is harmless", (c, run2))
+ok(all((root_a / rel).exists() for rel in ["ShootX/Candid/IMG_0001.jpg", "ShootX/Candid/IMG_0002.jpg", "ShootX/Traditional/IMG_0001.jpg"]),
+   "the original photos are untouched")
+
+# Selections survive: the customer's picks in the earlier gallery after its previews are removed.
+c, run, _ = req("POST", f"/admin/photo-cleanup/run?galleryId={gid}&asOf={iso(now_utc + timedelta(days=60))}", tok=A)
+ok(c == 200 and run["galleriesCleaned"] == 1, "expired-link gallery cleaned", (c, run))
+c, sel, _ = req("GET", f"/photo-galleries/{gid}/device-photos/selection", tok=Q)
+c2, xm2, _ = req("GET", f"/photo-galleries/{gid}/selection-export", tok=Q)
+ok(c == 200 and len(sel) == 2 and c2 == 200 and xm2["selectedCount"] == 2, "selections and the Normal / Big Size export list remain after cleanup", (c, sel, c2))
+c, b, _ = upload("CI Wedding", "Candid/IMG_0001.jpg")
+rebuilt = next((p for p in gallery_photos(gid) if p["fileName"] == "IMG_0001.jpg"), {})
+ok(c == 200 and b.get("outcome") == "PreviewRebuilt" and rebuilt.get("previewUrl"), "re-adding a photo from the computer after cleanup really restores its preview", (c, b, rebuilt))
+
+# A file that can't be deleted (Windows: a file held open can't be removed) - reported, retried next run.
+storage_root = os.environ.get("STORAGE_ROOT")
+if os.name == "nt" and storage_root:
+    g6 = new_gallery()
+    import_and_wait(g6, root_a / "ShootW", anyway=True)
+    key = gallery_photos(g6)[0]["previewUrl"].split("/media/", 1)[1].split("?")[0]
+    held = open(Path(storage_root) / key, "rb")
+    c, run, _ = req("POST", f"/admin/photo-cleanup/run?galleryId={g6}&asOf={iso(now_utc + timedelta(days=11))}", tok=A)
+    ok(c == 200 and run["galleriesWithFailures"] == [g6] and run["galleriesCleaned"] == 0 and run["failures"],
+       "a file that can't be deleted is reported and the gallery isn't marked cleaned", (c, run))
+    held.close()
+    c, run, _ = req("POST", f"/admin/photo-cleanup/run?galleryId={g6}&asOf={iso(now_utc + timedelta(days=11))}", tok=A)
+    ok(c == 200 and run["galleriesCleaned"] == 1 and not run["failures"], "the next run finishes the job", (c, run))
+else:
+    print("  skip  cleanup-failure check needs Windows and STORAGE_ROOT (a file held open can't be deleted there)")
+
 # ============================================================================================ TENANCY
 area("Studio B can't touch studio A's records")
 probes = [("GET", f"/customers/{cid}"), ("PUT", f"/customers/{cid}"), ("GET", f"/events/{eid}"), ("PUT", f"/events/{eid}"),

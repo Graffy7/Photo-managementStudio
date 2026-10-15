@@ -168,6 +168,29 @@ public class PhotoGalleryRepository(AppDbContext context) : IPhotoGalleryReposit
                 selections.FirstOrDefault(s => s.PhotoGalleryId == id && s.SelectionType == SelectionTypes.Big)?.Count ?? 0));
     }
 
+    public Task<List<UnsentGalleryRow>> GetUnsentWithPreviewsAsync(int? galleryId, CancellationToken ct = default) =>
+        context.PhotoGalleries
+            .AsNoTracking()
+            .Where(g => (galleryId == null || g.PhotoGalleryId == galleryId)
+                        && g.LinkGeneratedAt == null
+                        && g.PreviewsPurgedAt == null
+                        && g.Photos.Any(p => p.PreviewPath != null || p.ThumbnailPath != null))
+            .Select(g => new UnsentGalleryRow(
+                g.PhotoGalleryId, g.StudioId, g.EventId, g.CreatedAt, g.UpdatedAt,
+                context.PhotoImportJobs.Where(j => j.PhotoGalleryId == g.PhotoGalleryId).Max(j => (DateTime?)(j.CompletedAt ?? j.CreatedAt)),
+                g.Photos.Max(p => (DateTime?)p.CreatedAt),
+                context.PhotoImportJobs.Any(j => j.PhotoGalleryId == g.PhotoGalleryId
+                                                 && (j.Status == ImportJobStatuses.Queued || j.Status == ImportJobStatuses.Running))))
+            .ToListAsync(ct);
+
+    public Task<List<ActiveImportJob>> GetActiveImportJobsAsync(int studioId, CancellationToken ct = default) =>
+        context.PhotoImportJobs
+            .AsNoTracking()
+            .Where(j => j.Gallery.StudioId == studioId
+                        && (j.Status == ImportJobStatuses.Queued || j.Status == ImportJobStatuses.Running))
+            .Select(j => new ActiveImportJob(j.PhotoGalleryId, j.Gallery.EventId, j.SourceFolder))
+            .ToListAsync(ct);
+
     public Task<List<GalleryStorageRow>> GetStorageGalleriesAsync(CancellationToken ct = default) =>
         context.PhotoGalleries
             .AsNoTracking()

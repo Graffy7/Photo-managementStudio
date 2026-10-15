@@ -93,7 +93,7 @@ public class PhotoGalleriesController(
             return ValidationProblem(ModelState);
         }
 
-        var result = await importService.StartAsync(StudioId, id, request.SourceFolder, ct);
+        var result = await importService.StartAsync(StudioId, id, request.SourceFolder, ct, request.ImportIntoAnotherEvent);
         if (result.Succeeded)
         {
             return Accepted(result.Job);
@@ -107,6 +107,24 @@ public class PhotoGalleriesController(
             ImportFailureReason.NoPhotoRoot => PathProblem(PhotoPathProblem.NoRoot),
             ImportFailureReason.FolderInvalid => PathProblem(PhotoPathProblem.Invalid),
             ImportFailureReason.NoImages => BadRequest(new { message = NoPhotosMessage(result.Skipped) }),
+            ImportFailureReason.AlreadyImported => Conflict(new
+            {
+                code = "ALREADY_IMPORTED",
+                message = $"All {result.MatchingPhotos} photos in this folder are already in this gallery and haven't changed. Nothing new to import."
+            }),
+            ImportFailureReason.ImportedInAnotherEvent => Conflict(new
+            {
+                code = "IMPORTED_IN_ANOTHER_EVENT",
+                otherEventId = result.OtherEventId,
+                matchingPhotos = result.MatchingPhotos,
+                message = $"{result.MatchingPhotos} photo{(result.MatchingPhotos == 1 ? " in this folder is" : "s in this folder are")} already in another event's gallery. Importing them here makes a second set of previews. Import anyway only if this event really uses the same photos."
+            }),
+            ImportFailureReason.RunningInAnotherEvent => Conflict(new
+            {
+                code = "IMPORTING_IN_ANOTHER_EVENT",
+                otherEventId = result.OtherEventId,
+                message = "This folder is being imported into another event's gallery right now. Wait for that to finish."
+            }),
             _ => Conflict(new { message = "An import is already running for this event." })
         };
     }

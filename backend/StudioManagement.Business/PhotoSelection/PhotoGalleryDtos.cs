@@ -181,6 +181,10 @@ public class OwnerPhotosPageDto
 public class ImportRequestDto
 {
     public string SourceFolder { get; set; } = null!;
+
+    // Set only after the owner confirmed that the same photos may also go into this event's gallery
+    // although another event's gallery already has them.
+    public bool ImportIntoAnotherEvent { get; set; }
 }
 
 public class GenerateLinkRequestDto

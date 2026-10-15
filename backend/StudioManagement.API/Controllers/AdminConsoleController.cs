@@ -23,8 +23,30 @@ public class AdminConsoleController(
     IGalleryCleanupService galleryCleanup,
     IStudioRepository studioRepository,
     IStorageUsageService storageUsage,
+    PhotoGalleryOptions galleryOptions,
     IAuditService auditService) : ControllerBase
 {
+    // Preview cleanup, dry run: which galleries' preview files the rules allow removing (and which
+    // are kept, and why). Nothing is deleted. asOf = "what if it were this date" (read-only).
+    [HttpGet("photo-cleanup")]
+    public async Task<IActionResult> PhotoCleanupPlan([FromQuery] DateTime? asOf, [FromQuery] int? galleryId, CancellationToken ct) =>
+        Ok(await galleryCleanup.GetPlanAsync(asOf?.ToUniversalTime() ?? DateTime.UtcNow, galleryId, ct));
+
+    // Runs the cleanup now (both rules, including never-sent galleries) - the admin's explicit action
+    // after checking the dry run. asOf is only accepted on test setups (PhotoGallery:AllowCleanupClockOverride).
+    [HttpPost("photo-cleanup/run")]
+    public async Task<IActionResult> RunPhotoCleanup([FromQuery] int? galleryId, [FromQuery] DateTime? asOf, CancellationToken ct)
+    {
+        if (asOf is not null && !galleryOptions.AllowCleanupClockOverride)
+        {
+            return BadRequest(new { message = "Running the cleanup for another date isn't allowed here." });
+        }
+        var result = await galleryCleanup.RunAsync(asOf?.ToUniversalTime() ?? DateTime.UtcNow, galleryId, includeNeverSent: true, ct);
+        await auditService.LogAsync($"Photo preview cleanup run by the platform admin: {result.GalleriesCleaned} galleries, {result.FilesDeleted} files, {result.GalleriesWithFailures.Count} with failures",
+            "PhotoSelection", null, ct);
+        return Ok(result);
+    }
+
     // Storage report: every file the app stores, measured (not estimated), per studio, with cost.
     // ?refresh=true measures again instead of using the last few minutes' result.
     [HttpGet("storage")]

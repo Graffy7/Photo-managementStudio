@@ -34,6 +34,12 @@ public interface IPhotoGalleryRepository
     // Galleries whose link has expired and was generated before sentBefore, with previews still on disk.
     Task<List<PhotoGallery>> GetExpiredForCleanupAsync(DateTime now, DateTime sentBefore, CancellationToken ct = default);
 
+    // Galleries never sent to a customer that still hold preview files (optionally just one).
+    Task<List<UnsentGalleryRow>> GetUnsentWithPreviewsAsync(int? galleryId, CancellationToken ct = default);
+
+    // Import jobs waiting or running in a studio's galleries.
+    Task<List<ActiveImportJob>> GetActiveImportJobsAsync(int studioId, CancellationToken ct = default);
+
     // Platform storage report: every gallery's link / cleanup state (all studios).
     Task<List<GalleryStorageRow>> GetStorageGalleriesAsync(CancellationToken ct = default);
 

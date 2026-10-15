@@ -6,7 +6,7 @@ public interface IPhotoImportService
     // owner can pick where the originals live instead of typing it. Null = not a readable folder.
     Task<(PhotoPathProblem Problem, FolderBrowseResultDto? Result)> BrowseFoldersAsync(int studioId, string? path, CancellationToken ct = default);
 
-    Task<ImportStartResult> StartAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default);
+    Task<ImportStartResult> StartAsync(int studioId, int galleryId, string sourceFolder, CancellationToken ct = default, bool importIntoAnotherEvent = false);
     // Rebuilds the previews that cleanup deleted, from the originals in the gallery's own folder.
     Task<ImportStartResult> StartRebuildAsync(int studioId, int galleryId, CancellationToken ct = default);
     // Takes the photos imported from one folder back out of the gallery (e.g. the wrong folder was

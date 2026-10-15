@@ -21,6 +21,17 @@ public class PhotoGalleryOptions
     // new link.
     public int PreviewRetentionDays { get; set; } = 10;
 
+    // Galleries whose customer link was never sent: their previews are removed once nothing has
+    // happened in the gallery (created, photos added, import run, any change) for this many days.
+    public int UnsentPreviewRetentionDays { get; set; } = 10;
+
+    // What the daily job does with those never-sent galleries: "Off", "DryRun" (only logs what it
+    // would remove - the default until the dry-run list has been checked) or "Delete".
+    public string UnsentCleanupMode { get; set; } = UnsentCleanupModes.DryRun;
+
+    // Test setups only: lets the platform admin run the cleanup "as of" a later date. Never enable in production.
+    public bool AllowCleanupClockOverride { get; set; }
+
     // Country calling code (digits only, e.g. "91") added to 10-digit customer mobile numbers when
     // building WhatsApp links. Empty = numbers are used exactly as stored.
     public string DefaultCountryCode { get; set; } = "";
@@ -29,4 +40,11 @@ public class PhotoGalleryOptions
     // 25MB originals into memory at once.
     public int ImportParallelism { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
 
+}
+
+public static class UnsentCleanupModes
+{
+    public const string Off = "Off";
+    public const string DryRun = "DryRun";
+    public const string Delete = "Delete";
 }

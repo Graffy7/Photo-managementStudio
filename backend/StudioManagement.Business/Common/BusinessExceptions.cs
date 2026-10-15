@@ -29,4 +29,8 @@ public static class LockNames
     public static string LeadConversion(int studioId, int leadId) => $"lead-convert:{studioId}:{leadId}";
 
     public static string QuotationNumber(int studioId) => $"quotation-number:{studioId}";
+
+    // One photo import may be started at a time per studio, so two requests can't both pass the
+    // duplicate-folder checks before either has recorded its job.
+    public static string PhotoImport(int studioId) => $"photo-import:{studioId}";
 }

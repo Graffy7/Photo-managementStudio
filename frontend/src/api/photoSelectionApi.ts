@@ -37,8 +37,9 @@ export const photoSelectionApi = {
   browseFolders: (path?: string) =>
     apiClient.get<FolderBrowseResult>("/api/photo-galleries/browse-folders", { params: { path } }).then((r) => r.data),
 
-  startImport: (galleryId: number, sourceFolder: string) =>
-    apiClient.post<ImportJob>(`/api/photo-galleries/${galleryId}/import`, { sourceFolder }).then((r) => r.data),
+  // importIntoAnotherEvent: the owner confirmed these photos may also go into this event's gallery.
+  startImport: (galleryId: number, sourceFolder: string, importIntoAnotherEvent = false) =>
+    apiClient.post<ImportJob>(`/api/photo-galleries/${galleryId}/import`, { sourceFolder, importIntoAnotherEvent }).then((r) => r.data),
 
   removeImportedFolder: (galleryId: number, sourceFolder: string) =>
     apiClient

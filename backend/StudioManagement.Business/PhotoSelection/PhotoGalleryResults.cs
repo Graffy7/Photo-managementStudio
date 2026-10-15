@@ -49,7 +49,13 @@ public enum ImportFailureReason
     FolderInvalid,
     NoPhotoRoot,
     NoImages,
-    AlreadyRunning
+    AlreadyRunning,
+    // Every photo in the folder is already in this gallery and unchanged.
+    AlreadyImported,
+    // These photos are already in another event's gallery (send importIntoAnotherEvent to go ahead).
+    ImportedInAnotherEvent,
+    // Another event's gallery is importing this folder right now.
+    RunningInAnotherEvent
 }
 
 public class ImportStartResult
@@ -61,9 +67,15 @@ public class ImportStartResult
     // For NoImages: what the folder held instead of photos.
     public SkippedFilesDto? Skipped { get; private init; }
 
+    // For AlreadyImported / ImportedInAnotherEvent: how many photos, and which other event.
+    public int MatchingPhotos { get; private init; }
+    public int? OtherEventId { get; private init; }
+
     public static ImportStartResult Success(ImportJobDto job) => new() { Succeeded = true, Job = job };
     public static ImportStartResult Fail(ImportFailureReason reason, SkippedFilesDto? skipped = null) =>
         new() { Succeeded = false, FailureReason = reason, Skipped = skipped };
+    public static ImportStartResult Duplicate(ImportFailureReason reason, int matching, int? otherEventId = null) =>
+        new() { Succeeded = false, FailureReason = reason, MatchingPhotos = matching, OtherEventId = otherEventId };
 }
 
 // The customer link can fail in ways the page words differently: a dead link says nothing more,

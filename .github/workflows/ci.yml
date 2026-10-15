@@ -47,6 +47,8 @@ jobs:
       Jwt__Key: "ci-only-signing-key-not-used-anywhere-else-0123456789abcdef"
       # Empty database: the API applies every migration when it starts.
       Database__MigrateOnStartup: "true"
+      # Lets the API tests run the preview cleanup "as of" a later date. Test setups only.
+      PhotoGallery__AllowCleanupClockOverride: "true"
       DOTNET_NOLOGO: "true"
 
     steps:

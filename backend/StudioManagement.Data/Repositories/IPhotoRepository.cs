@@ -17,6 +17,9 @@ public interface IPhotoRepository
     Task<List<PhotoWithSelection>> GetSelectedAsync(int galleryId, CancellationToken ct = default);
 
     Task<HashSet<string>> GetImportedPathsAsync(int galleryId, CancellationToken ct = default);
+
+    // Where each photo's original lives, for a whole studio or one of its galleries.
+    Task<List<PhotoSourceEntry>> GetSourceEntriesAsync(int studioId, int? galleryId, CancellationToken ct = default);
     Task<int> GetMaxPhotoNumberAsync(int galleryId, CancellationToken ct = default);
     Task AddRangeAsync(IEnumerable<Photo> photos, CancellationToken ct = default);
 
