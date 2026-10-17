@@ -108,14 +108,14 @@ function Delta({ percent, preset }: { percent: number | null; preset: DateRangeP
 }
 
 function StatCard({
-  icon, iconColor, label, value, percent, preset,
-}: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; label: string; value: string | number; percent: number | null; preset: DateRangePreset }) {
+  icon, iconColor, label, value, percent, preset, compact,
+}: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; label: string; value: string | number; percent: number | null; preset: DateRangePreset; compact?: boolean }) {
   return (
-    <View style={styles.statCard}>
+    <View style={[styles.statCard, compact && styles.statCardCompact]}>
       <View style={[styles.statIcon, { backgroundColor: `${iconColor}22` }]}>
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
-      <Text style={styles.statValue}>{value}</Text>
+      <Text style={[styles.statValue, compact && styles.statValueCompact]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
       <Delta percent={percent} preset={preset} />
     </View>
@@ -138,7 +138,12 @@ export function HomeScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const narrow = useWindowDimensions().width < 600;
+  const width = useWindowDimensions().width;
+  const narrow = width < 600;
+  // Phones and tablets already have a bell in the top bar.
+  const showBell = width >= 1024;
+  // Phones and tablets: two stat cards per row, and the panels one under another at full width.
+  const stacked = width < 1024;
 
   const [preset, setPreset] = useState<DateRangePreset>("ThisMonth");
   const [customStart, setCustomStart] = useState("");
@@ -223,7 +228,7 @@ export function HomeScreen() {
               <Text style={styles.rangeChipText}>{formatDateRange(data.rangeStart, data.rangeEnd)}</Text>
             </View>
           )}
-          {isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
+          {showBell && isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
             <Ionicons name="notifications-outline" size={18} color="#a7b7cb" />
             {!!unreadCount && (
               <View style={styles.badge}>
@@ -256,13 +261,15 @@ export function HomeScreen() {
           <Text style={styles.welcomeText}>Choose where to start from the menu.</Text>
         </View>
       ) : (<>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetRow} contentContainerStyle={styles.presetRowContent}>
+      {/* Wraps onto a second line on narrow screens, so every choice is visible without scrolling. */}
+      <View style={[styles.presetRow, styles.presetRowContent, styles.presetWrap]}>
         {DASHBOARD_PRESETS.map((p) => (
-          <Pressable key={p} style={[styles.presetChip, preset === p && styles.presetChipSelected]} onPress={() => setPreset(p)}>
+          <Pressable key={p} style={[styles.presetChip, narrow && styles.presetChipNarrow, preset === p && styles.presetChipSelected]} onPress={() => setPreset(p)}
+            accessibilityRole="button" accessibilityState={{ selected: preset === p }}>
             <Text style={[styles.presetChipText, preset === p && styles.presetChipTextSelected]}>{DATE_RANGE_PRESET_LABELS[p]}</Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
 
       {preset === "Custom" && (
         <View style={styles.customRangeRow}>
@@ -281,14 +288,14 @@ export function HomeScreen() {
       ) : (
         <>
           <View style={styles.statRow}>
-            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#7fc0e6" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} />}
-            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#4cc493" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} />}
-            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#f2bd5c" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} />}
-            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#ff9a4d" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} />}
+            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#7fc0e6" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} compact={stacked} />}
+            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#4cc493" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} compact={stacked} />}
+            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#f2bd5c" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} compact={stacked} />}
+            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#ff9a4d" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} compact={stacked} />}
           </View>
 
-          <View style={styles.columns}>
-            <View style={styles.mainColumn}>
+          <View style={[styles.columns, stacked && styles.columnsStacked]}>
+            <View style={[styles.mainColumn, stacked && styles.columnStacked]}>
               {isOn("PAYMENTS") && (
 <Panel title="Overview">
                 <LineChart points={revenuePoints} formatValue={formatCurrencyShort} />
@@ -365,7 +372,7 @@ export function HomeScreen() {
 )}
             </View>
 
-            <View style={styles.sideColumn}>
+            <View style={[styles.sideColumn, stacked && styles.columnStacked]}>
               {isOn("EVENTS") && (
 <Panel title="Events Summary">
                 <DonutChart
@@ -403,7 +410,7 @@ export function HomeScreen() {
 )}
             </View>
 
-            <View style={styles.sideColumn}>
+            <View style={[styles.sideColumn, stacked && styles.columnStacked]}>
               {isOn("DAY_BOARD") && (
               <Panel
                 title="Today's Schedule"
@@ -539,6 +546,8 @@ const styles = StyleSheet.create({
   nativeNavButtonText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
   presetRow: { marginBottom: 18 },
   presetRowContent: { gap: 8, paddingRight: 8 },
+  presetWrap: { flexDirection: "row", flexWrap: "wrap" },
+  presetChipNarrow: { flexGrow: 1, alignItems: "center", minHeight: 40, justifyContent: "center" },
   customRangeRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18, flexWrap: "wrap" },
   presetChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
   presetChipSelected: { borderColor: "#7fc0e6", backgroundColor: "rgba(127, 192, 230, 0.14)" },
@@ -551,6 +560,9 @@ const styles = StyleSheet.create({
   statCard: {
     flexGrow: 1, minWidth: 200, backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18,
   },
+  // Phones: two cards per row instead of one card filling the screen.
+  statCardCompact: { minWidth: 0, flexBasis: "40%", padding: 14 },
+  statValueCompact: { fontSize: 22 },
   statIcon: { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 10 },
   statValue: { fontSize: 24, fontWeight: "700", color: "#e8edf3", fontVariant: ["tabular-nums"] },
   statLabel: { fontSize: 12, color: "#a7b7cb", marginTop: 2 },
@@ -560,6 +572,9 @@ const styles = StyleSheet.create({
   deltaNeutral: { fontSize: 12, color: "#6f83a0", marginTop: 8 },
 
   columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
+  columnsStacked: { flexDirection: "column", flexWrap: "nowrap", alignItems: "stretch" },
+  // In a column, flexBasis would become a height: reset it so each panel is as tall as its content.
+  columnStacked: { flexBasis: "auto", flexGrow: 0 },
   mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 420, minWidth: 0, gap: 16 },
   sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
 
