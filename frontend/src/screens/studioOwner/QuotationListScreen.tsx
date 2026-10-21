@@ -7,6 +7,7 @@ import { QUOTATION_STATUSES, type Quotation, type QuotationStatus } from "../../
 import { StatusPill, type Tone } from "../../components/StatusPill";
 import { SearchInput } from "../../components/SearchInput";
 import { QuotationPdfButton } from "../../components/QuotationPdfButton";
+import { QuotationWhatsAppButton } from "../../components/QuotationWhatsAppButton";
 import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { Screen } from "../../ui/Screen";
 import { PageHeader } from "../../ui/PageHeader";
@@ -45,6 +46,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [changingStatusId, setChangingStatusId] = useState<number | null>(null);
 
   const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
@@ -89,6 +91,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
   const actions = (q: Quotation) => (
     <View style={styles.actionRow}>
       <QuotationPdfButton quotation={q} onError={setDownloadError} />
+      <QuotationWhatsAppButton quotation={q} onError={setDownloadError} onNotice={setShareNotice} />
       <Button
         label={changingStatusId === q.quotationId ? "Close" : "Change status"}
         variant="link"
@@ -111,7 +114,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
     },
     { key: "status", label: "Status", width: 120, render: (q) => <StatusPill label={q.status} tone={statusTone(q.status)} /> },
     { key: "total", label: "Total", width: 130, align: "right", sortKey: "total", render: (q) => <CellMoney>{formatCurrency(q.grandTotal)}</CellMoney> },
-    { key: "actions", label: "", width: 230, align: "right", render: actions },
+    { key: "actions", label: "", width: 340, align: "right", render: actions },
   ];
 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
@@ -133,6 +136,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
         />
       </View>
       {downloadError && <Text style={styles.error}>{downloadError}</Text>}
+      {shareNotice && <Text style={styles.notice}>{shareNotice}</Text>}
 
       <DataList
         items={data?.items}
@@ -185,6 +189,7 @@ const styles = StyleSheet.create({
   statusChipText: { ...type.caption, fontWeight: "600", color: colors.textMuted },
   statusChipTextOn: { color: colors.primary },
   error: { ...type.small, color: colors.danger, marginBottom: space.md },
+  notice: { ...type.small, color: colors.success, marginBottom: space.md },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardDate: { ...type.small, fontWeight: "600", color: colors.link },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
