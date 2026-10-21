@@ -36,6 +36,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
         var totalEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, null, ct);
         var upcomingEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Upcoming, ct);
         var confirmedEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Confirmed, ct);
+        var ongoingEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Ongoing, ct);
         var completedEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Completed, ct);
         var cancelledEvents = await repository.CountEventsByStatusAsync(studioId, range.Start, range.End, EventStatuses.Cancelled, ct);
         var totalEventValue = await repository.SumEventValueAsync(studioId, range.Start, range.End, ct);
@@ -73,6 +74,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
 
             TotalEvents = totalEvents,
             UpcomingEvents = upcomingEvents + confirmedEvents,
+            OngoingEvents = ongoingEvents,
             CompletedEvents = completedEvents,
             CancelledEvents = cancelledEvents,
 

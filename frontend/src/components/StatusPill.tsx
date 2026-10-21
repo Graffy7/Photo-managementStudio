@@ -26,6 +26,7 @@ export function eventStatusTone(status: string): Tone {
   switch (status) {
     case "Completed": return "good";
     case "Cancelled": return "bad";
+    case "Ongoing": return "warn";
     case "Confirmed": return "info";
     case "Upcoming": return "info";
     default: return "neutral";

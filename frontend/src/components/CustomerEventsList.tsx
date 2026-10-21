@@ -21,6 +21,7 @@ function formatCurrency(value: number): string {
 function statusTone(status: string): "good" | "bad" | "warn" | "neutral" {
   if (status === "Completed") return "good";
   if (status === "Cancelled") return "bad";
+  if (status === "Ongoing") return "warn";
   return "neutral";
 }
 

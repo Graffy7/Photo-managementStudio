@@ -381,6 +381,7 @@ export function HomeScreen() {
                   centerValue={data.totalEvents}
                   segments={[
                     { label: "Upcoming", value: data.upcomingEvents, color: "#f2bd5c" },
+                    { label: "Ongoing", value: data.ongoingEvents ?? 0, color: "#7fc0e6" },
                     { label: "Completed", value: data.completedEvents, color: "#4cc493" },
                     { label: "Cancelled", value: data.cancelledEvents, color: "#ff7a72" },
                   ]}

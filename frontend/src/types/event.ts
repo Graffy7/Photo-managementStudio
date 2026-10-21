@@ -1,15 +1,25 @@
 import type { AssignedWorker } from "./dayBoard";
 
-export const EVENT_STATUSES = ["Upcoming", "Confirmed", "Completed", "Cancelled"] as const;
+// The status follows the event date (Upcoming before the day, Ongoing on it, Completed after);
+// only Cancelled is set by hand. "Confirmed" may still come from older data, so it stays a known
+// value but isn't offered as a filter.
+export const EVENT_STATUSES = ["Upcoming", "Ongoing", "Completed", "Cancelled"] as const;
 
-export type EventStatus = (typeof EVENT_STATUSES)[number];
+export type EventStatus = (typeof EVENT_STATUSES)[number] | "Confirmed";
 
 export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   Upcoming: "Upcoming",
+  Ongoing: "Ongoing",
   Confirmed: "Confirmed",
   Completed: "Completed",
   Cancelled: "Cancelled",
 };
+
+// The status a not-cancelled event has, from its date (yyyy-mm-dd) and today's date.
+export function statusForDate(eventDate: string, today: string): EventStatus {
+  const day = eventDate.slice(0, 10);
+  return day < today ? "Completed" : day === today ? "Ongoing" : "Upcoming";
+}
 
 export interface StudioEvent {
   eventId: number;

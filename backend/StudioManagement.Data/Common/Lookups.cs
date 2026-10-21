@@ -79,14 +79,26 @@ public static class SubscriptionStatuses
     public static readonly string[] All = [Active, Expired, Cancelled];
 }
 
+// An event's status follows its date: Upcoming before the day, Ongoing on the day, Completed after
+// it. Only Cancelled is chosen by hand. Confirmed is no longer set (older rows are moved to the
+// date-based status by EventStatusSync) but stays allowed so nothing stored becomes invalid.
 public static class EventStatuses
 {
     public const string Upcoming = "Upcoming";
+    public const string Ongoing = "Ongoing";
     public const string Confirmed = "Confirmed";
     public const string Completed = "Completed";
     public const string Cancelled = "Cancelled";
 
-    public static readonly string[] All = [Upcoming, Confirmed, Completed, Cancelled];
+    public static readonly string[] All = [Upcoming, Ongoing, Confirmed, Completed, Cancelled];
+
+    // The status an event has on `today` (the studio's calendar day), unless it is cancelled.
+    public static string ForDate(DateTime eventDate, DateTime today) =>
+        eventDate.Date < today.Date ? Completed : eventDate.Date == today.Date ? Ongoing : Upcoming;
+
+    // What the studio may send: the date decides, except that Cancelled is kept.
+    public static string Resolve(string? requested, DateTime eventDate, DateTime today) =>
+        requested == Cancelled ? Cancelled : ForDate(eventDate, today);
 }
 
 // How a quotation's PDF shows prices. Only the printout changes - the stored items, prices and

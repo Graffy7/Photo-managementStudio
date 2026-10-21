@@ -10,6 +10,9 @@ public interface IEventRepository
     Task<List<Event>> GetForDayAsync(int studioId, DateTime dayStart, DateTime dayEnd, CancellationToken ct = default);
     Task<List<Event>> GetForCustomerAsync(int studioId, int customerId, CancellationToken ct = default);
     Task AddAsync(Event @event, CancellationToken ct = default);
+    // Moves every studio's non-cancelled events to the status their date gives on `today`
+    // (Completed / Ongoing / Upcoming). Returns how many events changed.
+    Task<int> SyncStatusesWithDateAsync(DateTime today, DateTime nowUtc, CancellationToken ct = default);
     void Update(Event @event);
     void Remove(Event @event);
 

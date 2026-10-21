@@ -11,6 +11,30 @@ public class EventRepository(AppDbContext context) : IEventRepository
     // statement multiplies the row estimates of every list together, which made SQL Server reserve
     // gigabytes of query memory per call and starve every other query. AsSplitQuery loads each list
     // in its own small query instead - same result, a fraction of the memory.
+    public async Task<int> SyncStatusesWithDateAsync(DateTime today, DateTime nowUtc, CancellationToken ct = default)
+    {
+        var day = today.Date;
+        // After the day: Completed (the completion time is stamped once).
+        var completed = await context.Events
+            .Where(e => e.EventDate < day && e.EventStatus != EventStatuses.Completed && e.EventStatus != EventStatuses.Cancelled)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(e => e.EventStatus, EventStatuses.Completed)
+                .SetProperty(e => e.CompletedAt, e => e.CompletedAt ?? nowUtc), ct);
+        // On the day: Ongoing.
+        var ongoing = await context.Events
+            .Where(e => e.EventDate == day && e.EventStatus != EventStatuses.Ongoing && e.EventStatus != EventStatuses.Cancelled)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(e => e.EventStatus, EventStatuses.Ongoing)
+                .SetProperty(e => e.CompletedAt, (DateTime?)null), ct);
+        // Still ahead (including older Confirmed ones): Upcoming.
+        var upcoming = await context.Events
+            .Where(e => e.EventDate > day && e.EventStatus != EventStatuses.Upcoming && e.EventStatus != EventStatuses.Cancelled)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(e => e.EventStatus, EventStatuses.Upcoming)
+                .SetProperty(e => e.CompletedAt, (DateTime?)null), ct);
+        return completed + ongoing + upcoming;
+    }
+
     public Task<Event?> GetByIdAsync(int studioId, int eventId, CancellationToken ct = default) =>
         context.Events
             .AsSplitQuery()
@@ -51,12 +75,14 @@ public class EventRepository(AppDbContext context) : IEventRepository
             query = query.Where(e => e.EventDate == day);
         }
 
-        // The dashboard's "Upcoming Events": still to happen (Upcoming or Confirmed) from that day on.
+        // The dashboard's "Upcoming Events": still to happen (Upcoming, Ongoing, or an older
+        // Confirmed) from that day on.
         if (upcomingFrom is not null)
         {
             var from = upcomingFrom.Value.Date;
             query = query.Where(e => e.EventDate >= from &&
-                                     (e.EventStatus == EventStatuses.Upcoming || e.EventStatus == EventStatuses.Confirmed));
+                                     (e.EventStatus == EventStatuses.Upcoming || e.EventStatus == EventStatuses.Ongoing
+                                      || e.EventStatus == EventStatuses.Confirmed));
         }
 
         var totalCount = await query.CountAsync(ct);

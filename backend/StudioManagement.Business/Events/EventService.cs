@@ -55,6 +55,8 @@ public class EventService(
 
         await lookupGuard.EnsureOwnedAsync(studioId, eventTypeId: request.EventTypeId, ct: ct);
         var now = DateTime.UtcNow;
+        // The date decides the status; only Cancelled is taken from the request.
+        request.EventStatus = EventStatuses.Resolve(request.EventStatus, request.EventDate, BusinessClock.Today);
         var @event = new Event
         {
             StudioId = studioId,
@@ -182,6 +184,8 @@ public class EventService(
         @event.Venue = request.Venue;
         @event.VenueAddress = request.VenueAddress;
         @event.Budget = request.Budget;
+        // The date decides the status; only Cancelled is taken from the request.
+        request.EventStatus = EventStatuses.Resolve(request.EventStatus, request.EventDate, BusinessClock.Today);
         // The completion date is stamped once, the first time the event is marked Completed, and
         // survives later edits. Moving the event back out of Completed clears it.
         if (request.EventStatus == EventStatuses.Completed)

@@ -253,7 +253,7 @@ namespace StudioManagement.Data.Migrations
 
                     b.ToTable("Events", t =>
                         {
-                            t.HasCheckConstraint("CK_Events_EventStatus", "[EventStatus] IN ('Upcoming','Confirmed','Completed','Cancelled')");
+                            t.HasCheckConstraint("CK_Events_EventStatus", "[EventStatus] IN ('Upcoming','Ongoing','Confirmed','Completed','Cancelled')");
                         });
                 });
 

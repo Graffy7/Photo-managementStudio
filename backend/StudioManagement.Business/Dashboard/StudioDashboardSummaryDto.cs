@@ -14,6 +14,7 @@ public class StudioDashboardSummaryDto
 
     public int TotalEvents { get; set; }
     public int UpcomingEvents { get; set; }
+    public int OngoingEvents { get; set; }
     public int CompletedEvents { get; set; }
     public int CancelledEvents { get; set; }
 

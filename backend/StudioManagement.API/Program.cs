@@ -154,6 +154,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IProfitReportRepository, ProfitReportRepository>();
+builder.Services.AddScoped<IAnalyticsReportRepository, AnalyticsReportRepository>();
 builder.Services.AddScoped<IEventWorkerRepository, EventWorkerRepository>();
 builder.Services.AddScoped<IEventDeliveryRepository, EventDeliveryRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -204,6 +205,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IProfitReportService, ProfitReportService>();
+builder.Services.AddScoped<IAnalyticsReportService, AnalyticsReportService>();
 builder.Services.AddScoped<IEventWorkerService, EventWorkerService>();
 builder.Services.AddScoped<IEventDeliveryService, EventDeliveryService>();
 builder.Services.AddScoped<IDayBoardService, DayBoardService>();
@@ -253,6 +255,7 @@ builder.Services.AddScoped<IValidator<SetSelectionRequestDto>, SetSelectionReque
 builder.Services.AddHostedService<PhotoImportBackgroundService>();
 builder.Services.AddHostedService<PhotoCopyBackgroundService>();
 builder.Services.AddHostedService<GalleryCleanupBackgroundService>();
+builder.Services.AddHostedService<EventStatusBackgroundService>();
 
 builder.Services.AddScoped<ILookupService<EventType>, LookupService<EventType>>();
 builder.Services.AddScoped<ILookupService<LeadSource>, LookupService<LeadSource>>();
