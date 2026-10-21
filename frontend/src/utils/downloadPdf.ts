@@ -43,3 +43,11 @@ export async function downloadAndSharePdf(bytes: ArrayBuffer, filename: string):
     await Sharing.shareAsync(file.uri, { mimeType: "application/pdf", UTI: "com.adobe.pdf", dialogTitle: filename });
   }
 }
+
+// "Farhan Mockan - Q-000123.pdf": the customer's name first so the file is easy to find, and the
+// quotation number so two quotations for one customer never overwrite each other. Characters a file
+// name can't hold (\ / : * ? " < > |) are dropped.
+export function quotationPdfName(customerName: string | null | undefined, quotationNumber: string): string {
+  const name = (customerName ?? "").replace(/[\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  return name ? `${name} - ${quotationNumber}.pdf` : `${quotationNumber}.pdf`;
+}

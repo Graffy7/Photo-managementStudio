@@ -298,7 +298,7 @@ export function HomeScreen() {
             <View style={[styles.mainColumn, stacked && styles.columnStacked]}>
               {isOn("PAYMENTS") && (
 <Panel title="Overview">
-                <LineChart points={revenuePoints} formatValue={formatCurrencyShort} />
+                <LineChart points={revenuePoints} formatValue={formatCurrencyShort} height={narrow ? 220 : 320} />
                 <View style={styles.overviewStats}>
                   <View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Revenue</Text>
@@ -372,6 +372,7 @@ export function HomeScreen() {
 )}
             </View>
 
+            {/* Right column: events at a glance, then today's and upcoming bookings. */}
             <View style={[styles.sideColumn, stacked && styles.columnStacked]}>
               {isOn("EVENTS") && (
 <Panel title="Events Summary">
@@ -386,31 +387,6 @@ export function HomeScreen() {
                 />
               </Panel>
 )}
-
-              {isOn("QUOTATIONS") && (
-<Panel title="Top Services">
-                {data.topServices.length === 0 ? (
-                  <Text style={styles.empty}>No quotations in this period yet.</Text>
-                ) : (
-                  <View style={{ gap: 14 }}>
-                    {data.topServices.map((s) => (
-                      <View key={s.serviceName}>
-                        <View style={styles.topServiceRow}>
-                          <Text style={styles.topServiceName} numberOfLines={1}>{s.serviceName}</Text>
-                          <Text style={styles.topServiceMeta}>{s.usageCount} ({s.percentage}%)</Text>
-                        </View>
-                        <View style={styles.progressTrack}>
-                          <View style={[styles.progressFill, { width: `${s.percentage}%` }]} />
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Panel>
-)}
-            </View>
-
-            <View style={[styles.sideColumn, stacked && styles.columnStacked]}>
               {isOn("DAY_BOARD") && (
               <Panel
                 title="Today's Schedule"
@@ -575,8 +551,8 @@ const styles = StyleSheet.create({
   columnsStacked: { flexDirection: "column", flexWrap: "nowrap", alignItems: "stretch" },
   // In a column, flexBasis would become a height: reset it so each panel is as tall as its content.
   columnStacked: { flexBasis: "auto", flexGrow: 0 },
-  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 420, minWidth: 0, gap: 16 },
-  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 300, minWidth: 0, gap: 16 },
+  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 16 },
+  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 16 },
 
   panel: { backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18 },
   panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
@@ -589,15 +565,10 @@ const styles = StyleSheet.create({
   overviewStatValue: { fontSize: 16, fontWeight: "700", color: "#e8edf3", marginTop: 2 },
 
   financeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  financeTile: { flexGrow: 1, minWidth: 130, backgroundColor: "#0f1e30", borderRadius: 8, padding: 12 },
+  financeTile: { flexGrow: 1, flexBasis: "30%", minWidth: 130, backgroundColor: "#0f1e30", borderRadius: 8, padding: 12 },
   financeLabel: { fontSize: 12, color: "#6f83a0" },
   financeValue: { fontSize: 15, fontWeight: "700", color: "#e8edf3", marginTop: 3, fontVariant: ["tabular-nums"] },
 
-  topServiceRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
-  topServiceName: { color: "#e8edf3", fontSize: 13, fontWeight: "600", flex: 1, marginRight: 8 },
-  topServiceMeta: { color: "#a7b7cb", fontSize: 12 },
-  progressTrack: { height: 6, borderRadius: 3, backgroundColor: "#0f1e30", overflow: "hidden" },
-  progressFill: { height: 6, borderRadius: 3, backgroundColor: "#7fc0e6" },
 
   scheduleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   scheduleTime: { color: "#7fc0e6", fontSize: 12, fontWeight: "700", width: 44 },

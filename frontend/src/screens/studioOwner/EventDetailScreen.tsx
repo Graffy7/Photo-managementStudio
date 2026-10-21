@@ -15,7 +15,7 @@ import { EventExpenses } from "../../components/EventExpenses";
 import { useModules } from "../../hooks/useModules";
 import { eventsApi } from "../../api/eventsApi";
 import { quotationsApi } from "../../api/quotationsApi";
-import { downloadAndSharePdf } from "../../utils/downloadPdf";
+import { downloadAndSharePdf, quotationPdfName } from "../../utils/downloadPdf";
 import { extractErrorMessage } from "../../api/errorMessage";
 
 function formatDate(value: string): string {
@@ -64,7 +64,7 @@ export function EventDetailScreen({
     setError(null);
     try {
       const bytes = await quotationsApi.downloadPdf(quotation.quotationId);
-      await downloadAndSharePdf(bytes, `${quotation.quotationNumber}.pdf`);
+      await downloadAndSharePdf(bytes, quotationPdfName(current.customerName, quotation.quotationNumber));
     } catch (err) {
       setError(extractErrorMessage(err, "Couldn't download the PDF."));
     } finally {

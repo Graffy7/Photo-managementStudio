@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../api/quotationsApi";
 import { extractErrorMessage } from "../api/errorMessage";
-import { downloadAndSharePdf } from "../utils/downloadPdf";
+import { downloadAndSharePdf, quotationPdfName } from "../utils/downloadPdf";
 import type { PriceDisplay, Quotation } from "../types/quotation";
 
 const OPTIONS: { key: PriceDisplay; title: string; text: string }[] = [
@@ -30,7 +30,7 @@ export function QuotationPdfButton({ quotation, onError }: { quotation: Quotatio
         queryClient.invalidateQueries({ queryKey: ["event-history"] });
       }
       const bytes = await quotationsApi.downloadPdf(quotation.quotationId, choice);
-      await downloadAndSharePdf(bytes, `${quotation.quotationNumber}.pdf`);
+      await downloadAndSharePdf(bytes, quotationPdfName(quotation.customerName, quotation.quotationNumber));
     } catch (err) {
       onError(extractErrorMessage(err, "Couldn't download the PDF."));
     } finally {

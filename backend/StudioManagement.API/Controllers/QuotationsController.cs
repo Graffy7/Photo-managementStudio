@@ -132,7 +132,11 @@ public class QuotationsController(
         }
 
         var pdfBytes = await quotationPdfService.GenerateAsync(StudioId, quotation, ct);
-        return File(pdfBytes, "application/pdf", $"{quotation.QuotationNumber}.pdf");
+        // "Customer Name - Q-000123.pdf" (same naming as the app's download button).
+        var customer = string.Join(" ", (quotation.CustomerName ?? "").Split(Path.GetInvalidFileNameChars().Concat(['\\', '/', ':', '*', '?', '"', '<', '>', '|']).ToArray(), StringSplitOptions.RemoveEmptyEntries)).Trim();
+        if (customer.Length > 80) customer = customer[..80].Trim();
+        var fileName = customer.Length > 0 ? $"{customer} - {quotation.QuotationNumber}.pdf" : $"{quotation.QuotationNumber}.pdf";
+        return File(pdfBytes, "application/pdf", fileName);
     }
 
     private static string ReferenceErrorMessage(QuotationWriteFailureReason reason) => reason switch

@@ -1,4 +1,5 @@
 import { CameraCursorToggle } from "../cameraCursor/CameraCursorToggle";
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ScrollView, Image } from "react-native";
 import type { NavigationContainerRefWithCurrent } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,20 +45,75 @@ export function StudioMark({ size = 36 }: { size?: number }) {
   );
 }
 
-// The grouped menu - used by the desktop sidebar and the phone "More" sheet.
+// Which menu sections are open, remembered in this browser (just a convenience: if storage isn't
+// available every section simply starts closed except the current page's).
+const OPEN_KEY = "studio_os_nav_open";
+
+function readOpen(): string[] {
+  try {
+    const v = typeof localStorage !== "undefined" ? localStorage.getItem(OPEN_KEY) : null;
+    return v ? (JSON.parse(v) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveOpen(groups: string[]) {
+  try {
+    localStorage.setItem(OPEN_KEY, JSON.stringify(groups));
+  } catch {
+    // private window - nothing to remember
+  }
+}
+
+// The grouped menu - used by the desktop sidebar and the phone "More" sheet. Each section (Work,
+// Clients, Photos, Money, Studio) is a drop-down; the one holding the current page is always open.
 export function NavList({ activeRoute, onNavigate, large }: { activeRoute: string; onNavigate: (route: string) => void; large?: boolean }) {
   const isOn = useModules();
   const unread = useUnreadCount();
+  const [open, setOpen] = useState<string[]>(readOpen);
+  const activeGroup = NAV_GROUPS.find((g) => g.items.some((i) => i.route === activeRoute))?.title;
+
+  // Moving to a page in a closed section opens that section.
+  useEffect(() => {
+    if (activeGroup && !open.includes(activeGroup)) {
+      const next = [...open, activeGroup];
+      setOpen(next);
+      saveOpen(next);
+    }
+  }, [activeGroup]);
+
+  const toggle = (title: string) => {
+    const next = open.includes(title) ? open.filter((t) => t !== title) : [...open, title];
+    setOpen(next);
+    saveOpen(next);
+  };
+
   return (
-    <View style={{ gap: space.md }}>
+    <View style={{ gap: 2 }}>
       {NAV_GROUPS.map((group) => {
         // Modules the platform admin switched off for this studio are left out.
         const items = group.items.filter((item) => isOn(ROUTE_MODULES[item.route] ?? ""));
         if (items.length === 0) return null;
+        const expanded = open.includes(group.title);
+        const holdsActive = group.title === activeGroup;
+        const groupBadge = !expanded && items.some((i) => i.route === "Notifications") ? unread : 0;
         return (
           <View key={group.title}>
-            <Text style={styles.groupTitle}>{group.title}</Text>
-            {items.map((item) => {
+            <Pressable
+              onPress={() => toggle(group.title)}
+              style={({ pressed }) => [styles.groupHeader, large && styles.groupHeaderLarge, pressed && styles.itemPressed]}
+              accessibilityRole="button"
+              accessibilityState={{ expanded }}
+              accessibilityLabel={`${group.title} menu`}
+            >
+              <Text style={[styles.groupTitle, large && styles.groupTitleLarge, holdsActive && !expanded && styles.groupTitleActive]}>{group.title}</Text>
+              {groupBadge > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeText}>{groupBadge > 9 ? "9+" : groupBadge}</Text></View>
+              )}
+              <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={large ? 18 : 15} color={colors.textFaint} />
+            </Pressable>
+            {expanded && items.map((item) => {
               const active = activeRoute === item.route;
               const badge = item.route === "Notifications" ? unread : 0;
               return (
@@ -123,7 +179,14 @@ const styles = StyleSheet.create({
   markLogo: { width: "100%", height: "100%" },
   brandName: { ...type.body, fontWeight: "700", color: colors.text },
   brandSub: { ...type.caption, color: colors.textFaint },
-  groupTitle: { ...type.caption, color: colors.textFaint, fontWeight: "600", paddingHorizontal: space.md, marginBottom: 2, letterSpacing: 0.3 },
+  groupHeader: {
+    flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: 34, paddingHorizontal: space.md,
+    borderRadius: radius.control, marginTop: space.xs,
+  },
+  groupHeaderLarge: { minHeight: 44 },
+  groupTitle: { ...type.caption, color: colors.textFaint, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", flex: 1 },
+  groupTitleLarge: { fontSize: 13 },
+  groupTitleActive: { color: colors.primary },
   item: {
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 38, paddingHorizontal: space.md,
     borderRadius: radius.control, marginBottom: 1,
