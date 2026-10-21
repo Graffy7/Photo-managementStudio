@@ -40,7 +40,17 @@ public class UpdateStudioRequestValidator : AbstractValidator<UpdateStudioReques
         RuleFor(x => x.State).MaximumLength(100);
         RuleFor(x => x.Pincode).MaximumLength(20);
         RuleFor(x => x.GstNumber).MaximumLength(30);
-        RuleFor(x => x.Website).MaximumLength(300);
+        RuleFor(x => x.Website).MaximumLength(300)
+            .Must(PublicLinks.IsValidUrl).WithMessage("Enter a valid website, e.g. www.yourstudio.com.");
+        RuleFor(x => x.PhoneNumber)
+            .Must(PublicLinks.IsValidPhone).WithMessage("Enter a valid phone number (digits, spaces, + or -).");
+        RuleFor(x => x.WhatsAppNumber).MaximumLength(30)
+            .Must(PublicLinks.IsValidWhatsApp).WithMessage("Enter the WhatsApp number with its country code, e.g. +91 98765 43210.");
+        RuleFor(x => x.Description).MaximumLength(300);
+        RuleFor(x => x.InstagramUrl).MaximumLength(300)
+            .Must(PublicLinks.IsValidUrl).WithMessage("Enter a valid Instagram link, e.g. instagram.com/yourstudio.");
+        RuleFor(x => x.FacebookUrl).MaximumLength(300)
+            .Must(PublicLinks.IsValidUrl).WithMessage("Enter a valid Facebook link, e.g. facebook.com/yourstudio.");
     }
 }
 

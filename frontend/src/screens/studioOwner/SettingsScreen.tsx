@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StudioProfileTab } from "./settings/StudioProfileTab";
-import { LogoBrandingTab } from "./settings/LogoBrandingTab";
 import { BusinessSettingsTab } from "./settings/BusinessSettingsTab";
 import { NotificationSettingsTab } from "./settings/NotificationSettingsTab";
 import { QuotationSettingsTab } from "./settings/QuotationSettingsTab";
@@ -15,11 +14,10 @@ import { FilterChips } from "../../ui/FilterChips";
 import { useBreakpoint } from "../../ui/useBreakpoint";
 import { colors, radius, space, type } from "../../ui/theme";
 
-type TabKey = "profile" | "logo" | "business" | "notifications" | "quotation" | "pdf" | "security";
+type TabKey = "profile" | "business" | "notifications" | "quotation" | "pdf" | "security";
 
 const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: "profile", label: "Studio profile", icon: "business-outline" },
-  { key: "logo", label: "Logo & branding", icon: "image-outline" },
   { key: "business", label: "Business", icon: "briefcase-outline" },
   { key: "notifications", label: "Notifications", icon: "notifications-outline" },
   { key: "quotation", label: "Quotations", icon: "document-text-outline" },
@@ -43,7 +41,6 @@ export function SettingsScreen() {
     <View style={styles.tabContent}>
       {isDesktop && <Text style={styles.tabTitle}>{current.label}</Text>}
       {tab === "profile" && <StudioProfileTab />}
-      {tab === "logo" && <LogoBrandingTab />}
       {tab === "business" && <BusinessSettingsTab />}
       {tab === "notifications" && <NotificationSettingsTab />}
       {tab === "quotation" && <QuotationSettingsTab />}

@@ -1,3 +1,4 @@
+using StudioManagement.Business.Studios;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using StudioManagement.Business.Audit;
@@ -22,6 +23,7 @@ public class PublicPhotoSelectionService(
     IFeatureService featureService,
     IStudioAccessService accessService,
     IFileUrlService fileUrls,
+    IStudioProfileExtrasService profileExtras,
     IUnitOfWork unitOfWork) : IPublicPhotoSelectionService
 {
     private const string Module = "PhotoSelection";
@@ -43,9 +45,23 @@ public class PublicPhotoSelectionService(
         }
 
         var counts = await galleryRepository.GetCountsAsync(gallery.PhotoGalleryId, ct);
+        var studio = gallery.Studio;
+        var extras = await profileExtras.GetAsync(gallery.StudioId, ct);
         return PublicAccess<PublicGalleryDto>.Ok(new PublicGalleryDto
         {
-            StudioName = gallery.Studio.StudioName,
+            StudioName = studio.StudioName,
+            Studio = new StudioBrandDto
+            {
+                Name = studio.StudioName,
+                LogoUrl = fileUrls.GetUrl(studio.LogoUrl),
+                Description = extras.Description,
+                Phone = string.IsNullOrWhiteSpace(studio.PhoneNumber) ? null : studio.PhoneNumber.Trim(),
+                WhatsAppUrl = PublicLinks.WhatsAppUrl(extras.WhatsAppNumber),
+                // Only addresses that pass the safety check ever reach the page.
+                Website = PublicLinks.NormalizeUrl(studio.Website),
+                InstagramUrl = PublicLinks.NormalizeUrl(extras.InstagramUrl),
+                FacebookUrl = PublicLinks.NormalizeUrl(extras.FacebookUrl)
+            },
             Title = gallery.Event.EventType?.Name ?? "Photo selection",
             CustomerName = gallery.Customer.FullName,
             EventDate = gallery.Event.EventDate,

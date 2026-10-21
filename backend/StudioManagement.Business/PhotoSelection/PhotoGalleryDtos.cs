@@ -230,6 +230,9 @@ public class FolderBrowseResultDto
 public class PublicGalleryDto
 {
     public string StudioName { get; set; } = null!;
+    // The profile of the studio that owns this gallery (found through the gallery, never from the
+    // request), shown at the top of the customer's page. Only filled-in fields are present.
+    public StudioManagement.Business.Studios.StudioBrandDto Studio { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string CustomerName { get; set; } = null!;
     public DateTime EventDate { get; set; }

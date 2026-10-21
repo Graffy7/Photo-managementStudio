@@ -7,6 +7,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { publicPhotoSelectionApi, toPublicError } from "../../api/photoSelectionApi";
 import type { GalleryCounts, PhotoFilter, PhotoFolder, PublicGallery } from "../../types/photoSelection";
 import { PublicPhotoCard } from "./PublicPhotoCard";
+import { StudioBrandHeader } from "../../components/StudioBrandHeader";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { SelectionReviewModal } from "./SelectionReviewModal";
 import { useSelectionSaver } from "./useSelectionSaver";
@@ -227,7 +228,10 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
         // ---- Home: event, how it works, folders -------------------------------------------------
         <ScrollView contentContainerStyle={{ paddingBottom: BOTTOM_BAR_HEIGHT + space.xl }}>
           <View style={[styles.inner, { paddingHorizontal: pad, paddingTop: space.xl }]}>
-            <Text style={styles.studio}>{gallery.studioName}</Text>
+            {/* The studio that sent this link: its logo, name, short description and contact buttons. */}
+            <View style={styles.brandCard}>
+              <StudioBrandHeader brand={gallery.studio ?? { name: gallery.studioName }} />
+            </View>
             <Text style={styles.eventTitle}>{gallery.customerName}</Text>
             <Text style={styles.eventMeta}>
               {[gallery.title, formatDate(gallery.eventDate), `${counts.total} photos`].filter(Boolean).join("  ·  ")}
@@ -439,7 +443,7 @@ function SelectionBar({ counts, locked, submitted, changedSinceSubmit, onReview 
       <View style={[styles.inner, styles.barInner]}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.barCount} numberOfLines={1}>
-            {counts.selected} selected
+            {counts.selected} photo{counts.selected === 1 ? "" : "s"} selected
           </Text>
           <Text style={styles.barSplit} numberOfLines={1}>
             <Text style={{ color: colors.normal }}>Normal {counts.normal}</Text>
@@ -494,7 +498,10 @@ const styles = StyleSheet.create({
   stateText: { ...type.body, color: colors.textMuted, textAlign: "center", marginBottom: space.sm },
 
   // Home
-  studio: { ...type.small, color: colors.textMuted, fontWeight: "600" },
+  brandCard: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card,
+    padding: space.lg, marginBottom: space.lg,
+  },
   eventTitle: { fontSize: 26, lineHeight: 32, fontWeight: "700", color: colors.text, marginTop: space.xs },
   eventMeta: { ...type.body, color: colors.textMuted, marginTop: space.xs },
   deadline: { ...type.small, color: colors.warning, marginTop: space.sm },

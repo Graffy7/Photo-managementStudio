@@ -160,6 +160,8 @@ export interface FolderBrowseResult {
 
 export interface PublicGallery {
   studioName: string;
+  // The studio that owns this gallery, as it should be shown to the customer (optional fields omitted).
+  studio?: import("../components/StudioBrandHeader").StudioBrand;
   title: string;
   customerName: string;
   eventDate: string;

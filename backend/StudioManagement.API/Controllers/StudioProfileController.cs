@@ -15,7 +15,11 @@ namespace StudioManagement.API.Controllers;
 [ApiController]
 [Route("api/studio-profile")]
 [Authorize(Roles = UserTypes.StudioOwner)]
-public class StudioProfileController(IStudioService studioService, IValidator<UpdateStudioRequestDto> updateValidator, ITenantContext tenantContext) : ControllerBase
+public class StudioProfileController(
+    IStudioService studioService,
+    IStudioProfileExtrasService profileExtras,
+    IValidator<UpdateStudioRequestDto> updateValidator,
+    ITenantContext tenantContext) : ControllerBase
 {
     private const long MaxLogoSizeBytes = 2 * 1024 * 1024;
 
@@ -27,7 +31,7 @@ public class StudioProfileController(IStudioService studioService, IValidator<Up
     public async Task<IActionResult> Get(CancellationToken ct)
     {
         var studio = await studioService.GetByIdAsync(StudioId, ct);
-        return studio is null ? NotFound() : Ok(studio);
+        return studio is null ? NotFound() : Ok(await WithExtrasAsync(studio, ct));
     }
 
     [FeatureRequired(FeatureCodes.Settings)]
@@ -41,8 +45,35 @@ public class StudioProfileController(IStudioService studioService, IValidator<Up
             return ValidationProblem(ModelState);
         }
 
-        var studio = await studioService.UpdateAsync(StudioId, request, ct);
-        return studio is null ? NotFound() : Ok(studio);
+        // Website stored in one clean form ("example.com" -> "https://example.com/").
+        request.Website = PublicLinks.NormalizeUrl(request.Website);
+        var result = await studioService.UpdateAsync(StudioId, request, ct);
+        if (result is null || !result.Succeeded)
+        {
+            // Previously the result object itself came back with 200 even when the update failed.
+            return result?.FailureReason == StudioUpdateFailureReason.EmailAlreadyExists
+                ? Conflict(new { message = "Another studio already uses this email address." })
+                : NotFound();
+        }
+        var studio = result.Studio!;
+        await profileExtras.SaveAsync(StudioId, new StudioProfileExtrasDto
+        {
+            WhatsAppNumber = request.WhatsAppNumber,
+            Description = request.Description,
+            InstagramUrl = request.InstagramUrl,
+            FacebookUrl = request.FacebookUrl
+        }, ct);
+        return Ok(await WithExtrasAsync(studio, ct));
+    }
+
+    private async Task<StudioDto> WithExtrasAsync(StudioDto studio, CancellationToken ct)
+    {
+        var extras = await profileExtras.GetAsync(StudioId, ct);
+        studio.WhatsAppNumber = extras.WhatsAppNumber;
+        studio.Description = extras.Description;
+        studio.InstagramUrl = extras.InstagramUrl;
+        studio.FacebookUrl = extras.FacebookUrl;
+        return studio;
     }
 
     [FeatureRequired(FeatureCodes.Settings)]

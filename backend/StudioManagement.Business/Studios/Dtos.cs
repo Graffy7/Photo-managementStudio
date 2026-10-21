@@ -14,6 +14,11 @@ public class StudioDto
     public string? GstNumber { get; set; }
     public string? Website { get; set; }
     public string? LogoUrl { get; set; }
+    // Customer-facing extras (see StudioProfileExtrasDto). Filled only on the owner's own profile.
+    public string? WhatsAppNumber { get; set; }
+    public string? Description { get; set; }
+    public string? InstagramUrl { get; set; }
+    public string? FacebookUrl { get; set; }
     public bool IsActive { get; set; }
     public bool IsBlocked { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -63,6 +68,13 @@ public class UpdateStudioRequestDto
     public string? Pincode { get; set; }
     public string? GstNumber { get; set; }
     public string? Website { get; set; }
+
+    // Customer-facing extras, saved only from the studio owner's own profile page
+    // (the super admin's studio edit never sends or changes them).
+    public string? WhatsAppNumber { get; set; }
+    public string? Description { get; set; }
+    public string? InstagramUrl { get; set; }
+    public string? FacebookUrl { get; set; }
 }
 
 // Super admin setting a new password for a studio owner (for example when they are locked out).

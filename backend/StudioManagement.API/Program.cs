@@ -182,6 +182,7 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudioService, StudioService>();
+builder.Services.AddScoped<IStudioProfileExtrasService, StudioProfileExtrasService>();
 builder.Services.AddScoped<IStudioSettingsService, StudioSettingsService>();
 builder.Services.AddScoped<IFeatureService, FeatureService>();
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();

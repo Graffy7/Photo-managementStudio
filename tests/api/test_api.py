@@ -333,6 +333,37 @@ token = next((v for v in (link or {}).values() if isinstance(v, str) and len(v) 
 ok(c == 200 and token, "generate the customer link", (c, link))
 c, pub, _ = req("GET", f"/public/photo-selection/{token}")
 ok(c == 200 and "CI Wedding" not in json.dumps(pub) and "sourceFolder" not in json.dumps(pub), "customer page opens, no folder names leak", (c, pub))
+
+# Studio profile on the customer's link: the gallery's own studio, only the details it filled in.
+c, mine, _ = req("GET", "/studio-profile", tok=Q)
+base_profile = {k: mine.get(k) for k in ("studioName", "ownerName", "email", "phoneNumber", "address", "city", "state", "pincode", "gstNumber")}
+c, _, _ = req("PUT", "/studio-profile", {**base_profile, "phoneNumber": None, "website": None}, Q)
+brand = req("GET", f"/public/photo-selection/{token}")[1].get("studio") or {}
+ok(c == 200 and brand.get("name") == mine["studioName"] and brand.get("logoUrl") and not brand.get("website")
+   and not brand.get("description") and not brand.get("whatsAppUrl") and not brand.get("phone"),
+   "a studio with only a name (and logo) shows just that - no empty contact fields", brand)
+full = {**base_profile, "phoneNumber": "+91 98765 43210", "whatsAppNumber": "+91 98765 43210", "website": "ci-studio.example.com",
+        "description": "Capturing your beautiful moments.", "instagramUrl": "instagram.com/cistudio"}
+c, saved_prof, _ = req("PUT", "/studio-profile", full, Q)
+ok(c == 200 and saved_prof.get("website") == "https://ci-studio.example.com/" and saved_prof.get("description") == "Capturing your beautiful moments.",
+   "profile saves description, WhatsApp and links (website stored as https)", (c, saved_prof))
+brand = req("GET", f"/public/photo-selection/{token}")[1].get("studio") or {}
+ok(brand.get("description") == "Capturing your beautiful moments." and brand.get("website") == "https://ci-studio.example.com/"
+   and brand.get("whatsAppUrl") == "https://wa.me/919876543210" and brand.get("instagramUrl") == "https://instagram.com/cistudio"
+   and brand.get("phone") == "+91 98765 43210", "the customer's link shows the updated profile at once (link sent earlier)", brand)
+ok(not any(k in json.dumps(brand) for k in ("gstNumber", "ownerName", "email", mine.get("email") or "@@")),
+   "no private studio details on the customer's page", brand)
+for bad, why in (({"website": "javascript:alert(1)"}, "a javascript: website"), ({"instagramUrl": "not a link"}, "a broken Instagram link"),
+                 ({"whatsAppNumber": "98765"}, "a WhatsApp number without country code"), ({"phoneNumber": "call me"}, "letters in the phone number"),
+                 ({"email": "not-an-email"}, "a bad email"), ({"studioName": ""}, "no studio name")):
+    ok(req("PUT", "/studio-profile", {**full, **bad}, Q)[0] == 400, f"profile refused: {why}")
+c, theirs, _ = req("GET", "/studio-profile", tok=T)
+ok(c == 200 and theirs.get("studioId") != mine.get("studioId") and theirs.get("description") != "Capturing your beautiful moments.",
+   "another studio sees only its own profile", theirs)
+req("PUT", "/studio-profile", {**{k: theirs.get(k) for k in base_profile}, "description": "Studio B only"}, T)
+brand = req("GET", f"/public/photo-selection/{token}")[1].get("studio") or {}
+ok(brand.get("name") == mine["studioName"] and brand.get("description") == "Capturing your beautiful moments.",
+   "another studio's change never shows on this studio's link", brand)
 c, pp, _ = req("GET", f"/public/photo-selection/{token}/photos?page=1&pageSize=50")
 pub_photos = items(pp)
 ok(len(pub_photos) == 3, "customer sees 3 photos", pp)

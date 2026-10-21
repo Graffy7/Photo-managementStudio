@@ -11,6 +11,11 @@ export interface StudioProfile {
   gstNumber: string | null;
   website: string | null;
   logoUrl: string | null;
+  // Shown to customers on their photo-selection links (kept as studio settings).
+  whatsAppNumber?: string | null;
+  description?: string | null;
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
   isActive: boolean;
   isBlocked: boolean;
   createdAt: string;
@@ -32,6 +37,10 @@ export interface UpdateStudioProfileRequest {
   pincode?: string;
   gstNumber?: string;
   website?: string;
+  whatsAppNumber?: string;
+  description?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
 }
 
 export interface BusinessSettings {
