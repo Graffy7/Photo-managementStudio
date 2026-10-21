@@ -503,10 +503,11 @@ for q, why in ((f"customStart={TODAY}&customEnd={TODAY - timedelta(days=1)}", "s
     ok(req("GET", f"/reports/analytics?preset=Custom&{q}", tok=Q)[0] == 400, f"custom range refused: {why}")
 c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=T)
 ok(c == 200 and AR["summary"]["events"] == 0 and AR["summary"]["eventValue"] == 0, "studio B's report never includes A's events", c)
-c, csv, h = req("GET", f"/reports/analytics/export?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=Q)
-text = csv.decode("utf-8-sig") if isinstance(csv, bytes) else ""
-ok(c == 200 and "text/csv" in h.get("Content-Type", "") and f"Report period,{TODAY + timedelta(days=39)},{TODAY + timedelta(days=41)}" in text
-   and "Event value,100000" in text, "CSV export: same range and figures", (c, text[:200]))
+c, pdf_bytes, h = req("GET", f"/reports/analytics/export?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=Q)
+ok(c == 200 and "application/pdf" in h.get("Content-Type", "") and isinstance(pdf_bytes, bytes) and pdf_bytes[:5] == b"%PDF-" and len(pdf_bytes) > 2000,
+   "PDF export of the report", (c, h.get("Content-Type")))
+ok(f"studio-report-{TODAY + timedelta(days=39)}-to-{TODAY + timedelta(days=41)}.pdf" in (h.get("Content-Disposition") or ""), "PDF named after the chosen dates", h.get("Content-Disposition"))
+ok(req("GET", f"/reports/analytics/export?preset=Custom&customStart={TODAY}&customEnd={TODAY - timedelta(days=3)}", tok=Q)[0] == 400, "PDF export refuses a start after the end")
 ok(req("GET", "/reports/analytics?preset=Last7Days")[0] == 401, "analytics need a sign-in")
 
 # ============================================================================================ FOLDER IMPORTS

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using StudioManagement.Business.Common;
 using StudioManagement.Data.Common;
 using StudioManagement.Data.Repositories;
@@ -282,70 +281,5 @@ public class AnalyticsReportService(
             list.Add($"{Plural(s.Pending, "event is", "events are")} still to happen in this period.");
         }
         return list;
-    }
-}
-
-// The report as a CSV file: the period, the summary, the day/month table, event types and statuses.
-public static class AnalyticsCsv
-{
-    public static byte[] Build(AnalyticsReportDto r)
-    {
-        var sb = new StringBuilder();
-        void Row(params object?[] cells) => sb.AppendLine(string.Join(",", cells.Select(Cell)));
-
-        Row("Report period", r.RangeStart.ToString("yyyy-MM-dd"), r.RangeLastDay.ToString("yyyy-MM-dd"));
-        Row("Grouped by", r.Grouping);
-        Row();
-        Row("Summary");
-        Row("New bookings", r.Summary.NewBookings);
-        Row("Events", r.Summary.Events);
-        Row("Completed", r.Summary.Completed);
-        Row("Cancelled", r.Summary.Cancelled);
-        Row("Pending", r.Summary.Pending);
-        Row("Event value", r.Summary.EventValue);
-        Row("Money received", r.Summary.MoneyReceived);
-        Row("Expenses", r.Summary.Expenses);
-        Row("Profit", r.Summary.Profit);
-        Row("Customers owe", r.Summary.CustomersOwe);
-        Row();
-        Row(r.Grouping == nameof(DateGrouping.Day) ? "Date" : "Month", "From", "To", "New bookings", "Events", "Completed", "Cancelled", "Pending",
-            "Event value", "Money received", "Expenses", "Profit");
-        foreach (var b in r.Buckets)
-        {
-            Row(b.Label, b.Start.ToString("yyyy-MM-dd"), b.LastDay.ToString("yyyy-MM-dd"), b.NewBookings, b.Events, b.Completed, b.Cancelled, b.Pending,
-                b.EventValue, b.MoneyReceived, b.Expenses, b.Profit);
-        }
-        Row();
-        Row("Event type", "Events", "Completed", "Cancelled", "Pending", "Event value", "Money received");
-        foreach (var t in r.EventTypes)
-        {
-            Row(t.Name, t.Events, t.Completed, t.Cancelled, t.Pending, t.EventValue, t.Received);
-        }
-        Row();
-        Row("Status", "Events");
-        foreach (var s in r.Statuses)
-        {
-            Row(s.Status, s.Count);
-        }
-
-        // BOM so Excel reads the ₹ and names correctly.
-        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-    }
-
-    private static string Cell(object? value)
-    {
-        var text = value switch
-        {
-            null => "",
-            decimal d => d.ToString("0.##", CultureInfo.InvariantCulture),
-            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? ""
-        };
-        // A name starting with = + - @ would run as a formula in a spreadsheet.
-        if (text.Length > 0 && "=+-@".Contains(text[0]) && value is string)
-        {
-            text = "'" + text;
-        }
-        return text.IndexOfAny([',', '"', '\n', '\r']) >= 0 ? "\"" + text.Replace("\"", "\"\"") + "\"" : text;
     }
 }

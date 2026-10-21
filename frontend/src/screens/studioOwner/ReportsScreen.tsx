@@ -10,7 +10,7 @@ import { useRefetchOnFocus } from "../../hooks/useRefetchOnFocus";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { GroupedBarChart } from "../../components/GroupedBarChart";
 import { DonutChart } from "../../components/DonutChart";
-import { downloadBytes } from "../../utils/downloadFile";
+import { downloadAndSharePdf } from "../../utils/downloadPdf";
 import { Screen } from "../../ui/Screen";
 import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
@@ -188,13 +188,13 @@ export function ReportsScreen() {
     setRange({ preset: "Custom", customStart: draftStart, customEnd: draftEnd });
   };
 
-  const exportCsv = async () => {
+  const exportPdf = async () => {
     setExporting(true);
     setExportError(null);
     try {
       const bytes = await reportsApi.exportAnalytics(range);
-      const name = data ? `studio-report-${data.rangeStart.slice(0, 10)}-to-${data.rangeLastDay.slice(0, 10)}.csv` : "studio-report.csv";
-      await downloadBytes(bytes, name, "text/csv");
+      const name = data ? `studio-report-${data.rangeStart.slice(0, 10)}-to-${data.rangeLastDay.slice(0, 10)}.pdf` : "studio-report.pdf";
+      await downloadAndSharePdf(bytes, name);
     } catch (err) {
       setExportError(extractErrorMessage(err, "Couldn't export the report."));
     } finally {
@@ -214,7 +214,7 @@ export function ReportsScreen() {
       <PageHeader
         title="Reports"
         subtitle={subtitle}
-        actions={<Button label="Export CSV" icon="download-outline" onPress={exportCsv} loading={exporting} disabled={!data || updating} />}
+        actions={<Button label="Export PDF" icon="document-text-outline" onPress={exportPdf} loading={exporting} disabled={!data || updating} />}
       />
 
       <View style={{ marginBottom: space.md }}>

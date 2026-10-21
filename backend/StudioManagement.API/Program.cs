@@ -206,6 +206,7 @@ builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IProfitReportService, ProfitReportService>();
 builder.Services.AddScoped<IAnalyticsReportService, AnalyticsReportService>();
+builder.Services.AddScoped<IAnalyticsPdfService, AnalyticsPdfService>();
 builder.Services.AddScoped<IEventWorkerService, EventWorkerService>();
 builder.Services.AddScoped<IEventDeliveryService, EventDeliveryService>();
 builder.Services.AddScoped<IDayBoardService, DayBoardService>();

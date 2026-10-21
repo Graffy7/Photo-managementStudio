@@ -13,7 +13,7 @@ namespace StudioManagement.API.Controllers;
 [Route("api/reports")]
 [Authorize(Roles = UserTypes.StudioOwner)]
 [FeatureRequired(FeatureCodes.Reports)]
-public class ReportsController(IProfitReportService profitReportService, IAnalyticsReportService analyticsService, ITenantContext tenantContext) : ControllerBase
+public class ReportsController(IProfitReportService profitReportService, IAnalyticsReportService analyticsService, IAnalyticsPdfService analyticsPdf, ITenantContext tenantContext) : ControllerBase
 {
     private int StudioId => tenantContext.CurrentStudioId!.Value;
 
@@ -53,8 +53,8 @@ public class ReportsController(IProfitReportService profitReportService, IAnalyt
         var problem = CheckCustomRange(preset, customStart, customEnd);
         if (problem is not null) return BadRequest(new { message = problem });
         var report = await analyticsService.GetAsync(StudioId, preset, customStart, customEnd, ct);
-        var name = $"studio-report-{report.RangeStart:yyyy-MM-dd}-to-{report.RangeLastDay:yyyy-MM-dd}.csv";
-        return File(AnalyticsCsv.Build(report), "text/csv; charset=utf-8", name);
+        var name = $"studio-report-{report.RangeStart:yyyy-MM-dd}-to-{report.RangeLastDay:yyyy-MM-dd}.pdf";
+        return File(await analyticsPdf.GenerateAsync(StudioId, report, ct), "application/pdf", name);
     }
 
     [HttpGet("profit")]
