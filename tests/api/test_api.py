@@ -50,6 +50,7 @@ def ok(cond, label, detail=""):
             # Shows on the run's summary page as well as in the log.
             text = f"{label} -> {str(detail)[:500]}".replace("%", "%25").replace("\r", "").replace("\n", "%0A")
             print(f"::error title=API check failed::{text}")
+    return bool(cond)
 
 
 def req(method, path, body=None, tok=None, raw=None, headers=None, base=API):
@@ -213,6 +214,14 @@ ev = {"customerId": cid, "eventDate": str(TODAY + timedelta(days=30)), "startTim
 c, E, _ = req("POST", "/events", ev, Q)
 ok(c in (200, 201), "create event with a 20,000 advance", (c, E))
 eid = E["eventId"]
+# The status follows the date (only Cancelled is taken from the request).
+for days, sent, expect in [(10, "Completed", "Upcoming"), (0, "Upcoming", "Ongoing"), (-2, "Upcoming", "Completed"), (10, "Cancelled", "Cancelled")]:
+    c, SE, _ = req("POST", "/events", {"customerId": cid, "eventDate": str(TODAY + timedelta(days=days)), "eventStatus": sent, "budget": 1000}, Q)
+    ok(c in (200, 201) and SE.get("eventStatus") == expect, f"event {days:+d} days, sent {sent} -> {expect}", (c, SE.get("eventStatus") if isinstance(SE, dict) else SE))
+    if c in (200, 201) and days == 10 and sent == "Completed":
+        moved = {k: SE[k] for k in ("customerId", "eventDate")}
+        c2, SE2, _ = req("PUT", f"/events/{SE['eventId']}", {**moved, "budget": 1000, "eventDate": str(TODAY - timedelta(days=1)), "eventStatus": "Upcoming", "rowVersion": SE.get("rowVersion")}, Q)
+        ok(c2 == 200 and SE2.get("eventStatus") == "Completed" and SE2.get("completedAt"), "moving the date into the past makes it Completed", (c2, SE2))
 c, E1, _ = req("GET", f"/events/{eid}", tok=Q)
 ok(float(E1["balance"]) == 35000, "balance 55,000 - 20,000 = 35,000", E1.get("balance"))
 pay = {"customerId": cid, "eventId": eid, "amount": 10000, "paymentDate": str(TODAY), "paymentMethod": "UPI", "paymentStatus": "Completed"}
@@ -462,6 +471,43 @@ ok(req("GET", f"/expenses/event/{xeid}")[0] == 401, "event expenses need a sign-
 ok(req("DELETE", f"/expenses/{X2['expenseId']}", tok=Q)[0] == 204, "expense deleted")
 S = req("GET", f"/expenses/event/{xeid}", tok=Q)[1]
 ok(S["totalExpenses"] == 15000 and S["netProfit"] == 85000 and S["profitMarginPercent"] == 85, "totals follow the deletion", S)
+
+area("Report analytics by date range")
+COUNTS = ("newBookings", "events", "completed", "cancelled", "pending")
+MONEY = ("eventValue", "moneyReceived", "expenses", "profit")
+for preset, grouping, n in (("Last7Days", "Day", 7), ("Last1Month", "Day", None), ("Last3Months", "Month", 3), ("Last6Months", "Month", 6), ("Last1Year", "Month", 12)):
+    c, AR, _ = req("GET", f"/reports/analytics?preset={preset}", tok=Q)
+    if not ok(c == 200 and AR["grouping"] == grouping, f"{preset}: grouped by {grouping.lower()}", (c, AR if c != 200 else AR["grouping"])):
+        continue
+    bk = AR["buckets"]
+    ok(n is None or len(bk) == n, f"{preset}: {n or 'every'} periods shown", len(bk))
+    ok(AR["rangeLastDay"][:10] == str(TODAY) and bk[0]["start"][:10] == AR["rangeStart"][:10] and bk[-1]["lastDay"][:10] == str(TODAY),
+       f"{preset}: periods cover exactly the range, ending today", (AR["rangeStart"], AR["rangeLastDay"]))
+    gaps = [i for i in range(1, len(bk)) if (date.fromisoformat(bk[i]["start"][:10]) - date.fromisoformat(bk[i - 1]["lastDay"][:10])).days != 1]
+    ok(not gaps, f"{preset}: no missing days or months (empty ones included)", gaps)
+    ok(all(sum(b[k] for b in bk) == AR["summary"][k] for k in COUNTS + MONEY), f"{preset}: the periods add up to the summary cards")
+c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=Q)
+ok(c == 200 and AR["grouping"] == "Day" and len(AR["buckets"]) == 3 and AR["summary"]["events"] == 1 and AR["summary"]["eventValue"] == 100000
+   and AR["summary"]["moneyReceived"] == 0, "custom 3 days: both dates included, only that event, payment dated elsewhere left out", (c, AR.get("summary") if isinstance(AR, dict) else AR))
+ok(c == 200 and any(t["events"] == 1 and t["eventValue"] == 100000 for t in AR["eventTypes"]) and sum(s["count"] for s in AR["statuses"]) == 1,
+   "custom range: event types and statuses use the same range")
+c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY + timedelta(days=42)}&customEnd={TODAY + timedelta(days=60)}", tok=Q)
+ok(c == 200 and AR["summary"]["events"] == 0, "custom range just after the event: not counted", c)
+c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY}&customEnd={TODAY}", tok=Q)
+ok(c == 200 and AR["summary"]["moneyReceived"] >= 30000 and AR["summary"]["expenses"] >= 15000 and len(AR["buckets"]) == 1, "custom single day: today's money", c)
+c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart=2024-01-15&customEnd=2024-06-10", tok=Q)
+ok(c == 200 and AR["grouping"] == "Month" and [b["start"][:10] for b in AR["buckets"]][0] == "2024-01-15" and AR["buckets"][-1]["lastDay"][:10] == "2024-06-10"
+   and len(AR["buckets"]) == 6, "long custom range: by month, first and last month cut to the chosen dates", c)
+for q, why in ((f"customStart={TODAY}&customEnd={TODAY - timedelta(days=1)}", "start after end"), (f"customStart={TODAY}", "no end date"),
+               ("customStart=2015-01-01&customEnd=2025-01-01", "more than 5 years")):
+    ok(req("GET", f"/reports/analytics?preset=Custom&{q}", tok=Q)[0] == 400, f"custom range refused: {why}")
+c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=T)
+ok(c == 200 and AR["summary"]["events"] == 0 and AR["summary"]["eventValue"] == 0, "studio B's report never includes A's events", c)
+c, csv, h = req("GET", f"/reports/analytics/export?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=Q)
+text = csv.decode("utf-8-sig") if isinstance(csv, bytes) else ""
+ok(c == 200 and "text/csv" in h.get("Content-Type", "") and f"Report period,{TODAY + timedelta(days=39)},{TODAY + timedelta(days=41)}" in text
+   and "Event value,100000" in text, "CSV export: same range and figures", (c, text[:200]))
+ok(req("GET", "/reports/analytics?preset=Last7Days")[0] == 401, "analytics need a sign-in")
 
 # ============================================================================================ FOLDER IMPORTS
 area("Folder imports: duplicates, rescans, concurrency")

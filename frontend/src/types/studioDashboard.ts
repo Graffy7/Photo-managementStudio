@@ -8,6 +8,11 @@ export const DATE_RANGE_PRESETS = [
   "ThisYear",
   "PreviousYear",
   "Custom",
+  "Last7Days",
+  "Last1Month",
+  "Last3Months",
+  "Last6Months",
+  "Last1Year",
 ] as const;
 
 export type DateRangePreset = (typeof DATE_RANGE_PRESETS)[number];
@@ -22,6 +27,11 @@ export const DATE_RANGE_PRESET_LABELS: Record<DateRangePreset, string> = {
   ThisYear: "This year",
   PreviousYear: "Last year",
   Custom: "Custom range",
+  Last7Days: "Last 7 days",
+  Last1Month: "Last 1 month",
+  Last3Months: "Last 3 months",
+  Last6Months: "Last 6 months",
+  Last1Year: "Last 1 year",
 };
 
 export interface StudioDashboardSummary {
@@ -37,6 +47,7 @@ export interface StudioDashboardSummary {
 
   totalEvents: number;
   upcomingEvents: number;
+  ongoingEvents: number;
   completedEvents: number;
   cancelledEvents: number;
 

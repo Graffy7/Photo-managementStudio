@@ -14,13 +14,15 @@ interface DonutChartProps {
   strokeWidth?: number;
   centerLabel: string;
   centerValue: string | number;
+  // false: counts only, no percentages (the reports show exact figures).
+  showShare?: boolean;
 }
 
 const SWEEP_MS = 1200;
 // Visible space between two statuses on the ring, in pixels.
 const GAP_PX = 5;
 
-export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel, centerValue }: DonutChartProps) {
+export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel, centerValue, showShare = true }: DonutChartProps) {
   const [progress, setProgress] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -147,7 +149,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
 
         <View style={[styles.center, { width: size, height: size }]} pointerEvents="none">
           <Text style={[styles.centerValue, active && { color: active.color }]}>{shownValue}</Text>
-          <Text style={styles.centerLabel}>{active ? `${active.label} · ${activeShare}%` : centerLabel}</Text>
+          <Text style={styles.centerLabel}>{active ? (showShare ? `${active.label} · ${activeShare}%` : active.label) : centerLabel}</Text>
         </View>
 
         {/* Hover across the ring on the web; tap a slice on a phone. */}
@@ -177,7 +179,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
                 <View style={[styles.dot, { backgroundColor: s.color, boxShadow: `0 0 8px ${s.color}` }]} />
                 <Text style={styles.legendLabel}>{s.label}</Text>
                 <Text style={styles.legendValue}>{s.value}</Text>
-                <Text style={styles.legendShare}>{Math.round(share * 100)}%</Text>
+                {showShare && <Text style={styles.legendShare}>{Math.round(share * 100)}%</Text>}
               </View>
               <View style={styles.bar}>
                 <View style={[styles.barFill, { width: `${share * 100 * progress}%`, backgroundColor: s.color }]} />

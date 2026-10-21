@@ -10,7 +10,20 @@ public enum DateRangePreset
     PreviousMonth,
     ThisYear,
     PreviousYear,
-    Custom
+    Custom,
+    // Reports: rolling windows ending today. 7 days and 1 month are shown day by day; 3, 6 and 12
+    // months are whole calendar months (the current one up to today), shown month by month.
+    Last7Days,
+    Last1Month,
+    Last3Months,
+    Last6Months,
+    Last1Year
+}
+
+public enum DateGrouping
+{
+    Day,
+    Month
 }
 
 // Start is inclusive, End is exclusive — every dashboard/report query filters with
@@ -50,6 +63,11 @@ public class DateRange
             DateRangePreset.PreviousMonth => MonthRange(today, -1),
             DateRangePreset.ThisYear => YearRange(today, 0),
             DateRangePreset.PreviousYear => YearRange(today, -1),
+            DateRangePreset.Last7Days => new DateRange { Start = today.AddDays(-6), End = today.AddDays(1) },
+            DateRangePreset.Last1Month => new DateRange { Start = today.AddMonths(-1).AddDays(1), End = today.AddDays(1) },
+            DateRangePreset.Last3Months => MonthsToDate(today, 3),
+            DateRangePreset.Last6Months => MonthsToDate(today, 6),
+            DateRangePreset.Last1Year => MonthsToDate(today, 12),
             DateRangePreset.Custom => new DateRange
             {
                 Start = (customStart ?? today).Date,
@@ -57,6 +75,21 @@ public class DateRange
             },
             _ => new DateRange { Start = today, End = today.AddDays(1) }
         };
+    }
+
+    // How a report over this range is grouped: by day for short ranges, by month for long ones.
+    public static DateGrouping GroupingFor(DateRangePreset preset, DateRange range) => preset switch
+    {
+        DateRangePreset.Last7Days or DateRangePreset.Last1Month => DateGrouping.Day,
+        DateRangePreset.Last3Months or DateRangePreset.Last6Months or DateRangePreset.Last1Year => DateGrouping.Month,
+        _ => (range.End - range.Start).TotalDays <= 62 ? DateGrouping.Day : DateGrouping.Month
+    };
+
+    // The last `months` calendar months, the current one only up to today.
+    private static DateRange MonthsToDate(DateTime today, int months)
+    {
+        var firstOfThisMonth = new DateTime(today.Year, today.Month, 1);
+        return new DateRange { Start = firstOfThisMonth.AddMonths(-(months - 1)), End = today.AddDays(1) };
     }
 
     private static DateRange WeekRange(DateTime today, int weekOffset)
