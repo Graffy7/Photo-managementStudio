@@ -27,6 +27,8 @@ interface LineChartProps {
   color?: string;
   // Second colour the line fades into, left to right.
   accentColor?: string;
+  // Leave out the first/last labels under the line (the caller draws its own axis).
+  hideLabels?: boolean;
 }
 
 const DRAW_MS = 1400;
@@ -83,6 +85,7 @@ export function LineChart({
   formatValue = (v) => String(v),
   color = "#a78bfa",
   accentColor = "#7fc0e6",
+  hideLabels = false,
 }: LineChartProps) {
   // Drawn at its real pixel width so circles stay round and the line keeps an even thickness.
   const [width, setWidth] = useState(0);
@@ -284,13 +287,13 @@ export function LineChart({
         </View>
       )}
 
-      <View style={styles.labelRow}>
+      {!hideLabels && <View style={styles.labelRow}>
         {points.map((p, i) => (
           <Text key={p.label} style={[styles.label, i === 0 || i === points.length - 1 ? undefined : styles.labelFaded]} numberOfLines={1}>
             {p.label}
           </Text>
         ))}
-      </View>
+      </View>}
 
       <View style={styles.peakBadge}>
         <View style={[styles.peakDot, { backgroundColor: color }]} />

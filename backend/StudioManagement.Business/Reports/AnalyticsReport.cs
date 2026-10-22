@@ -13,8 +13,11 @@ namespace StudioManagement.Business.Reports;
 //    (Pending = Upcoming, Ongoing or an older Confirmed).
 //  - Event value: agreed totals of the events dated in the range, cancelled ones left out.
 //  - Money received: received payments dated in the range. Expenses: expenses dated in the range.
-//  - Profit: money received minus expenses. Customers owe: what is still unpaid on the
-//    non-cancelled events dated in the range.
+//  - Profit: money received minus expenses. Customers owe / Outstanding: what is still unpaid on
+//    the non-cancelled events dated in the range.
+//  - Customers: each customer with an event dated in the range, counted once, in the period of
+//    their first event in the range. New = their first event ever is in the range; Repeat = they
+//    had an event before it.
 public class AnalyticsFigures
 {
     public int NewBookings { get; set; }
@@ -26,6 +29,9 @@ public class AnalyticsFigures
     public decimal MoneyReceived { get; set; }
     public decimal Expenses { get; set; }
     public decimal Profit { get; set; }
+    public decimal Outstanding { get; set; }
+    public int NewCustomers { get; set; }
+    public int RepeatCustomers { get; set; }
 }
 
 public class AnalyticsSummaryDto : AnalyticsFigures
@@ -59,6 +65,12 @@ public class AnalyticsStatusDto
     public int Count { get; set; }
 }
 
+public class AnalyticsDayDto
+{
+    public DateTime Date { get; set; }
+    public int Events { get; set; }
+}
+
 public class AnalyticsReportDto
 {
     public DateTime RangeStart { get; set; }
@@ -70,6 +82,8 @@ public class AnalyticsReportDto
     public List<AnalyticsEventTypeDto> EventTypes { get; set; } = [];
     public List<AnalyticsStatusDto> Statuses { get; set; } = [];
     public List<string> Insights { get; set; } = [];
+    // Every day of the range with how many events (not cancelled) are on it - for the busy-days view.
+    public List<AnalyticsDayDto> EventDays { get; set; } = [];
     // The profit-by-event and expense-category breakdown for the same range.
     public ProfitReportDto Profit { get; set; } = null!;
 }
@@ -130,7 +144,19 @@ public class AnalyticsReportService(
             if (e.Status == EventStatuses.Completed) b.Completed++;
             else if (e.Status == EventStatuses.Cancelled) b.Cancelled++;
             else if (IsPending(e.Status)) b.Pending++;
-            if (e.Status != EventStatuses.Cancelled) b.EventValue += e.Value;
+            if (e.Status != EventStatuses.Cancelled)
+            {
+                b.EventValue += e.Value;
+                b.Outstanding += Math.Max(0, e.Value - e.Received);
+            }
+        }
+        // Each customer once, in the period of their first event in the range.
+        foreach (var first in events.GroupBy(e => e.CustomerId).Select(g => g.OrderBy(e => e.EventDate).First()))
+        {
+            var i = Index(first.EventDate);
+            if (i < 0) continue;
+            if (first.CustomerFirstEventDate.Date < range.Start.Date) buckets[i].RepeatCustomers++;
+            else buckets[i].NewCustomers++;
         }
         foreach (var p in payments)
         {
@@ -156,6 +182,9 @@ public class AnalyticsReportService(
             MoneyReceived = payments.Sum(p => p.Amount),
             Expenses = expenses.Sum(x => x.Amount),
             CustomersOwe = live.Sum(e => Math.Max(0, e.Value - e.Received)),
+            Outstanding = live.Sum(e => Math.Max(0, e.Value - e.Received)),
+            NewCustomers = buckets.Sum(b => b.NewCustomers),
+            RepeatCustomers = buckets.Sum(b => b.RepeatCustomers),
             CancelledValue = events.Where(e => e.Status == EventStatuses.Cancelled).Sum(e => e.Value)
         };
         summary.Profit = summary.MoneyReceived - summary.Expenses;
@@ -191,6 +220,10 @@ public class AnalyticsReportService(
             EventTypes = eventTypes,
             Statuses = statuses,
             Insights = BuildInsights(summary, buckets, eventTypes, expenses, grouping),
+            EventDays = Enumerable.Range(0, (int)(range.End.Date - range.Start.Date).TotalDays)
+                .Select(d => range.Start.Date.AddDays(d))
+                .Select(d => new AnalyticsDayDto { Date = d, Events = live.Count(e => e.EventDate.Date == d) })
+                .ToList(),
             Profit = profit
         };
     }

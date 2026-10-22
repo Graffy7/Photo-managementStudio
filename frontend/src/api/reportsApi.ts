@@ -21,8 +21,9 @@ export const reportsApi = {
       .get<AnalyticsReport>("/api/reports/analytics", { params: rangeParams(range), signal })
       .then((res) => res.data),
 
-  exportAnalytics: (range: ReportRange) =>
+  // details: false = the one-page visual summary; true = followed by the detailed tables.
+  exportAnalytics: (range: ReportRange, details = false) =>
     apiClient
-      .get<ArrayBuffer>("/api/reports/analytics/export", { params: rangeParams(range), responseType: "arraybuffer" })
+      .get<ArrayBuffer>("/api/reports/analytics/export", { params: { ...rangeParams(range), details }, responseType: "arraybuffer" })
       .then((res) => res.data),
 };

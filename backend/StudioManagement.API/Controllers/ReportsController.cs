@@ -48,13 +48,15 @@ public class ReportsController(IProfitReportService profitReportService, IAnalyt
         [FromQuery] DateRangePreset preset = DateRangePreset.Last1Month,
         [FromQuery] DateTime? customStart = null,
         [FromQuery] DateTime? customEnd = null,
+        // false: the one-page visual summary; true: followed by the detailed tables.
+        [FromQuery] bool details = false,
         CancellationToken ct = default)
     {
         var problem = CheckCustomRange(preset, customStart, customEnd);
         if (problem is not null) return BadRequest(new { message = problem });
         var report = await analyticsService.GetAsync(StudioId, preset, customStart, customEnd, ct);
         var name = $"studio-report-{report.RangeStart:yyyy-MM-dd}-to-{report.RangeLastDay:yyyy-MM-dd}.pdf";
-        return File(await analyticsPdf.GenerateAsync(StudioId, report, ct), "application/pdf", name);
+        return File(await analyticsPdf.GenerateAsync(StudioId, report, details, ct), "application/pdf", name);
     }
 
     [HttpGet("profit")]

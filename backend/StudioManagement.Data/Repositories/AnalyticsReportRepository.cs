@@ -8,6 +8,9 @@ namespace StudioManagement.Data.Repositories;
 public class AnalyticsEventRow
 {
     public int EventId { get; set; }
+    public int CustomerId { get; set; }
+    // The customer's earliest event of all time (any status) - before the range means a repeat customer.
+    public DateTime CustomerFirstEventDate { get; set; }
     public DateTime EventDate { get; set; }
     public string Status { get; set; } = null!;
     public decimal Value { get; set; }
@@ -43,6 +46,8 @@ public class AnalyticsReportRepository(AppDbContext context) : IAnalyticsReportR
             .Select(e => new AnalyticsEventRow
             {
                 EventId = e.EventId,
+                CustomerId = e.CustomerId,
+                CustomerFirstEventDate = context.Events.Where(x => x.StudioId == studioId && x.CustomerId == e.CustomerId).Min(x => x.EventDate),
                 EventDate = e.EventDate,
                 Status = e.EventStatus,
                 Value = e.Budget ?? 0m,

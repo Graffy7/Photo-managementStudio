@@ -473,8 +473,8 @@ S = req("GET", f"/expenses/event/{xeid}", tok=Q)[1]
 ok(S["totalExpenses"] == 15000 and S["netProfit"] == 85000 and S["profitMarginPercent"] == 85, "totals follow the deletion", S)
 
 area("Report analytics by date range")
-COUNTS = ("newBookings", "events", "completed", "cancelled", "pending")
-MONEY = ("eventValue", "moneyReceived", "expenses", "profit")
+COUNTS = ("newBookings", "events", "completed", "cancelled", "pending", "newCustomers", "repeatCustomers")
+MONEY = ("eventValue", "moneyReceived", "expenses", "profit", "outstanding")
 for preset, grouping, n in (("Last7Days", "Day", 7), ("Last1Month", "Day", None), ("Last3Months", "Month", 3), ("Last6Months", "Month", 6), ("Last1Year", "Month", 12)):
     c, AR, _ = req("GET", f"/reports/analytics?preset={preset}", tok=Q)
     if not ok(c == 200 and AR["grouping"] == grouping, f"{preset}: grouped by {grouping.lower()}", (c, AR if c != 200 else AR["grouping"])):
@@ -486,9 +486,15 @@ for preset, grouping, n in (("Last7Days", "Day", 7), ("Last1Month", "Day", None)
     gaps = [i for i in range(1, len(bk)) if (date.fromisoformat(bk[i]["start"][:10]) - date.fromisoformat(bk[i - 1]["lastDay"][:10])).days != 1]
     ok(not gaps, f"{preset}: no missing days or months (empty ones included)", gaps)
     ok(all(sum(b[k] for b in bk) == AR["summary"][k] for k in COUNTS + MONEY), f"{preset}: the periods add up to the summary cards")
+    days = AR["eventDays"]
+    ok(len(days) == (date.fromisoformat(AR["rangeLastDay"][:10]) - date.fromisoformat(AR["rangeStart"][:10])).days + 1
+       and sum(d["events"] for d in days) == AR["summary"]["events"] - AR["summary"]["cancelled"],
+       f"{preset}: busy days cover every day and add up to the events (cancelled left out)")
 c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}", tok=Q)
 ok(c == 200 and AR["grouping"] == "Day" and len(AR["buckets"]) == 3 and AR["summary"]["events"] == 1 and AR["summary"]["eventValue"] == 100000
    and AR["summary"]["moneyReceived"] == 0, "custom 3 days: both dates included, only that event, payment dated elsewhere left out", (c, AR.get("summary") if isinstance(AR, dict) else AR))
+ok(c == 200 and AR["summary"]["outstanding"] == 70000 and AR["summary"]["newCustomers"] + AR["summary"]["repeatCustomers"] == 1,
+   "custom range: outstanding is what's unpaid (100,000 - 30,000) and the customer is counted once", AR.get("summary") if isinstance(AR, dict) else AR)
 ok(c == 200 and any(t["events"] == 1 and t["eventValue"] == 100000 for t in AR["eventTypes"]) and sum(s["count"] for s in AR["statuses"]) == 1,
    "custom range: event types and statuses use the same range")
 c, AR, _ = req("GET", f"/reports/analytics?preset=Custom&customStart={TODAY + timedelta(days=42)}&customEnd={TODAY + timedelta(days=60)}", tok=Q)
@@ -507,6 +513,8 @@ c, pdf_bytes, h = req("GET", f"/reports/analytics/export?preset=Custom&customSta
 ok(c == 200 and "application/pdf" in h.get("Content-Type", "") and isinstance(pdf_bytes, bytes) and pdf_bytes[:5] == b"%PDF-" and len(pdf_bytes) > 2000,
    "PDF export of the report", (c, h.get("Content-Type")))
 ok(f"studio-report-{TODAY + timedelta(days=39)}-to-{TODAY + timedelta(days=41)}.pdf" in (h.get("Content-Disposition") or ""), "PDF named after the chosen dates", h.get("Content-Disposition"))
+c2, pdf_details, _ = req("GET", f"/reports/analytics/export?preset=Custom&customStart={TODAY + timedelta(days=39)}&customEnd={TODAY + timedelta(days=41)}&details=true", tok=Q)
+ok(c2 == 200 and pdf_details[:5] == b"%PDF-" and len(pdf_details) > len(pdf_bytes), "PDF with details adds the table pages to the one-page summary", (c2, len(pdf_bytes), len(pdf_details) if isinstance(pdf_details, bytes) else pdf_details))
 ok(req("GET", f"/reports/analytics/export?preset=Custom&customStart={TODAY}&customEnd={TODAY - timedelta(days=3)}", tok=Q)[0] == 400, "PDF export refuses a start after the end")
 ok(req("GET", "/reports/analytics?preset=Last7Days")[0] == 401, "analytics need a sign-in")
 

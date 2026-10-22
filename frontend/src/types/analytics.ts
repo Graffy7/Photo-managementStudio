@@ -17,6 +17,9 @@ export interface AnalyticsFigures {
   moneyReceived: number;
   expenses: number;
   profit: number;
+  outstanding: number;
+  newCustomers: number;
+  repeatCustomers: number;
 }
 
 export interface AnalyticsSummary extends AnalyticsFigures {
@@ -49,5 +52,7 @@ export interface AnalyticsReport {
   eventTypes: AnalyticsEventType[];
   statuses: { status: string; count: number }[];
   insights: string[];
+  // Every day of the range with its number of (not cancelled) events.
+  eventDays: { date: string; events: number }[];
   profit: import("./profitReport").ProfitReport;
 }
