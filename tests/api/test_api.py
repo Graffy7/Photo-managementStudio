@@ -229,6 +229,9 @@ c, P, _ = req("POST", "/payments", pay, Q)
 ok(c in (200, 201), "record a 10,000 payment", (c, P))
 pid = P["paymentId"]
 ok(float(req("GET", f"/events/{eid}", tok=Q)[1]["balance"]) == 25000, "balance now 25,000")
+pend_ids = {x["paymentId"] for x in items(req("GET", "/payments?paymentStatus=Pending&pageSize=100", tok=Q)[1])}
+done_ids = {x["paymentId"] for x in items(req("GET", "/payments?paymentStatus=Completed&pageSize=100", tok=Q)[1])}
+ok(pid in pend_ids and pid not in done_ids, "Pending filter lists a payment whose event still has a balance owed (not under Completed)")
 for bad, why in [({"amount": 0}, "amount 0"), ({"amount": -500}, "negative amount"), ({"paymentMethod": "Bitcoin"}, "unknown method"),
                  ({"amount": 999999}, "more than the balance"), ({"paymentDate": str(TODAY + timedelta(days=3))}, "future date")]:
     c, b, _ = req("POST", "/payments", {**pay, **bad}, Q)

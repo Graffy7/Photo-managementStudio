@@ -29,7 +29,23 @@ public class PaymentRepository(AppDbContext context) : IPaymentRepository
 
         if (!string.IsNullOrWhiteSpace(paymentStatus))
         {
-            query = query.Where(p => p.PaymentStatus == paymentStatus);
+            // The list shows a received payment as "Pending" while its event still has a balance owed
+            // (the customer hasn't paid in full yet), so the filter uses the same rule: "Pending" finds
+            // those as well as payments saved as Pending, and "Completed" only fully paid ones.
+            query = paymentStatus switch
+            {
+                PaymentStatuses.Pending => query.Where(p => p.PaymentStatus == PaymentStatuses.Pending
+                    || (p.PaymentStatus == PaymentStatuses.Completed && p.EventId != null
+                        && (p.Event!.Budget ?? 0) > (context.Payments
+                            .Where(x => x.StudioId == studioId && x.EventId == p.EventId && x.PaymentStatus == PaymentStatuses.Completed)
+                            .Sum(x => (decimal?)x.Amount) ?? 0))),
+                PaymentStatuses.Completed => query.Where(p => p.PaymentStatus == PaymentStatuses.Completed
+                    && !(p.EventId != null
+                        && (p.Event!.Budget ?? 0) > (context.Payments
+                            .Where(x => x.StudioId == studioId && x.EventId == p.EventId && x.PaymentStatus == PaymentStatuses.Completed)
+                            .Sum(x => (decimal?)x.Amount) ?? 0))),
+                _ => query.Where(p => p.PaymentStatus == paymentStatus)
+            };
         }
 
         if (customerId is not null)
