@@ -22,3 +22,20 @@ web-build/
 ## Runtime-uploaded media (studio logos) — generated at runtime, not source
 backend/StudioManagement.API/wwwroot/uploads/logos/*
 backend/StudioManagement.API/wwwroot/uploads/photo-gallery/
+
+## Never commit data or secrets (the repo is public)
+# Database backups and data files - move these by USB / private drive, see docs/SWITCHING-COMPUTERS.md
+*.bak
+*.mdf
+*.ldf
+*.trn
+StudioOS-transfer*/
+# Secrets (real values live in .NET user secrets, outside the repo)
+secrets.json
+appsettings.*.local.json
+*.pfx
+*.key
+*.pem
+.env.*
+!.env.example
+
