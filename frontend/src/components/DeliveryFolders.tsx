@@ -62,7 +62,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
   });
 
   if (isPending) {
-    return <ActivityIndicator color="#6d4aff" style={{ marginVertical: 12 }} />;
+    return <ActivityIndicator color="#8cc8f0" style={{ marginVertical: 12 }} />;
   }
 
   const total = folders.reduce((sum, f) => sum + f.photoCount, 0);
@@ -77,7 +77,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
           onPress={() => onSelect(null)}
         >
           <View style={styles.cardTop}>
-            <Ionicons name="images-outline" size={16} color="#6d4aff" />
+            <Ionicons name="images-outline" size={16} color="#8cc8f0" />
             <Text style={styles.cardName} numberOfLines={1}>All photos</Text>
           </View>
           <Text style={styles.cardCount}>{total} photos</Text>
@@ -124,7 +124,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                     <Ionicons
                       name={folder.isDelivered ? "folder-open" : "folder"}
                       size={16}
-                      color={folder.isDelivered ? "#16a36a" : "#f59e0b"}
+                      color={folder.isDelivered ? "#6ee0ad" : "#f5c66b"}
                     />
                     <Text style={styles.cardName} numberOfLines={1}>{folder.name}</Text>
                     {editable && <View style={styles.menuButtonSpace} />}
@@ -135,7 +135,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                   </View>
                   {folder.isDelivered && (
                     <View style={styles.deliveredRow}>
-                      <Ionicons name="checkmark-circle" size={11} color="#16a36a" />
+                      <Ionicons name="checkmark-circle" size={11} color="#6ee0ad" />
                       <Text style={styles.deliveredText}>Delivered</Text>
                     </View>
                   )}
@@ -151,7 +151,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                   accessibilityLabel={`Actions for ${folder.name}`}
                   hitSlop={6}
                 >
-                  <Ionicons name="ellipsis-vertical" size={13} color="#74758c" />
+                  <Ionicons name="ellipsis-vertical" size={13} color="#8a9cb6" />
                 </Pressable>
               )}
 
@@ -161,19 +161,19 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
                     style={styles.menuItem}
                     onPress={() => { setRenaming(folder.folderId); setRenameTo(folder.name); setMenuFor(null); }}
                   >
-                    <Ionicons name="create-outline" size={13} color="#74758c" />
+                    <Ionicons name="create-outline" size={13} color="#9fb0c5" />
                     <Text style={styles.menuText}>Rename</Text>
                   </Pressable>
                   <Pressable
                     style={styles.menuItem}
                     onPress={() => setDelivered.mutate({ folderId: folder.folderId, isDelivered: !folder.isDelivered })}
                   >
-                    <Ionicons name={folder.isDelivered ? "close-circle-outline" : "checkmark-circle-outline"} size={13} color="#74758c" />
+                    <Ionicons name={folder.isDelivered ? "close-circle-outline" : "checkmark-circle-outline"} size={13} color="#9fb0c5" />
                     <Text style={styles.menuText}>{folder.isDelivered ? "Mark not delivered" : "Mark delivered"}</Text>
                   </Pressable>
                   <Pressable style={styles.menuItem} onPress={() => { setPendingDelete(folder); setMenuFor(null); }}>
-                    <Ionicons name="trash-outline" size={13} color="#ef4444" />
-                    <Text style={[styles.menuText, { color: "#ef4444" }]}>Remove folder</Text>
+                    <Ionicons name="trash-outline" size={13} color="#ff9a93" />
+                    <Text style={[styles.menuText, { color: "#ff9a93" }]}>Remove folder</Text>
                   </Pressable>
                 </View>
               )}
@@ -188,7 +188,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Drone"
-              placeholderTextColor="#74758c"
+              placeholderTextColor="#8a9cb6"
               autoFocus
               maxLength={100}
               onSubmitEditing={() => newName.trim() && create.mutate(newName.trim())}
@@ -205,7 +205,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
         ) : (
           <SubscriptionLock>
             <Pressable style={styles.addCard} onPress={() => { setAdding(true); setError(null); }} accessibilityRole="button">
-              <Ionicons name="add" size={16} color="#6d4aff" />
+              <Ionicons name="add" size={16} color="#8cc8f0" />
               <Text style={styles.addText}>Add Folder</Text>
             </Pressable>
           </SubscriptionLock>
@@ -225,7 +225,7 @@ export function DeliveryFolders({ galleryId, selectedFolderId, onSelect }: Props
           </Pressable>
           <Pressable onPress={() => remove.mutate(pendingDelete.folderId)} disabled={remove.isPending} accessibilityRole="button">
             {remove.isPending
-              ? <ActivityIndicator size="small" color="#ef4444" />
+              ? <ActivityIndicator size="small" color="#ff9a93" />
               : <Text style={styles.confirmYes}>Yes, remove</Text>}
           </Pressable>
         </View>
@@ -244,45 +244,45 @@ const styles = StyleSheet.create({
   cardWrap: { position: "relative" },
   raised: { zIndex: 30 },
   card: {
-    width: CARD_WIDTH, borderWidth: 1, borderColor: "#d9dbec", borderRadius: 10,
-    backgroundColor: "#FFFFFF", paddingVertical: 10, paddingHorizontal: 12, gap: 4,
+    width: CARD_WIDTH, borderWidth: 1, borderColor: "#2c4463", borderRadius: 10,
+    backgroundColor: "#122033", paddingVertical: 10, paddingHorizontal: 12, gap: 4,
   },
-  cardActive: { borderColor: "#6d4aff", backgroundColor: "rgba(109,74,255,0.08)" },
+  cardActive: { borderColor: "#8cc8f0", backgroundColor: "rgba(127, 192, 230, 0.08)" },
   cardEditing: { gap: 8 },
   cardTop: { flexDirection: "row", alignItems: "center", gap: 7 },
-  cardName: { color: "#17172f", fontSize: 13, fontWeight: "600", flex: 1 },
+  cardName: { color: "#e8edf3", fontSize: 13, fontWeight: "600", flex: 1 },
   cardBottom: { flexDirection: "row", alignItems: "center", gap: 4 },
-  cardCount: { color: "#74758c", fontSize: 12 },
-  cardPicked: { color: "#6d4aff", fontSize: 12 },
+  cardCount: { color: "#8a9cb6", fontSize: 12 },
+  cardPicked: { color: "#8cc8f0", fontSize: 12 },
   deliveredRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  deliveredText: { color: "#16a36a", fontSize: 12, fontWeight: "600" },
+  deliveredText: { color: "#6ee0ad", fontSize: 12, fontWeight: "600" },
   menuButton: { position: "absolute", top: 10, right: 8, padding: 2 },
   menuButtonSpace: { width: 17 },
 
   menu: {
     position: "absolute", top: 34, right: 4, zIndex: 20, minWidth: 168,
-    backgroundColor: "#f5f3ff", borderWidth: 1, borderColor: "#d9dbec", borderRadius: 8, paddingVertical: 4,
-    boxShadow: "0 6px 18px rgba(23,23,47,0.113)",
+    backgroundColor: "#172a42", borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 4,
+    boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)",
   },
   menuItem: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingHorizontal: 10 },
-  menuText: { color: "#74758c", fontSize: 12, fontWeight: "600" },
+  menuText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
 
   addCard: {
-    width: CARD_WIDTH, borderWidth: 1, borderStyle: "dashed", borderColor: "#d9dbec", borderRadius: 10,
+    width: CARD_WIDTH, borderWidth: 1, borderStyle: "dashed", borderColor: "#2c4463", borderRadius: 10,
     paddingVertical: 10, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 6,
   },
-  addText: { color: "#6d4aff", fontSize: 12, fontWeight: "600" },
+  addText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600" },
 
   input: {
-    borderWidth: 1, borderColor: "#d9dbec", borderRadius: 8, paddingVertical: 5, paddingHorizontal: 8,
-    color: "#17172f", backgroundColor: "#f5f3ff", fontSize: 12, outlineStyle: "none",
+    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 5, paddingHorizontal: 8,
+    color: "#e8edf3", backgroundColor: "#172a42", fontSize: 12, outlineStyle: "none",
   } as any,
   editActions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
-  cancelLink: { color: "#74758c", fontSize: 12, fontWeight: "600" },
-  saveLink: { color: "#6d4aff", fontSize: 12, fontWeight: "700" },
+  cancelLink: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
+  saveLink: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
 
   confirm: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12 },
-  confirmText: { color: "#74758c", fontSize: 12, flexShrink: 1 },
-  confirmYes: { color: "#ef4444", fontSize: 12, fontWeight: "700" },
-  error: { color: "#ef4444", fontSize: 12 },
+  confirmText: { color: "#9fb0c5", fontSize: 12, flexShrink: 1 },
+  confirmYes: { color: "#ff9a93", fontSize: 12, fontWeight: "700" },
+  error: { color: "#ff9a93", fontSize: 12 },
 });

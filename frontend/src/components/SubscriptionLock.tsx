@@ -26,7 +26,7 @@ export function SubscriptionLock({ children, compact }: { children: ReactNode; c
       accessibilityRole="button"
       accessibilityLabel="Subscription required. Open the subscription page to renew."
     >
-      <Ionicons name="lock-closed" size={compact ? 11 : 13} color="#f59e0b" />
+      <Ionicons name="lock-closed" size={compact ? 11 : 13} color="#f2bd5c" />
       <Text style={[styles.text, compact && styles.textCompact]}>{compact ? "Locked" : "Subscription Required"}</Text>
     </Pressable>
   );
@@ -35,10 +35,10 @@ export function SubscriptionLock({ children, compact }: { children: ReactNode; c
 const styles = StyleSheet.create({
   locked: {
     flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start",
-    borderWidth: 1, borderColor: "rgba(245,158,11,0.45)", backgroundColor: "rgba(245,158,11,0.08)",
+    borderWidth: 1, borderColor: "rgba(242,189,92,0.45)", backgroundColor: "rgba(242,189,92,0.08)",
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9,
   },
   compact: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6 },
-  text: { color: "#f59e0b", fontWeight: "700", fontSize: 13 },
+  text: { color: "#f2bd5c", fontWeight: "700", fontSize: 13 },
   textCompact: { fontSize: 13 },
 });

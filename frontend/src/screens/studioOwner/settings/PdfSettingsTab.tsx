@@ -85,7 +85,7 @@ export function PdfSettingsTab() {
     if (!result.canceled && result.assets[0]) signature.mutate(result.assets[0]);
   };
 
-  if (isPending || !form) return <ActivityIndicator color="#6d4aff" style={{ marginTop: 30 }} />;
+  if (isPending || !form) return <ActivityIndicator color="#8cc8f0" style={{ marginTop: 30 }} />;
 
   return (
     <View style={{ gap: 18 }}>
@@ -105,7 +105,7 @@ export function PdfSettingsTab() {
                   <View style={[styles.swatch, { backgroundColor: t.swatch }]} />
                   <Text style={styles.templateName}>{t.name}</Text>
                   {t.key === "Classic" && <Text style={styles.defaultTag}>Default</Text>}
-                  {on && <Ionicons name="checkmark-circle" size={16} color="#6d4aff" style={{ marginLeft: "auto" }} />}
+                  {on && <Ionicons name="checkmark-circle" size={16} color="#ff9a4d" style={{ marginLeft: "auto" }} />}
                 </View>
                 <Text style={styles.small}>{t.text}</Text>
               </Pressable>
@@ -192,11 +192,11 @@ export function PdfSettingsTab() {
 
       <View style={styles.actions}>
         <Pressable style={[styles.secondary, (!colorsValid || preview.isPending) && styles.disabled]} disabled={!colorsValid || preview.isPending} onPress={() => preview.mutate()}>
-          {preview.isPending ? <ActivityIndicator size="small" color="#6d4aff" /> : <Ionicons name="eye-outline" size={15} color="#6d4aff" />}
+          {preview.isPending ? <ActivityIndicator size="small" color="#8cc8f0" /> : <Ionicons name="eye-outline" size={15} color="#8cc8f0" />}
           <Text style={styles.secondaryText}>Preview sample PDF</Text>
         </Pressable>
         <Pressable style={[styles.save, (!colorsValid || save.isPending) && styles.disabled]} disabled={!colorsValid || save.isPending} onPress={() => save.mutate()}>
-          {save.isPending ? <ActivityIndicator color="#f7f7ff" /> : <Text style={styles.saveText}>Save PDF style</Text>}
+          {save.isPending ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.saveText}>Save PDF style</Text>}
         </Pressable>
         <Pressable onPress={() => data && setForm(data)}><Text style={styles.reset}>Discard changes</Text></Pressable>
       </View>
@@ -222,7 +222,7 @@ function Field({ label, value, onChange, placeholder, max }: { label: string; va
   return (
     <View style={styles.field}>
       <Label>{label}</Label>
-      <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#74758c" maxLength={max} />
+      <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#8a9cb6" maxLength={max} />
     </View>
   );
 }
@@ -263,52 +263,52 @@ function ColorField({ label, value, onChange, hint }: { label: string; value: st
         <TextInput style={[styles.input, styles.hexInput, invalid && styles.inputBad]} value={value} placeholder="#1976D2" placeholderTextColor="#8a9cb6"
           onChangeText={(v) => onChange(v.trim().slice(0, 7))} autoCapitalize="characters" />
       </View>
-      <Text style={[styles.small, invalid && { color: "#ef4444" }]}>{invalid ? "Use a colour like #1976D2." : hint}</Text>
+      <Text style={[styles.small, invalid && { color: "#ff9a93" }]}>{invalid ? "Use a colour like #1976D2." : hint}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  intro: { color: "#74758c", fontSize: 13, lineHeight: 19 },
-  section: { borderWidth: 1, borderColor: "#e7e9f5", borderRadius: 12, padding: 16, gap: 10, backgroundColor: "#FFFFFF" },
-  sectionTitle: { color: "#17172f", fontSize: 15, fontWeight: "700" },
+  intro: { color: "#9fb0c5", fontSize: 13, lineHeight: 19 },
+  section: { borderWidth: 1, borderColor: "#1f3149", borderRadius: 12, padding: 16, gap: 10, backgroundColor: "#122033" },
+  sectionTitle: { color: "#e8edf3", fontSize: 15, fontWeight: "700" },
   templates: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  template: { flexGrow: 1, flexBasis: 200, borderWidth: 1, borderColor: "#d9dbec", borderRadius: 10, padding: 12, gap: 6, backgroundColor: "#f5f3ff" },
-  templateOn: { borderColor: "#6d4aff", backgroundColor: "rgba(109,74,255,0.08)" },
+  template: { flexGrow: 1, flexBasis: 200, borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, padding: 12, gap: 6, backgroundColor: "#172a42" },
+  templateOn: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.08)" },
   templateTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   swatch: { width: 14, height: 14, borderRadius: 4 },
-  templateName: { color: "#17172f", fontSize: 14, fontWeight: "700" },
-  defaultTag: { color: "#6d4aff", fontSize: 12, fontWeight: "700", borderWidth: 1, borderColor: "#d9dbec", borderRadius: 100, paddingHorizontal: 6 },
-  small: { color: "#74758c", fontSize: 12 },
-  label: { fontSize: 13, color: "#74758c", marginTop: 2 },
+  templateName: { color: "#e8edf3", fontSize: 14, fontWeight: "700" },
+  defaultTag: { color: "#8cc8f0", fontSize: 12, fontWeight: "700", borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingHorizontal: 6 },
+  small: { color: "#8a9cb6", fontSize: 12 },
+  label: { fontSize: 13, color: "#9fb0c5", marginTop: 2 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   field: { flexGrow: 1, flexBasis: 200, gap: 6 },
-  input: { borderWidth: 1, borderColor: "#d9dbec", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: "#17172f", backgroundColor: "#f5f3ff" },
-  inputBad: { borderColor: "#ef4444" },
+  input: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: "#e8edf3", backgroundColor: "#172a42" },
+  inputBad: { borderColor: "#ff9a93" },
   hexInput: { width: 110 },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, paddingVertical: 4 },
-  switchLabel: { color: "#17172f", fontSize: 14, fontWeight: "600", flexShrink: 1 },
+  switchLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "600", flexShrink: 1 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#d9dbec", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#f5f3ff" },
-  chipOn: { borderColor: "#6d4aff", backgroundColor: "rgba(109,74,255,0.14)" },
-  chipText: { color: "#74758c", fontSize: 12, fontWeight: "600" },
-  chipTextOn: { color: "#6d4aff" },
+  chip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#172a42" },
+  chipOn: { borderColor: "#ff9a4d", backgroundColor: "rgba(255,154,77,0.14)" },
+  chipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
+  chipTextOn: { color: "#ff9a4d" },
   colors: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
   colorDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "transparent" },
-  colorAuto: { width: 44, backgroundColor: "#f5f3ff", borderColor: "#d9dbec", alignItems: "center", justifyContent: "center" },
-  autoText: { color: "#74758c", fontSize: 12, fontWeight: "700" },
-  colorOn: { borderColor: "#17172f" },
+  colorAuto: { width: 44, backgroundColor: "#172a42", borderColor: "#2c4463", alignItems: "center", justifyContent: "center" },
+  autoText: { color: "#9fb0c5", fontSize: 12, fontWeight: "700" },
+  colorOn: { borderColor: "#e8edf3" },
   sigRow: { flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" },
   sigImage: { width: 200, height: 70, borderRadius: 8, backgroundColor: "#ffffff" },
-  sigEmpty: { backgroundColor: "#f5f3ff", borderWidth: 1, borderColor: "#d9dbec", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
-  secondary: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#d9dbec", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#f5f3ff" },
-  secondaryText: { color: "#6d4aff", fontWeight: "700", fontSize: 13 },
-  remove: { color: "#ef4444", fontSize: 13, fontWeight: "600" },
+  sigEmpty: { backgroundColor: "#172a42", borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  secondary: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#172a42" },
+  secondaryText: { color: "#8cc8f0", fontWeight: "700", fontSize: 13 },
+  remove: { color: "#ff9a93", fontSize: 13, fontWeight: "600" },
   actions: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  save: { backgroundColor: "#6d4aff", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 24, alignItems: "center" },
-  saveText: { color: "#f7f7ff", fontWeight: "700" },
-  reset: { color: "#74758c", fontSize: 13, fontWeight: "600" },
+  save: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 24, alignItems: "center" },
+  saveText: { color: "#0b1522", fontWeight: "700" },
+  reset: { color: "#8a9cb6", fontSize: 13, fontWeight: "600" },
   disabled: { opacity: 0.5 },
-  error: { color: "#ef4444", fontSize: 13 },
-  success: { color: "#16a36a", fontSize: 13, fontWeight: "600" },
+  error: { color: "#ff9a93", fontSize: 13 },
+  success: { color: "#6ee0ad", fontSize: 13, fontWeight: "600" },
 });

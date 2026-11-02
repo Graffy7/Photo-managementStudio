@@ -318,12 +318,12 @@ function JobStatus({ job }: { job: CopyJob }) {
     : job.status === "Completed" ? (syncing ? "✓ Selected Photos Synced Successfully" : "✓ Selected Photos Created Successfully")
     : job.status === "CompletedWithErrors" ? (syncing ? "Synced, with some problems" : "Created, with some problems")
     : "Couldn't finish";
-  const tone = running ? "#6d4aff" : job.status === "Completed" ? "#16a36a" : job.status === "CompletedWithErrors" ? "#f59e0b" : "#ef4444";
+  const tone = running ? "#8cc8f0" : job.status === "Completed" ? "#6ee0ad" : job.status === "CompletedWithErrors" ? "#f5c66b" : "#ff9a93";
 
   return (
     <View style={[styles.jobBox, { borderColor: tone }]}>
       <View style={styles.jobHeader}>
-        {running && <ActivityIndicator color="#6d4aff" size="small" />}
+        {running && <ActivityIndicator color="#8cc8f0" size="small" />}
         <Text style={[styles.jobTitle, { color: tone }]}>{title}</Text>
       </View>
 
@@ -351,45 +351,45 @@ function JobStatus({ job }: { job: CopyJob }) {
 }
 
 const styles = StyleSheet.create({
-  section: { backgroundColor: "#FFFFFF", borderRadius: 12, borderWidth: 1, borderColor: "#e7e9f5", padding: 16, gap: 12 },
-  hint: { color: "#74758c", fontSize: 13, lineHeight: 19 },
+  section: { backgroundColor: "#122033", borderRadius: 12, borderWidth: 1, borderColor: "#1f3149", padding: 16, gap: 12 },
+  hint: { color: "#9fb0c5", fontSize: 13, lineHeight: 19 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
-  primaryButton: { backgroundColor: "#6d4aff", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, justifyContent: "center" },
-  primaryText: { color: "#f7f7ff", fontWeight: "700", fontSize: 13 },
-  secondaryButton: { backgroundColor: "#f5f3ff", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: "#d9dbec", justifyContent: "center" },
-  secondaryText: { color: "#6d4aff", fontWeight: "600", fontSize: 13 },
+  primaryButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, justifyContent: "center" },
+  primaryText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  secondaryButton: { backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 18, borderWidth: 1, borderColor: "#2c4463", justifyContent: "center" },
+  secondaryText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
   disabled: { opacity: 0.45 },
-  createdBadge: { backgroundColor: "rgba(22,163,106,0.14)", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(22,163,106,0.4)" },
-  createdText: { color: "#16a36a", fontWeight: "800", fontSize: 13 },
-  infoBox: { backgroundColor: "#f5f3ff", borderRadius: 8, borderWidth: 1, borderColor: "#d9dbec", padding: 12, gap: 3 },
-  infoText: { color: "#74758c", fontSize: 13 },
-  infoStrong: { color: "#6d4aff", fontWeight: "600" },
-  infoMuted: { color: "#74758c", fontSize: 12 },
-  warnText: { color: "#f59e0b", fontSize: 13, lineHeight: 19 },
-  errorText: { color: "#ef4444", fontSize: 13 },
-  okText: { color: "#16a36a", fontSize: 13, lineHeight: 19 },
+  createdBadge: { backgroundColor: "rgba(76,196,147,0.14)", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(76,196,147,0.4)" },
+  createdText: { color: "#6ee0ad", fontWeight: "800", fontSize: 13 },
+  infoBox: { backgroundColor: "#172a42", borderRadius: 8, borderWidth: 1, borderColor: "#2c4463", padding: 12, gap: 3 },
+  infoText: { color: "#9fb0c5", fontSize: 13 },
+  infoStrong: { color: "#8cc8f0", fontWeight: "600" },
+  infoMuted: { color: "#8a9cb6", fontSize: 12 },
+  warnText: { color: "#f5c66b", fontSize: 13, lineHeight: 19 },
+  errorText: { color: "#ff9a93", fontSize: 13 },
+  okText: { color: "#6ee0ad", fontSize: 13, lineHeight: 19 },
 
-  overlay: { flex: 1, backgroundColor: "rgba(23,23,47,0.33)", alignItems: "center", justifyContent: "center", padding: 20 },
-  dialog: { backgroundColor: "#f5f3ff", borderRadius: 14, padding: 22, width: "100%", maxWidth: 460, borderWidth: 1, borderColor: "#d9dbec", gap: 10 },
-  dialogTitle: { color: "#17172f", fontSize: 19, fontWeight: "700" },
-  dialogText: { color: "#74758c", fontSize: 14, lineHeight: 20 },
-  dialogNumbers: { backgroundColor: "#f7f7ff", borderRadius: 8, padding: 12, gap: 3 },
-  dialogLine: { color: "#74758c", fontSize: 14 },
-  strong: { color: "#17172f", fontWeight: "800" },
-  tree: { backgroundColor: "#f7f7ff", borderRadius: 8, padding: 12 },
-  treeText: { color: "#6d4aff", fontSize: 14, fontFamily: "monospace" },
-  dialogSafe: { color: "#16a36a", fontSize: 13, fontWeight: "700" },
+  overlay: { flex: 1, backgroundColor: "rgba(5,10,18,0.72)", alignItems: "center", justifyContent: "center", padding: 20 },
+  dialog: { backgroundColor: "#172a42", borderRadius: 14, padding: 22, width: "100%", maxWidth: 460, borderWidth: 1, borderColor: "#2c4463", gap: 10 },
+  dialogTitle: { color: "#e8edf3", fontSize: 19, fontWeight: "700" },
+  dialogText: { color: "#9fb0c5", fontSize: 14, lineHeight: 20 },
+  dialogNumbers: { backgroundColor: "#0b1522", borderRadius: 8, padding: 12, gap: 3 },
+  dialogLine: { color: "#9fb0c5", fontSize: 14 },
+  strong: { color: "#e8edf3", fontWeight: "800" },
+  tree: { backgroundColor: "#0b1522", borderRadius: 8, padding: 12 },
+  treeText: { color: "#8cc8f0", fontSize: 14, fontFamily: "monospace" },
+  dialogSafe: { color: "#6ee0ad", fontSize: 13, fontWeight: "700" },
   dialogActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 8 },
 
-  jobBox: { borderWidth: 1, borderRadius: 10, padding: 14, gap: 12, backgroundColor: "#f5f3ff" },
+  jobBox: { borderWidth: 1, borderRadius: 10, padding: 14, gap: 12, backgroundColor: "#172a42" },
   jobHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   jobTitle: { fontSize: 15, fontWeight: "800" },
-  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#f7f7ff", overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: "#6d4aff", borderRadius: 4 },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#0b1522", overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: "#8cc8f0", borderRadius: 4 },
   statGrid: { flexDirection: "row", flexWrap: "wrap", gap: 20 },
   stat: { gap: 1 },
-  statValue: { color: "#17172f", fontSize: 18, fontWeight: "800" },
-  statLabel: { color: "#74758c", fontSize: 12 },
-  jobError: { color: "#f59e0b", fontSize: 12, lineHeight: 18 },
-  jobNote: { color: "#74758c", fontSize: 12 },
+  statValue: { color: "#e8edf3", fontSize: 18, fontWeight: "800" },
+  statLabel: { color: "#8a9cb6", fontSize: 12 },
+  jobError: { color: "#f5c66b", fontSize: 12, lineHeight: 18 },
+  jobNote: { color: "#8a9cb6", fontSize: 12 },
 });

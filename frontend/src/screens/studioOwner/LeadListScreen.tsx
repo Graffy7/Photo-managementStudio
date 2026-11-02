@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet } from "react-native";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { leadsApi } from "../../api/leadsApi";
 import { lookupApis } from "../../api/lookupsApi";
 import type { Lead } from "../../types/lead";
-import { StatusPill, type Tone } from "../../components/StatusPill";
+import { StatusPill } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { PERIODS, periodRange, type Period } from "../../utils/periods";
@@ -18,7 +17,7 @@ import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
 import { DataList, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
-import { colors, radius, space, type, transition } from "../../ui/theme";
+import { colors, space, type } from "../../ui/theme";
 
 const PAGE_SIZE = 20;
 
@@ -33,42 +32,6 @@ function formatCurrency(value: number): string {
 function planLine(l: Lead): string | null {
   const parts = [l.eventTypeName, l.expectedEventDate ? formatDate(l.expectedEventDate) : null, l.expectedBudget ? formatCurrency(l.expectedBudget) : null].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
-}
-
-// Enquiry statuses are each studio's own list, so the colour follows the usual meaning of the name.
-function statusTone(name: string): Tone {
-  const n = name.toLowerCase();
-  if (n.includes("won") || n.includes("book") || n.includes("confirm")) return "good";
-  if (n.includes("lost") || n.includes("cancel") || n.includes("reject")) return "bad";
-  if (n.includes("quot") || n.includes("follow")) return "warn";
-  if (n.includes("contact") || n.includes("call")) return "blue";
-  if (n.includes("new")) return "info";
-  return "neutral";
-}
-
-type ActionKind = "neutral" | "primary" | "danger";
-const ACTION_COLORS: Record<ActionKind, { fg: string; hoverBg: string; hoverBorder: string }> = {
-  neutral: { fg: colors.textMuted, hoverBg: "#F5F3FF", hoverBorder: "#D9D2FF" },
-  primary: { fg: colors.primary, hoverBg: colors.primarySoft, hoverBorder: "#CFC4FF" },
-  danger: { fg: colors.danger, hoverBg: colors.dangerSoft, hoverBorder: colors.dangerBorder },
-};
-
-// A compact row action: icon + short label, coloured by what it does (Edit / Convert / Delete).
-function RowAction({ icon, label, kind, onPress, accessibilityLabel }: {
-  icon: keyof typeof Ionicons.glyphMap; label: string; kind: ActionKind; onPress: () => void; accessibilityLabel?: string;
-}) {
-  const c = ACTION_COLORS[kind];
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      style={(state) => [styles.rowAction, (state as { hovered?: boolean }).hovered && { backgroundColor: c.hoverBg, borderColor: c.hoverBorder }]}
-    >
-      <Ionicons name={icon} size={15} color={c.fg} />
-      <Text style={[styles.rowActionText, { color: c.fg }]}>{label}</Text>
-    </Pressable>
-  );
 }
 
 // react-native-web's Alert.alert() is a no-op stub, so confirmations are rendered inline
@@ -135,21 +98,17 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
     return (
       <View style={styles.actionRow}>
         <SubscriptionLock compact>
-          <RowAction icon="create-outline" label="Edit" kind="neutral" onPress={() => onEdit(l)} accessibilityLabel={`Edit enquiry from ${l.fullName}`} />
+          <Button label="Edit" variant="link" onPress={() => onEdit(l)} />
         </SubscriptionLock>
-        {!l.convertedCustomerId && (
-          <RowAction icon="person-add-outline" label="Convert" kind="primary" onPress={() => setPending({ leadId: l.leadId, kind: "convert" })}
-            accessibilityLabel={`Convert ${l.fullName} to a customer`} />
-        )}
-        <RowAction icon="trash-outline" label="Delete" kind="danger" onPress={() => setPending({ leadId: l.leadId, kind: "delete" })}
-          accessibilityLabel={`Delete enquiry from ${l.fullName}`} />
+        {!l.convertedCustomerId && <Button label="Convert" variant="link" onPress={() => setPending({ leadId: l.leadId, kind: "convert" })} />}
+        <Button label="Delete" variant="link" onPress={() => setPending({ leadId: l.leadId, kind: "delete" })} accessibilityLabel={`Delete enquiry from ${l.fullName}`} />
       </View>
     );
   };
 
   const statusPills = (l: Lead) => (
     <View style={styles.pills}>
-      {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone={statusTone(l.leadStatusName)} /> : null}
+      {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone="info" /> : null}
       {!!l.leadSourceName && <StatusPill label={l.leadSourceName} tone="neutral" />}
     </View>
   );
@@ -159,7 +118,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
     { key: "plan", label: "Looking for", flex: 2, render: (l) => <CellSub>{planLine(l) ?? "—"}</CellSub> },
     { key: "status", label: "Status", flex: 1.5, render: statusPills },
     { key: "created", label: "Received", width: 120, sortKey: "created", render: (l) => <CellSub>{formatDate(l.createdAt)}</CellSub> },
-    { key: "actions", label: "Actions", width: 290, align: "right", render: actions },
+    { key: "actions", label: "", width: 250, align: "right", render: actions },
   ];
 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
@@ -185,25 +144,17 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         actions={<SubscriptionLock><Button label="New enquiry" icon="add" variant="primary" onPress={onCreate} /></SubscriptionLock>}
       />
       <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={setFilter(setSearch)} placeholder="Search by name or mobile number" />
-      <View style={styles.filters}>
-        {leadStatuses && leadStatuses.length > 0 && (
-          <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Status</Text>
-            <View style={styles.filterChips}>
-              <FilterChips
-                options={[{ value: null, label: "All" }, ...leadStatuses.map((s) => ({ value: s.id, label: s.name }))] as { value: number | null; label: string }[]}
-                value={leadStatusId}
-                onChange={setFilter(setLeadStatusId)}
-              />
-            </View>
-          </View>
-        )}
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Received</Text>
-          <View style={styles.filterChips}>
-            <FilterChips<Period> options={PERIODS} value={period} onChange={choosePeriod} />
-          </View>
+      {leadStatuses && leadStatuses.length > 0 && (
+        <View style={{ marginBottom: space.md }}>
+          <FilterChips
+            options={[{ value: null, label: "All" }, ...leadStatuses.map((s) => ({ value: s.id, label: s.name }))] as { value: number | null; label: string }[]}
+            value={leadStatusId}
+            onChange={setFilter(setLeadStatusId)}
+          />
         </View>
+      )}
+      <View style={{ marginBottom: space.md }}>
+        <FilterChips<Period> options={PERIODS} value={period} onChange={choosePeriod} />
       </View>
       {period === "custom" && (
         <View style={styles.dates}>
@@ -258,16 +209,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
 const styles = StyleSheet.create({
   dates: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
-  rowAction: {
-    flexDirection: "row", alignItems: "center", gap: 5, height: 32, paddingHorizontal: 10, borderRadius: radius.control,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, ...transition,
-  },
-  rowActionText: { ...type.small, fontWeight: "600" },
-  filters: { gap: space.sm, marginBottom: space.lg },
-  filterRow: { flexDirection: "row", alignItems: "center", gap: space.md },
-  filterLabel: { width: 64, ...type.caption, fontWeight: "700", color: colors.textFaint, textTransform: "uppercase", letterSpacing: 0.6 },
-  filterChips: { flex: 1, minWidth: 0 },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
   confirm: { alignItems: "flex-end", gap: 2 },
   confirmText: { ...type.small, fontWeight: "600", color: colors.danger },
   error: { ...type.caption, color: colors.danger },
@@ -276,5 +218,5 @@ const styles = StyleSheet.create({
   cardTitle: { ...type.heading, color: colors.text },
   cardSub: { ...type.small, color: colors.textMuted },
   cardMeta: { ...type.caption, color: colors.textFaint },
-  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.sm },
+  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.xs, marginHorizontal: -space.sm },
 });

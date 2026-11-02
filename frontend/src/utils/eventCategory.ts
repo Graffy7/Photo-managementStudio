@@ -27,10 +27,10 @@ export const CATEGORY_LABELS: Record<EventCategory, string> = {
 
 export const CATEGORY_COLORS: Record<EventCategory, string> = {
   wedding: "#a78bfa",
-  preWedding: "#16a36a",
-  portrait: "#6d4aff",
-  birthday: "#ef4444",
-  corporate: "#f59e0b",
+  preWedding: "#4cc493",
+  portrait: "#7fc0e6",
+  birthday: "#ff7a72",
+  corporate: "#f2bd5c",
   other: "#8a99ad",
 };
 

@@ -13,7 +13,7 @@ function parts(iso: string) {
 
 // Quiet days are near the card colour; the busiest day is bright blue.
 function shade(count: number, max: number): string {
-  if (count <= 0) return "rgba(116,117,140,0.1)";
+  if (count <= 0) return "rgba(127,160,200,0.10)";
   const t = max <= 1 ? 1 : (count - 1) / (max - 1);
   return `rgba(77,163,255,${(0.32 + 0.68 * t).toFixed(2)})`;
 }

@@ -24,7 +24,7 @@ html.${ROOT_CLASS}, html.${ROOT_CLASS} * { cursor: none !important; }
 .cc-pointer { position: fixed; left: 0; top: 0; width: ${WIDTH}px; height: ${HEIGHT}px; margin: -${HOT_Y}px 0 0 -${HOT_X}px;
   pointer-events: none; z-index: 2147483647; opacity: 0; transition: opacity 120ms ease; will-change: transform; }
 .cc-pointer.cc-visible { opacity: 1; }
-.cc-pointer svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(23,23,47,0.138)); transform-origin: ${HOT_X}px ${HOT_Y}px; }
+.cc-pointer svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55)); transform-origin: ${HOT_X}px ${HOT_Y}px; }
 .cc-glass { transform-origin: ${LENS_X}px ${LENS_Y}px; }
 .cc-pointer.cc-shoot svg { animation: cc-press 240ms cubic-bezier(.2,.8,.2,1); }
 .cc-pointer.cc-shoot .cc-glass { animation: cc-iris 240ms cubic-bezier(.4,0,.2,1); }
@@ -34,13 +34,13 @@ html.${ROOT_CLASS}, html.${ROOT_CLASS} * { cursor: none !important; }
 @keyframes cc-button { 0% { transform: translateY(0); } 35% { transform: translateY(1.5px); } 100% { transform: translateY(0); } }
 .cc-capture { position: fixed; width: 42px; height: 42px; margin: -21px 0 0 -21px; pointer-events: none; z-index: 2147483646;
   animation: cc-frame 320ms cubic-bezier(.2,.8,.2,1) forwards; }
-.cc-capture i { position: absolute; width: 10px; height: 10px; border: 2px solid #6d4aff; box-shadow: 0 0 0 1px rgba(23,23,47,0.3); }
+.cc-capture i { position: absolute; width: 10px; height: 10px; border: 2px solid #ff9a4d; box-shadow: 0 0 0 1px rgba(11,21,34,0.55); }
 .cc-capture i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 3px; }
 .cc-capture i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 3px; }
 .cc-capture i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 3px; }
 .cc-capture i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 3px; }
 .cc-capture b { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%;
-  border: 1.5px solid rgba(23,23,47,0.9); animation: cc-ring 320ms ease-out forwards; }
+  border: 1.5px solid rgba(232,237,243,0.9); animation: cc-ring 320ms ease-out forwards; }
 @keyframes cc-frame { 0% { transform: scale(1.25); opacity: 0; } 25% { opacity: 1; } 60% { transform: scale(0.72); opacity: 1; } 100% { transform: scale(0.72); opacity: 0; } }
 @keyframes cc-ring { 0% { transform: scale(0.3); opacity: 0.9; } 100% { transform: scale(1.15); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
@@ -51,18 +51,18 @@ html.${ROOT_CLASS}, html.${ROOT_CLASS} * { cursor: none !important; }
 
 const CAMERA_SVG = `
 <svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 36 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <rect class="cc-button" x="24.5" y="2.5" width="6" height="4" rx="1.4" fill="#6d4aff" stroke="#f7f7ff" stroke-width="1"/>
-  <path d="M11.5 6.5 13.4 3.3a1.6 1.6 0 0 1 1.4-.8h6.4a1.6 1.6 0 0 1 1.4.8l1.9 3.2z" fill="#17172f" stroke="#f7f7ff" stroke-width="1.2" stroke-linejoin="round"/>
-  <rect x="1.6" y="6.2" width="32.8" height="22.2" rx="5" fill="#17172f" stroke="#f7f7ff" stroke-width="1.2"/>
-  <rect x="4.6" y="9.2" width="5" height="2.6" rx="1.3" fill="#74758c"/>
-  <circle cx="${LENS_X}" cy="${LENS_Y}" r="8.2" fill="#f7f7ff"/>
-  <circle cx="${LENS_X}" cy="${LENS_Y}" r="6.6" fill="#ffffff" stroke="#74758c" stroke-width="0.8"/>
+  <rect class="cc-button" x="24.5" y="2.5" width="6" height="4" rx="1.4" fill="#ff9a4d" stroke="#0b1522" stroke-width="1"/>
+  <path d="M11.5 6.5 13.4 3.3a1.6 1.6 0 0 1 1.4-.8h6.4a1.6 1.6 0 0 1 1.4.8l1.9 3.2z" fill="#f4f7fb" stroke="#0b1522" stroke-width="1.2" stroke-linejoin="round"/>
+  <rect x="1.6" y="6.2" width="32.8" height="22.2" rx="5" fill="#f4f7fb" stroke="#0b1522" stroke-width="1.2"/>
+  <rect x="4.6" y="9.2" width="5" height="2.6" rx="1.3" fill="#9fb0c5"/>
+  <circle cx="${LENS_X}" cy="${LENS_Y}" r="8.2" fill="#0b1522"/>
+  <circle cx="${LENS_X}" cy="${LENS_Y}" r="6.6" fill="#101d2e" stroke="#9fb0c5" stroke-width="0.8"/>
   <g class="cc-glass">
     <circle cx="${LENS_X}" cy="${LENS_Y}" r="5.2" fill="#2f6f9e"/>
     <circle cx="${LENS_X}" cy="${LENS_Y}" r="3" fill="#143a57"/>
     <circle cx="${LENS_X - 1.7}" cy="${LENS_Y - 1.8}" r="1.1" fill="rgba(255,255,255,0.75)"/>
   </g>
-  <circle cx="${LENS_X}" cy="${LENS_Y}" r="0.9" fill="#6d4aff"/>
+  <circle cx="${LENS_X}" cy="${LENS_Y}" r="0.9" fill="#ff9a4d"/>
 </svg>`;
 
 export function CameraCursor() {

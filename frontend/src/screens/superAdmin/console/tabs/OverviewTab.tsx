@@ -180,6 +180,6 @@ const styles = StyleSheet.create({
   flex: { flexGrow: 1, flexBasis: 360, minWidth: 0 },
   fields: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
   inputRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  doneBox: { borderWidth: 1, borderColor: "rgba(22,163,106,0.4)", backgroundColor: "rgba(22,163,106,0.08)", borderRadius: 8, padding: 10, gap: 4 },
+  doneBox: { borderWidth: 1, borderColor: "rgba(76,196,147,0.4)", backgroundColor: "rgba(76,196,147,0.08)", borderRadius: 8, padding: 10, gap: 4 },
   doneText: { color: C.good, fontSize: 13, fontWeight: "600" },
 });

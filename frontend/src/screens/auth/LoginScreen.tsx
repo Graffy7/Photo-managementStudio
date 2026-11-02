@@ -47,7 +47,7 @@ export function LoginScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder="you@studio.com"
-          placeholderTextColor="#8a8ba3"
+          placeholderTextColor="#7c8ba0"
         />
         {submitAttempted && emailWarning ? <Text style={styles.fieldWarning}>{emailWarning}</Text> : null}
 
@@ -58,7 +58,7 @@ export function LoginScreen() {
           onChangeText={setPassword}
           secureTextEntry
           placeholder="••••••••"
-          placeholderTextColor="#8a8ba3"
+          placeholderTextColor="#7c8ba0"
           onSubmitEditing={handleSubmit}
         />
         {submitAttempted && passwordWarning ? <Text style={styles.fieldWarning}>{passwordWarning}</Text> : null}
@@ -87,7 +87,7 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#0d1826",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -95,46 +95,46 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 380,
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(19, 37, 64, 0.72)",
     borderRadius: 12,
     padding: 28,
     borderWidth: 1,
-    borderColor: "rgba(240,236,255,0.8)",
+    borderColor: "rgba(35, 64, 92, 0.8)",
   },
   title: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#17172f",
+    color: "#e8edf3",
     textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
-    color: "#5e5f78",
+    color: "#a7b7cb",
     textAlign: "center",
     marginTop: 4,
     marginBottom: 24,
   },
   label: {
     fontSize: 13,
-    color: "#5e5f78",
+    color: "#a7b7cb",
     marginBottom: 6,
     marginTop: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e7e9f5",
+    borderColor: "#23405c",
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 15,
-    color: "#17172f",
-    backgroundColor: "#ffffff",
+    color: "#e8edf3",
+    backgroundColor: "#0d1826",
   },
   inputInvalid: {
-    borderColor: "#ef4444",
+    borderColor: "#ff7a72",
   },
   fieldWarning: {
-    color: "#ef4444",
+    color: "#ff7a72",
     fontSize: 12,
     marginTop: 6,
   },
@@ -145,17 +145,17 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   forgotLink: {
-    color: "#6d4aff",
+    color: "#7fc0e6",
     fontSize: 13,
     fontWeight: "600",
   },
   error: {
-    color: "#ef4444",
+    color: "#ff7a72",
     marginTop: 14,
     fontSize: 13,
   },
   button: {
-    backgroundColor: "#6d4aff",
+    backgroundColor: "#ff9a4d",
     borderRadius: 8,
     paddingVertical: 13,
     marginTop: 22,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: "#ffffff",
+    color: "#0d1826",
     fontWeight: "700",
     fontSize: 15,
   },

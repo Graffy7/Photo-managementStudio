@@ -5,7 +5,7 @@ import { Button } from "./Button";
 import { Pagination } from "./Pagination";
 import { Skeleton } from "./Skeleton";
 import { useBreakpoint } from "./useBreakpoint";
-import { colors, radius, space, type, shadow, transition, webShadow } from "./theme";
+import { colors, radius, space, type } from "./theme";
 
 export interface Column<T> {
   key: string;
@@ -190,10 +190,8 @@ function TableRow<T>({ item, columns, onPress }: { item: T; columns: Column<T>[]
       disabled={!onPress}
       onHoverIn={() => setHover(true)}
       onHoverOut={() => setHover(false)}
-      style={[styles.row, hover && styles.rowHover]}
+      style={[styles.row, hover && onPress && styles.rowHover]}
     >
-      {/* Thin purple marker on the hovered row. */}
-      {hover && <View style={styles.rowMarker} pointerEvents="none" />}
       {columns.map((c) => (
         <View key={c.key} style={[cellStyle(c), c.align === "right" && styles.right]}>{c.render(item)}</View>
       ))}
@@ -217,8 +215,8 @@ export function CellMoney({ children, tone }: { children: ReactNode; tone?: stri
 }
 
 const styles = StyleSheet.create({
-  table: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", ...webShadow(shadow.card) },
-  headRow: { flexDirection: "row", alignItems: "center", minHeight: 44, paddingHorizontal: space.sm, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: "#FBFBFF" },
+  table: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden" },
+  headRow: { flexDirection: "row", alignItems: "center", minHeight: 44, paddingHorizontal: space.sm, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.bar },
   headPress: { alignSelf: "stretch" },
   headInner: { flexDirection: "row", alignItems: "center", gap: 4 },
   headText: { ...type.caption, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.4 },
@@ -226,14 +224,13 @@ const styles = StyleSheet.create({
   right: { alignItems: "flex-end", justifyContent: "flex-end" },
   row: {
     flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: space.sm, paddingVertical: space.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.border, position: "relative", ...transition,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  rowHover: { backgroundColor: "#FAF8FF" },
-  rowMarker: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, backgroundColor: colors.primary },
+  rowHover: { backgroundColor: colors.cardRaised },
   tableScroll: { overflowX: "auto", overflowY: "hidden" } as object,
   cards: { gap: space.md },
   cardsTwoUp: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: space.md } as object,
-  card: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.sm, ...webShadow(shadow.card) },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.sm },
   pressed: { backgroundColor: colors.cardRaised },
   errorBox: { alignItems: "center", gap: space.md, paddingVertical: 40 },
   errorText: { ...type.body, color: colors.danger, textAlign: "center" },

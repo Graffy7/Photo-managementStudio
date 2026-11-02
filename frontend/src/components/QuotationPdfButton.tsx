@@ -42,10 +42,10 @@ export function QuotationPdfButton({ quotation, onError }: { quotation: Quotatio
     <View>
       <Pressable style={styles.button} onPress={() => setOpen((v) => !v)} disabled={busy}
         accessibilityRole="button" accessibilityLabel={`Download PDF of ${quotation.quotationNumber}`}>
-        {busy ? <ActivityIndicator color="#6d4aff" size="small" /> : (
+        {busy ? <ActivityIndicator color="#7fc0e6" size="small" /> : (
           <>
             <Text style={styles.buttonText}>PDF</Text>
-            <Ionicons name={open ? "chevron-up" : "chevron-down"} size={11} color="#6d4aff" />
+            <Ionicons name={open ? "chevron-up" : "chevron-down"} size={11} color="#7fc0e6" />
           </>
         )}
       </Pressable>
@@ -60,7 +60,7 @@ export function QuotationPdfButton({ quotation, onError }: { quotation: Quotatio
             return (
               <Pressable key={o.key} style={({ hovered }: any) => [styles.item, hovered && !locked && styles.itemHover, locked && { opacity: 0.45 }]}
                 onPress={() => !locked && download(o.key)} disabled={locked} accessibilityRole="button">
-                <Ionicons name={current ? "radio-button-on" : "radio-button-off"} size={15} color={current ? "#6d4aff" : "#74758c"} />
+                <Ionicons name={current ? "radio-button-on" : "radio-button-off"} size={15} color={current ? "#ff9a4d" : "#8a9cb6"} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemTitle}>{o.title}</Text>
                   <Text style={styles.itemText}>{locked ? "Not available: this quotation has a total entered by hand" : o.text}</Text>
@@ -77,17 +77,17 @@ export function QuotationPdfButton({ quotation, onError }: { quotation: Quotatio
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(23,23,47,0.33)", alignItems: "center", justifyContent: "center", padding: 16 },
-  button: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "#d9dbec", borderRadius: 8, paddingHorizontal: 12, minHeight: 40, minWidth: 64, justifyContent: "center" },
-  buttonText: { color: "#6d4aff", fontSize: 14, fontWeight: "600" },
+  backdrop: { flex: 1, backgroundColor: "rgba(4,9,16,0.6)", alignItems: "center", justifyContent: "center", padding: 16 },
+  button: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, minHeight: 40, minWidth: 64, justifyContent: "center" },
+  buttonText: { color: "#8cc8f0", fontSize: 14, fontWeight: "600" },
   menu: {
-    width: "100%", maxWidth: 360, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#e7e9f5",
-    borderRadius: 12, paddingVertical: 8, boxShadow: "0 8px 24px rgba(23,23,47,0.113)",
+    width: "100%", maxWidth: 360, backgroundColor: "#132540", borderWidth: 1, borderColor: "#23405c",
+    borderRadius: 12, paddingVertical: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
   },
-  menuTitle: { color: "#74758c", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, paddingHorizontal: 12, paddingVertical: 6 },
+  menuTitle: { color: "#8a9cb6", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, paddingHorizontal: 12, paddingVertical: 6 },
   item: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  itemHover: { backgroundColor: "rgba(109,74,255,0.08)" },
-  itemTitle: { color: "#17172f", fontSize: 13, fontWeight: "600" },
-  itemText: { color: "#74758c", fontSize: 13, marginTop: 1 },
-  note: { color: "#74758c", fontSize: 12, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 4 },
+  itemHover: { backgroundColor: "rgba(127,192,230,0.08)" },
+  itemTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
+  itemText: { color: "#8a9cb6", fontSize: 13, marginTop: 1 },
+  note: { color: "#8a9cb6", fontSize: 12, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 4 },
 });
