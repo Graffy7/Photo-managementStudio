@@ -22,7 +22,7 @@ function Field({
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholderTextColor="#8a9cb6"
+        placeholderTextColor="#74758c"
         keyboardType={keyboardType}
       />
     </View>
@@ -75,7 +75,7 @@ export function BusinessSettingsTab() {
   });
 
   if (isPending) {
-    return <ActivityIndicator color="#8cc8f0" style={{ marginTop: 40 }} />;
+    return <ActivityIndicator color="#6d4aff" style={{ marginTop: 40 }} />;
   }
 
   return (
@@ -96,7 +96,7 @@ export function BusinessSettingsTab() {
           value={paymentTerms}
           onChangeText={setPaymentTerms}
           placeholder="e.g. 50% advance, balance on delivery"
-          placeholderTextColor="#8a9cb6"
+          placeholderTextColor="#74758c"
           multiline
           numberOfLines={3}
         />
@@ -111,7 +111,7 @@ export function BusinessSettingsTab() {
       {saved ? <Text style={styles.success}>✓ Saved</Text> : null}
 
       <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending}>
-        {mutation.isPending ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.saveText}>Save changes</Text>}
+        {mutation.isPending ? <ActivityIndicator color="#f7f7ff" /> : <Text style={styles.saveText}>Save changes</Text>}
       </Pressable>
     </View>
   );
@@ -120,14 +120,14 @@ export function BusinessSettingsTab() {
 const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", columnGap: 16 },
   field: { flexGrow: 1, minWidth: 200, marginBottom: 16 },
-  label: { fontSize: 13, lineHeight: 18, fontWeight: "600", color: "#e8edf3", marginBottom: 6 },
+  label: { fontSize: 13, lineHeight: 18, fontWeight: "600", color: "#17172f", marginBottom: 6 },
   input: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#0b1522",
+    borderWidth: 1, borderColor: "#d9dbec", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44,
+    fontSize: 15, color: "#17172f", backgroundColor: "#f7f7ff",
   },
   textArea: { minHeight: 64, textAlignVertical: "top" },
-  error: { color: "#ff9a93", fontSize: 13, marginTop: 4 },
-  success: { color: "#6ee0ad", fontSize: 13, marginTop: 4, fontWeight: "600" },
-  saveButton: { backgroundColor: "#ff9a4d", borderRadius: 8, minHeight: 44, justifyContent: "center", alignItems: "center", marginTop: 8, alignSelf: "flex-start", paddingHorizontal: 24 },
-  saveText: { color: "#1a0f05", fontWeight: "600", fontSize: 15 },
+  error: { color: "#ef4444", fontSize: 13, marginTop: 4 },
+  success: { color: "#16a36a", fontSize: 13, marginTop: 4, fontWeight: "600" },
+  saveButton: { backgroundColor: "#6d4aff", borderRadius: 8, minHeight: 44, justifyContent: "center", alignItems: "center", marginTop: 8, alignSelf: "flex-start", paddingHorizontal: 24 },
+  saveText: { color: "#ffffff", fontWeight: "600", fontSize: 15 },
 });

@@ -30,7 +30,7 @@ function loadScript(): Promise<void> {
 export async function openRazorpayCheckout(
   checkout: Checkout,
   onAttemptFailed?: (reason: string) => void,
-  theme = "#ff9a4d",
+  theme = "#6d4aff",
 ): Promise<CheckoutOutcome> {
   if (Platform.OS !== "web") {
     throw new Error("Online payment is available in the web app.");

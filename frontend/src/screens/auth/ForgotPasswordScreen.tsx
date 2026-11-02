@@ -152,7 +152,7 @@ export function ForgotPasswordScreen() {
           </View>
         )}
         {step === "done" && (
-          <View style={styles.doneIcon}><Ionicons name="checkmark" size={30} color="#0d1826" /></View>
+          <View style={styles.doneIcon}><Ionicons name="checkmark" size={30} color="#ffffff" /></View>
         )}
         <Text style={styles.title}>{titles[step][0]}</Text>
         <Text style={styles.subtitle}>{titles[step][1]}</Text>
@@ -165,7 +165,7 @@ export function ForgotPasswordScreen() {
                   <Pressable key={c} style={[styles.segmentItem, channel === c && styles.segmentOn]}
                     onPress={() => { setChannel(c); setIdentifier(""); setError(null); }}
                     accessibilityRole="radio" accessibilityState={{ checked: channel === c }}>
-                    <Ionicons name={c === "Email" ? "mail-outline" : "call-outline"} size={15} color={channel === c ? "#0d1826" : "#a7b7cb"} />
+                    <Ionicons name={c === "Email" ? "mail-outline" : "call-outline"} size={15} color={channel === c ? "#ffffff" : "#5e5f78"} />
                     <Text style={[styles.segmentText, channel === c && styles.segmentTextOn]}>{c === "Email" ? "Email" : "Phone"}</Text>
                   </Pressable>
                 ))}
@@ -180,14 +180,14 @@ export function ForgotPasswordScreen() {
               autoFocus
               keyboardType={channel === "Email" ? "email-address" : "phone-pad"}
               placeholder={channel === "Email" ? "you@studio.com" : "Studio phone number, e.g. 98765 43210"}
-              placeholderTextColor="#7c8ba0"
+              placeholderTextColor="#8a8ba3"
               onSubmitEditing={() => validIdentifier && !busy && sendCode()}
             />
             {channel === "Phone" && <Text style={styles.hint}>Studio owners: the phone number saved in your studio profile.</Text>}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={({ hovered }: any) => [styles.button, hovered && styles.buttonHover, (!validIdentifier || busy) && styles.buttonDisabled]}
               onPress={() => sendCode()} disabled={!validIdentifier || busy}>
-              {busy ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.buttonText}>Send code</Text>}
+              {busy ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Send code</Text>}
             </Pressable>
           </>
         )}
@@ -214,14 +214,14 @@ export function ForgotPasswordScreen() {
                 caretHidden
               />
             </Pressable>
-            <Text style={[styles.meta, expiresIn === 0 && { color: "#ff7a72" }]}>
+            <Text style={[styles.meta, expiresIn === 0 && { color: "#ef4444" }]}>
               {expiresIn > 0 ? `Code expires in ${clock(expiresIn)}` : "This code has expired. Request a new one."}
             </Text>
             {info ? <Text style={styles.info}>{info}</Text> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={({ hovered }: any) => [styles.button, hovered && styles.buttonHover, (code.length !== 6 || busy) && styles.buttonDisabled]}
               onPress={() => verify()} disabled={code.length !== 6 || busy}>
-              {busy ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.buttonText}>Verify code</Text>}
+              {busy ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Verify code</Text>}
             </Pressable>
             <View style={styles.row}>
               <Pressable onPress={() => { setStep("identify"); setError(null); setInfo(null); }}>
@@ -242,22 +242,22 @@ export function ForgotPasswordScreen() {
             <Text style={styles.label}>New password</Text>
             <View>
               <TextInput style={[styles.input, { paddingRight: 44 }]} value={newPassword} onChangeText={setNewPassword}
-                secureTextEntry={!showPassword} autoFocus placeholder="At least 8 characters" placeholderTextColor="#7c8ba0" />
+                secureTextEntry={!showPassword} autoFocus placeholder="At least 8 characters" placeholderTextColor="#8a8ba3" />
               <Pressable style={styles.eye} onPress={() => setShowPassword((v) => !v)}
                 accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"}>
-                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color="#a7b7cb" />
+                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color="#5e5f78" />
               </Pressable>
             </View>
             <Text style={styles.label}>Confirm new password</Text>
             <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword}
-              secureTextEntry={!showPassword} placeholder="Repeat your new password" placeholderTextColor="#7c8ba0"
+              secureTextEntry={!showPassword} placeholder="Repeat your new password" placeholderTextColor="#8a8ba3"
               onSubmitEditing={() => passwordOk && !busy && resetPassword()} />
             {newPassword.length > 0 && newPassword.length < 8 && <Text style={styles.hint}>At least 8 characters.</Text>}
             {confirmPassword.length > 0 && newPassword !== confirmPassword && <Text style={styles.hint}>Passwords don't match yet.</Text>}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={({ hovered }: any) => [styles.button, hovered && styles.buttonHover, (!passwordOk || busy) && styles.buttonDisabled]}
               onPress={resetPassword} disabled={!passwordOk || busy}>
-              {busy ? <ActivityIndicator color="#0d1826" /> : <Text style={styles.buttonText}>Reset password</Text>}
+              {busy ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Reset password</Text>}
             </Pressable>
           </>
         )}
@@ -279,48 +279,48 @@ export function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826", alignItems: "center", justifyContent: "center", padding: 24 },
+  screen: { flex: 1, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center", padding: 24 },
   card: {
-    width: "100%", maxWidth: 400, backgroundColor: "rgba(19, 37, 64, 0.72)", borderRadius: 12,
-    padding: 28, borderWidth: 1, borderColor: "rgba(35, 64, 92, 0.8)",
+    width: "100%", maxWidth: 400, backgroundColor: "rgba(255,255,255,0.72)", borderRadius: 12,
+    padding: 28, borderWidth: 1, borderColor: "rgba(240,236,255,0.8)",
   },
   steps: { flexDirection: "row", gap: 6, justifyContent: "center", marginBottom: 16 },
-  stepDot: { width: 28, height: 4, borderRadius: 2, backgroundColor: "#23405c" },
-  stepDotOn: { backgroundColor: "#ff9a4d" },
-  doneIcon: { alignSelf: "center", width: 52, height: 52, borderRadius: 26, backgroundColor: "#4cc493", alignItems: "center", justifyContent: "center", marginBottom: 14 },
-  title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", textAlign: "center" },
-  subtitle: { fontSize: 13, color: "#a7b7cb", textAlign: "center", marginTop: 8, marginBottom: 20, lineHeight: 19 },
-  segment: { flexDirection: "row", backgroundColor: "#0d1826", borderRadius: 8, borderWidth: 1, borderColor: "#23405c", padding: 3, marginBottom: 16 },
+  stepDot: { width: 28, height: 4, borderRadius: 2, backgroundColor: "#e7e9f5" },
+  stepDotOn: { backgroundColor: "#6d4aff" },
+  doneIcon: { alignSelf: "center", width: 52, height: 52, borderRadius: 26, backgroundColor: "#16a36a", alignItems: "center", justifyContent: "center", marginBottom: 14 },
+  title: { fontSize: 22, fontWeight: "700", color: "#17172f", textAlign: "center" },
+  subtitle: { fontSize: 13, color: "#5e5f78", textAlign: "center", marginTop: 8, marginBottom: 20, lineHeight: 19 },
+  segment: { flexDirection: "row", backgroundColor: "#ffffff", borderRadius: 8, borderWidth: 1, borderColor: "#e7e9f5", padding: 3, marginBottom: 16 },
   segmentItem: { flex: 1, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 6 },
-  segmentOn: { backgroundColor: "#ff9a4d" },
-  segmentText: { color: "#a7b7cb", fontWeight: "600", fontSize: 13.5 },
-  segmentTextOn: { color: "#0d1826" },
-  label: { fontSize: 13, color: "#a7b7cb", marginBottom: 6, marginTop: 12 },
+  segmentOn: { backgroundColor: "#6d4aff" },
+  segmentText: { color: "#5e5f78", fontWeight: "600", fontSize: 13.5 },
+  segmentTextOn: { color: "#ffffff" },
+  label: { fontSize: 13, color: "#5e5f78", marginBottom: 6, marginTop: 12 },
   input: {
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#0d1826",
+    borderWidth: 1, borderColor: "#e7e9f5", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#17172f", backgroundColor: "#ffffff",
   },
   eye: { position: "absolute", right: 6, top: 0, bottom: 0, width: 36, alignItems: "center", justifyContent: "center" },
   codeBoxes: { flexDirection: "row", gap: 8, justifyContent: "center", position: "relative" },
   codeBox: {
-    width: 44, height: 54, borderRadius: 8, borderWidth: 1, borderColor: "#23405c", backgroundColor: "#0d1826",
+    width: 44, height: 54, borderRadius: 8, borderWidth: 1, borderColor: "#e7e9f5", backgroundColor: "#ffffff",
     alignItems: "center", justifyContent: "center",
   },
-  codeBoxActive: { borderColor: "#ff9a4d" },
-  codeBoxFilled: { borderColor: "#7fc0e6" },
-  codeDigit: { color: "#e8edf3", fontSize: 24, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  codeBoxActive: { borderColor: "#6d4aff" },
+  codeBoxFilled: { borderColor: "#6d4aff" },
+  codeDigit: { color: "#17172f", fontSize: 24, fontWeight: "700", fontVariant: ["tabular-nums"] },
   hiddenInput: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0, color: "transparent" },
-  meta: { color: "#a7b7cb", fontSize: 13, textAlign: "center", marginTop: 12 },
+  meta: { color: "#5e5f78", fontSize: 13, textAlign: "center", marginTop: 12 },
   row: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
-  link: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
-  linkOff: { color: "#8a9cb6" },
-  hint: { color: "#8a9cb6", fontSize: 12, marginTop: 8 },
-  info: { color: "#4cc493", fontSize: 13, marginTop: 12, textAlign: "center" },
-  error: { color: "#ff7a72", marginTop: 12, fontSize: 13, textAlign: "center" },
-  button: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 13, marginTop: 18, alignItems: "center" },
-  buttonHover: { backgroundColor: "#ffb071" },
+  link: { color: "#6d4aff", fontSize: 13, fontWeight: "600" },
+  linkOff: { color: "#74758c" },
+  hint: { color: "#74758c", fontSize: 12, marginTop: 8 },
+  info: { color: "#16a36a", fontSize: 13, marginTop: 12, textAlign: "center" },
+  error: { color: "#ef4444", marginTop: 12, fontSize: 13, textAlign: "center" },
+  button: { backgroundColor: "#6d4aff", borderRadius: 8, paddingVertical: 13, marginTop: 18, alignItems: "center" },
+  buttonHover: { backgroundColor: "#5835e8" },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#0d1826", fontWeight: "700", fontSize: 15 },
+  buttonText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   backLink: { marginTop: 18, alignItems: "center" },
-  backLinkText: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
+  backLinkText: { color: "#6d4aff", fontSize: 13, fontWeight: "600" },
 });

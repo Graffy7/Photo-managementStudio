@@ -20,18 +20,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#2c4463",
+    backgroundColor: "#d9dbec",
     padding: 2,
     justifyContent: "center",
   },
   trackOn: {
-    backgroundColor: "#ff9a4d",
+    backgroundColor: "#6d4aff",
   },
   thumb: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#e8edf3",
+    backgroundColor: "#17172f",
     alignSelf: "flex-start",
   },
   thumbOn: {

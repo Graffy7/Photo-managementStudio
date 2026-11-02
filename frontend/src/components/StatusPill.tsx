@@ -1,14 +1,15 @@
 import { View, Text, StyleSheet } from "react-native";
 import { colors, radius } from "../ui/theme";
 
-export type Tone = "good" | "bad" | "warn" | "info" | "neutral";
+export type Tone = "good" | "bad" | "warn" | "info" | "blue" | "neutral";
 
 const TONE_COLORS: Record<Tone, { bg: string; fg: string }> = {
   good: { bg: colors.successSoft, fg: colors.success },
   bad: { bg: colors.dangerSoft, fg: colors.danger },
   warn: { bg: colors.warningSoft, fg: colors.warning },
-  info: { bg: colors.infoSoft, fg: colors.info },
-  neutral: { bg: "rgba(159,176,197,0.14)", fg: colors.textMuted },
+  info: { bg: colors.primarySoft, fg: colors.primary },
+  blue: { bg: "#EAF2FE", fg: "#2F6FDB" },
+  neutral: { bg: "#F1F2F7", fg: colors.textMuted },
 };
 
 // Colour carries meaning only: green done/paid, amber waiting, red cancelled/overdue, blue upcoming.

@@ -10,7 +10,7 @@ import { settingsApi } from "../api/settingsApi";
 import { API_BASE_URL } from "../constants/config";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { NAV_GROUPS } from "./navItems";
-import { colors, radius, space, type } from "../ui/theme";
+import { colors, radius, space, type, transition } from "../ui/theme";
 
 interface SidebarProps {
   navigationRef: NavigationContainerRefWithCurrent<any>;
@@ -119,16 +119,26 @@ export function NavList({ activeRoute, onNavigate, large }: { activeRoute: strin
               return (
                 <Pressable
                   key={item.route}
-                  style={({ pressed }) => [styles.item, large && styles.itemLarge, active && styles.itemActive, pressed && !active && styles.itemPressed]}
+                  style={(state) => {
+                    const hovered = (state as { hovered?: boolean }).hovered;
+                    return [styles.item, large && styles.itemLarge, hovered && !active && styles.itemHover, active && styles.itemActive, state.pressed && !active && styles.itemPressed];
+                  }}
                   onPress={() => onNavigate(item.route)}
                   accessibilityRole="link"
                   accessibilityState={{ selected: active }}
                 >
-                  <Ionicons name={item.icon} size={large ? 22 : 18} color={active ? colors.primary : colors.textMuted} />
-                  <Text style={[styles.label, large && styles.labelLarge, active && styles.labelActive]} numberOfLines={1}>{item.label}</Text>
-                  {badge > 0 && (
-                    <View style={styles.badge}><Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text></View>
-                  )}
+                  {(state) => {
+                    const lit = active || !!(state as { hovered?: boolean }).hovered;
+                    return (
+                      <>
+                        <Ionicons name={item.icon} size={large ? 22 : 18} color={lit ? colors.primary : colors.textMuted} />
+                        <Text style={[styles.label, large && styles.labelLarge, lit && styles.labelActive]} numberOfLines={1}>{item.label}</Text>
+                        {badge > 0 && (
+                          <View style={styles.badge}><Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text></View>
+                        )}
+                      </>
+                    );
+                  }}
                 </Pressable>
               );
             })}
@@ -161,9 +171,20 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
       <View style={styles.extras}>
         <CameraCursorToggle />
       </View>
-      <Pressable style={({ pressed }) => [styles.signOut, pressed && styles.itemPressed]} onPress={() => logout()} accessibilityRole="button">
-        <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
-        <Text style={styles.label}>Sign out</Text>
+      <Pressable
+        style={(state) => [styles.signOut, (state as { hovered?: boolean }).hovered && styles.signOutHover, state.pressed && styles.itemPressed]}
+        onPress={() => logout()}
+        accessibilityRole="button"
+      >
+        {(state) => {
+          const hovered = !!(state as { hovered?: boolean }).hovered;
+          return (
+            <>
+              <Ionicons name="log-out-outline" size={18} color={hovered ? colors.danger : colors.textMuted} />
+              <Text style={[styles.label, hovered && { color: colors.danger }]}>Sign out</Text>
+            </>
+          );
+        }}
       </Pressable>
     </View>
   );
@@ -171,7 +192,7 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 250, backgroundColor: colors.bar, borderRightWidth: 1, borderRightColor: colors.border,
+    width: 232, backgroundColor: colors.bar, borderRightWidth: 1, borderRightColor: colors.border,
     paddingTop: space.lg, paddingHorizontal: space.md,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.xs, marginBottom: space.lg },
@@ -181,19 +202,21 @@ const styles = StyleSheet.create({
   brandSub: { ...type.caption, color: colors.textFaint },
   groupHeader: {
     flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: 34, paddingHorizontal: space.md,
-    borderRadius: radius.control, marginTop: space.xs,
+    borderRadius: radius.control, marginTop: space.md,
   },
   groupHeaderLarge: { minHeight: 44 },
-  groupTitle: { ...type.caption, color: colors.textFaint, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", flex: 1 },
+  groupTitle: { ...type.caption, fontSize: 11, color: colors.textFaint, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", flex: 1 },
   groupTitleLarge: { fontSize: 13 },
   groupTitleActive: { color: colors.primary },
   item: {
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 38, paddingHorizontal: space.md,
-    borderRadius: radius.control, marginBottom: 1,
+    borderRadius: radius.control, marginBottom: 2, ...transition,
   },
   itemLarge: { minHeight: 48 },
+  // Hover: lavender fades in and the item slides 2px right.
+  itemHover: { backgroundColor: "#F7F5FF", transform: [{ translateX: 2 }] },
   itemActive: { backgroundColor: colors.primarySoft },
-  itemPressed: { backgroundColor: colors.cardRaised },
+  itemPressed: { backgroundColor: colors.primarySoft },
   label: { ...type.small, fontWeight: "600", color: colors.textMuted, flex: 1 },
   labelLarge: { fontSize: 16 },
   labelActive: { color: colors.primary },
@@ -201,10 +224,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger, borderRadius: radius.pill, minWidth: 20, height: 20, paddingHorizontal: 5,
     alignItems: "center", justifyContent: "center",
   },
-  badgeText: { color: colors.page, fontSize: 11, fontWeight: "700" },
+  badgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
   extras: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.xs },
   signOut: {
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.md,
-    marginBottom: space.sm, borderRadius: radius.control,
+    marginBottom: space.sm, borderRadius: radius.control, ...transition,
   },
+  signOutHover: { backgroundColor: colors.dangerSoft, transform: [{ translateX: 2 }] },
 });
