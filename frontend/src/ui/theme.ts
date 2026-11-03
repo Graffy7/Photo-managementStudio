@@ -3,59 +3,61 @@ import { Platform } from "react-native";
 // Studio OS design tokens - the one place colours, spacing, sizes and type live. Screens import
 // these instead of repeating hex values, so the whole app stays consistent and can be tuned here.
 //
-// Theme: warm, muted, editorial - linen page, stone cards and sidebar, a quiet slate accent and a
-// soft gold reserved for photography highlights. No pure white, nothing bright.
+// Premium Dark Photography theme: soft charcoal surfaces (never pure black), a muted lavender
+// accent, calm status colours and quiet 1px outlines - comfortable for long working hours.
 
 export const colors = {
   // Surfaces
-  page: "#F1F0EC",
-  bar: "#DAD9D3", // sidebar, top/bottom bars
-  card: "#E5E4DF",
-  cardRaised: "#ECEBE6", // inputs and raised areas on a card
-  hover: "#DEDDD7", // soft highlight for hovered rows/items
-  border: "#D2D1CA",
-  borderStrong: "#C4C3BB",
+  page: "#191B22",
+  bar: "#20232B", // sidebar, top/bottom bars
+  card: "#22252E",
+  cardRaised: "#292C36", // secondary surface: inputs, raised areas
+  hover: "#303441",
+  border: "#343746",
+  borderStrong: "#4B4F63", // hover / emphasis border
+  divider: "#30333D",
 
   // Text
-  text: "#292B31",
-  textMuted: "#6F7078",
-  textFaint: "#8A8B92",
+  text: "#E6E7EC",
+  textMuted: "#A1A5B3",
+  textFaint: "#7D8292",
+  textDisabled: "#656A78",
 
-  // The one action colour: main buttons and "you are here"
-  primary: "#56566B",
-  primaryHover: "#454559",
-  onPrimary: "#F6F5F1",
-  primarySoft: "#CFCED2",
+  // Primary accent: lavender. Text on a lavender fill is charcoal for contrast.
+  primary: "#B5A5FF",
+  primaryHover: "#9C89F5",
+  onPrimary: "#191B22",
+  primarySoft: "rgba(181,165,255,0.12)",
 
-  // Photography accent - used sparingly (highlights, the active marker, "Big" prints)
-  accent: "#C5A477",
-  accentSoft: "#EADFCC",
+  // Same lavender, for the small "you are here" markers.
+  accent: "#B5A5FF",
+  accentSoft: "rgba(181,165,255,0.12)",
 
   // Links and secondary highlights
-  link: "#4F5D75",
+  link: "#B5A5FF",
 
-  // Status only - muted, never decoration
-  success: "#4E7D5B",
-  successSoft: "#DCE5DA",
-  warning: "#A0762E",
-  warningSoft: "#EFE3CC",
-  danger: "#A3473F",
-  dangerSoft: "#EED8D3",
-  dangerBorder: "#D9B3AC",
-  info: "#56566B",
-  infoSoft: "#DCDBE0",
+  // Status - muted
+  success: "#78C9A4",
+  successSoft: "rgba(120,201,164,0.14)",
+  warning: "#E5B86B",
+  warningSoft: "rgba(229,184,107,0.14)",
+  danger: "#E58B91",
+  dangerSoft: "rgba(229,139,145,0.14)",
+  dangerBorder: "rgba(229,139,145,0.4)",
+  info: "#85B9E8",
+  infoSoft: "rgba(133,185,232,0.14)",
 
-  // Photo selection sizes (customer page) - two clearly different, calm colours
-  normal: "#5B7A99",
-  big: "#B08D5B",
+  // Photo selection sizes (customer page) - two clearly different colours
+  normal: "#85B9E8",
+  big: "#E5B86B",
 } as const;
 
-// Soft, warm shadows (web). Native relies on the 1px borders.
+// Soft shadows (web). Native relies on the 1px borders.
 export const shadow = {
-  card: "0 1px 2px rgba(41,43,49,0.05)",
-  cardHover: "0 4px 14px rgba(41,43,49,0.08)",
-  button: "0 4px 12px rgba(69,69,89,0.22)",
-  menu: "0 12px 32px rgba(41,43,49,0.16)",
+  card: "0 1px 2px rgba(8,9,13,0.35)",
+  cardHover: "0 6px 18px rgba(8,9,13,0.45)",
+  button: "0 6px 16px rgba(156,137,245,0.25)",
+  menu: "0 14px 36px rgba(8,9,13,0.6)",
 } as const;
 
 // One timing for every hover/focus change (180-250ms, no bounce).
@@ -64,10 +66,18 @@ export const motion = {
   transitionTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
 } as const;
 
+// People who ask their system for reduced motion get instant changes instead of animations.
+const reduceMotion =
+  Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function"
+  && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 // Spread into a style to animate hover/focus changes on the web (ignored on phones).
-export const transition = (Platform.OS === "web"
+export const transition = (Platform.OS === "web" && !reduceMotion
   ? { transitionProperty: "background-color, border-color, color, box-shadow, transform, opacity", ...motion }
   : {}) as object;
+
+// Hover movement (lift / slide / zoom) - none at all when reduced motion is on.
+export const hoverMotion = (transform: object[]) => (reduceMotion ? {} : { transform }) as object;
 
 // Web-only box shadow (native has none; the 1px borders carry the separation there).
 export const webShadow = (value: string) => (Platform.OS === "web" ? ({ boxShadow: value } as object) : {});
@@ -83,13 +93,15 @@ export const radius = { control: 8, card: 12, pill: 999 } as const;
 // Minimum comfortable touch target on phones
 export const touch = 44;
 
-// Type scale: page titles 24/600, section headings 16/600, table content 14, labels 13.
+// Type scale: page titles 24/600, section headings 16/600, card titles 15/600, table text 14,
+// secondary text 13, small labels 12/500.
 export const type = {
   title: { fontSize: 24, fontWeight: "600" as const, lineHeight: 32 },
   heading: { fontSize: 16, fontWeight: "600" as const, lineHeight: 22 },
+  cardTitle: { fontSize: 15, fontWeight: "600" as const, lineHeight: 21 },
   body: { fontSize: 14, lineHeight: 21 },
   small: { fontSize: 13, lineHeight: 19 },
-  caption: { fontSize: 12, lineHeight: 16 },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: "500" as const },
 } as const;
 
 // Screen sizes: phone < 600 <= tablet < 1024 <= desktop

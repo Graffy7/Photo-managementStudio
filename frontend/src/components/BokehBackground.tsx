@@ -12,20 +12,20 @@ interface Blob {
 // Fixed, hand-placed bokeh orbs — the out-of-focus-lens look that reads as "camera" at a glance,
 // scattered off-grid on purpose so it doesn't feel like a repeating pattern.
 const BLOBS: Blob[] = [
-  { size: 260, top: "-8%", left: "-6%", color: "#56566B", opacity: 0.16 },
-  { size: 140, top: "62%", left: "-4%", color: "#4F5D75", opacity: 0.14 },
-  { size: 90, top: "8%", left: "78%", color: "#56566B", opacity: 0.12 },
+  { size: 260, top: "-8%", left: "-6%", color: "#B5A5FF", opacity: 0.16 },
+  { size: 140, top: "62%", left: "-4%", color: "#B5A5FF", opacity: 0.14 },
+  { size: 90, top: "8%", left: "78%", color: "#B5A5FF", opacity: 0.12 },
   { size: 320, top: "55%", left: "68%", color: "#C5A477", opacity: 0.12 },
-  { size: 60, top: "38%", left: "18%", color: "#454559", opacity: 0.1 },
-  { size: 180, top: "-10%", left: "48%", color: "#4F5D75", opacity: 0.09 },
-  { size: 46, top: "80%", left: "40%", color: "#56566B", opacity: 0.15 },
+  { size: 60, top: "38%", left: "18%", color: "#9C89F5", opacity: 0.1 },
+  { size: 180, top: "-10%", left: "48%", color: "#B5A5FF", opacity: 0.09 },
+  { size: 46, top: "80%", left: "40%", color: "#B5A5FF", opacity: 0.15 },
 ];
 
 export function BokehBackground() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <LinearGradient
-        colors={["#F1F0EC", "#E5E4DF", "#ECEBE6"]}
+        colors={["#191B22", "#22252E", "#292C36"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}

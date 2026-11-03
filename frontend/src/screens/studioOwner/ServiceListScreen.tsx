@@ -12,6 +12,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { RowAction } from "../../ui/RowAction";
 import { DataList, CellMoney, CellSub, CellTitle, type Column } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
 
@@ -47,12 +48,15 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
   const actions = (s: StudioService) => (
     <View style={styles.actionRow}>
       <SubscriptionLock compact>
-        <Button label="Edit" variant="link" onPress={() => onEdit(s)} />
+        <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(s)} accessibilityLabel={`Edit ${s.serviceName}`} />
       </SubscriptionLock>
-      <Button
+      <RowAction
+        iconOnly
+        icon={s.isActive ? "pause-circle-outline" : "play-circle-outline"}
         label={s.isActive ? "Deactivate" : "Activate"}
-        variant="link"
+        kind={s.isActive ? "neutral" : "primary"}
         onPress={() => (s.isActive ? deactivate.mutate(s.serviceId) : activate.mutate(s.serviceId))}
+        accessibilityLabel={`${s.isActive ? "Deactivate" : "Activate"} ${s.serviceName}`}
       />
     </View>
   );
@@ -61,7 +65,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
     { key: "name", label: "Service", flex: 3, render: (s) => (<><CellTitle>{s.serviceName}</CellTitle>{s.description ? <CellSub>{s.description}</CellSub> : null}</>) },
     { key: "price", label: "Default price", width: 140, align: "right", render: (s) => <CellMoney>{formatCurrency(s.defaultPrice)}</CellMoney> },
     { key: "status", label: "Status", width: 120, render: (s) => <StatusPill label={s.isActive ? "Active" : "Inactive"} tone={s.isActive ? "good" : "neutral"} /> },
-    { key: "actions", label: "", width: 180, align: "right", render: actions },
+    { key: "actions", label: "", width: 90, align: "right", render: actions },
   ];
 
   const filtered = !!search || active !== "all";
@@ -120,7 +124,7 @@ export function ServiceListScreen({ onCreate, onEdit }: { onCreate: () => void; 
 }
 
 const styles = StyleSheet.create({
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
   cardPrice: { ...type.body, fontWeight: "600", color: colors.text, fontVariant: ["tabular-nums"] },

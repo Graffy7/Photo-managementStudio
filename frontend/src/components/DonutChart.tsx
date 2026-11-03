@@ -123,7 +123,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
           </Defs>
 
           {/* The empty track the slices sweep around. */}
-          <Circle cx={center} cy={center} r={radius} stroke="#D2D1CA" strokeWidth={strokeWidth} fill="none" opacity={0.7} />
+          <Circle cx={center} cy={center} r={radius} stroke="#343746" strokeWidth={strokeWidth} fill="none" opacity={0.7} />
 
           {arcs.map((a) => {
             const dim = hover !== null && hover !== a.index;
@@ -195,19 +195,19 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 18 },
   center: { position: "absolute", top: 0, left: 0, alignItems: "center", justifyContent: "center" },
-  centerValue: { fontSize: 30, fontWeight: "800", color: "#292B31" },
-  centerLabel: { fontSize: 12, color: "#6F7078", marginTop: 2 },
+  centerValue: { fontSize: 30, fontWeight: "800", color: "#E6E7EC" },
+  centerLabel: { fontSize: 12, color: "#A1A5B3", marginTop: 2 },
   hitArea: { position: "absolute", top: 0, left: 0 },
 
   legend: { gap: 4, flex: 1 },
   legendItem: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, gap: 6, borderWidth: 1, borderColor: "transparent" },
-  legendItemActive: { backgroundColor: "rgba(86,86,107,0.06)", borderColor: "#D2D1CA" },
+  legendItemActive: { backgroundColor: "rgba(181,165,255,0.06)", borderColor: "#343746" },
   legendDim: { opacity: 0.45 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   dot: { width: 9, height: 9, borderRadius: 5 },
-  legendLabel: { color: "#55565E", fontSize: 13, flex: 1 },
-  legendValue: { color: "#292B31", fontSize: 13, fontWeight: "700" },
-  legendShare: { color: "#6F7078", fontSize: 12, width: 34, textAlign: "right" },
-  bar: { height: 3, borderRadius: 2, backgroundColor: "#D2D1CA", overflow: "hidden" },
+  legendLabel: { color: "#A1A5B3", fontSize: 13, flex: 1 },
+  legendValue: { color: "#E6E7EC", fontSize: 13, fontWeight: "700" },
+  legendShare: { color: "#A1A5B3", fontSize: 12, width: 34, textAlign: "right" },
+  bar: { height: 3, borderRadius: 2, backgroundColor: "#343746", overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 2 },
 });

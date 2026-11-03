@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: colors.primary },
 
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, justifyContent: "flex-end" },
-  backdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(41,43,49,0.36)" },
+  backdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(8,9,13,0.5)" },
   sheet: {
     maxHeight: "85%", backgroundColor: colors.bar, borderTopLeftRadius: 16, borderTopRightRadius: 16,
     borderTopWidth: 1, borderColor: colors.border,

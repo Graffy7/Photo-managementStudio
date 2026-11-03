@@ -120,7 +120,7 @@ export function LookupTypeField({
               <Text style={styles.cancelInline}>Cancel</Text>
             </Pressable>
             <Pressable style={styles.confirmButton} onPress={() => remove.mutate(pendingDelete.id)} disabled={remove.isPending}>
-              {remove.isPending ? <ActivityIndicator color="#A3473F" size="small" /> : <Text style={styles.confirmButtonText}>Confirm Delete</Text>}
+              {remove.isPending ? <ActivityIndicator color="#E58B91" size="small" /> : <Text style={styles.confirmButtonText}>Confirm Delete</Text>}
             </Pressable>
           </View>
         </View>
@@ -133,12 +133,12 @@ export function LookupTypeField({
             value={newName}
             onChangeText={setNewName}
             placeholder={`${noun[0].toUpperCase()}${noun.slice(1)} name`}
-            placeholderTextColor="#6F7078"
+            placeholderTextColor="#A1A5B3"
             autoFocus
             onSubmitEditing={confirmNew}
           />
           <Pressable style={styles.okButton} onPress={confirmNew} disabled={create.isPending}>
-            {create.isPending ? <ActivityIndicator color="#F1F0EC" /> : <Text style={styles.okText}>OK</Text>}
+            {create.isPending ? <ActivityIndicator color="#191B22" /> : <Text style={styles.okText}>OK</Text>}
           </Pressable>
         </View>
       )}
@@ -150,34 +150,34 @@ export function LookupTypeField({
 
 const styles = StyleSheet.create({
   labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, marginBottom: 6 },
-  label: { fontSize: 13, color: "#6F7078" },
-  deleteLink: { color: "#A3473F", fontSize: 12, fontWeight: "600" },
-  doneLink: { color: "#4F5D75", fontSize: 12, fontWeight: "700" },
+  label: { fontSize: 13, color: "#A1A5B3" },
+  deleteLink: { color: "#E58B91", fontSize: 12, fontWeight: "600" },
+  doneLink: { color: "#B5A5FF", fontSize: 12, fontWeight: "700" },
 
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#ECEBE6" },
-  chipSelected: { borderColor: "#56566B", backgroundColor: "rgba(86,86,107,0.14)" },
-  chipText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#56566B" },
-  addChipText: { color: "#4F5D75", fontSize: 12, fontWeight: "700" },
-  chipDelete: { borderColor: "#5a3a3d", backgroundColor: "rgba(163,71,63,0.06)" },
-  chipDeletePending: { borderColor: "#A3473F", backgroundColor: "rgba(163,71,63,0.18)" },
-  chipDeleteText: { color: "#A3473F", fontSize: 12, fontWeight: "600" },
+  chip: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#292C36" },
+  chipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
+  chipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  chipTextSelected: { color: "#B5A5FF" },
+  addChipText: { color: "#B5A5FF", fontSize: 12, fontWeight: "700" },
+  chipDelete: { borderColor: "#5a3a3d", backgroundColor: "rgba(229,139,145,0.06)" },
+  chipDeletePending: { borderColor: "#E58B91", backgroundColor: "rgba(229,139,145,0.18)" },
+  chipDeleteText: { color: "#E58B91", fontSize: 12, fontWeight: "600" },
 
-  deleteHint: { color: "#6F7078", fontSize: 13, marginTop: 8 },
+  deleteHint: { color: "#A1A5B3", fontSize: 13, marginTop: 8 },
   confirmRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 10 },
-  confirmText: { color: "#A3473F", fontSize: 13, fontWeight: "600", flexShrink: 1 },
+  confirmText: { color: "#E58B91", fontSize: 13, fontWeight: "600", flexShrink: 1 },
   confirmActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  cancelInline: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
-  confirmButton: { borderWidth: 1, borderColor: "#A3473F", backgroundColor: "rgba(163,71,63,0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
-  confirmButtonText: { color: "#A3473F", fontSize: 12, fontWeight: "700" },
+  cancelInline: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  confirmButton: { borderWidth: 1, borderColor: "#E58B91", backgroundColor: "rgba(229,139,145,0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
+  confirmButtonText: { color: "#E58B91", fontSize: 12, fontWeight: "700" },
 
   addRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   input: {
-    flex: 1, borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#292B31", backgroundColor: "#ECEBE6",
+    flex: 1, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#E6E7EC", backgroundColor: "#292C36",
   },
-  okButton: { backgroundColor: "#56566B", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
-  okText: { color: "#F1F0EC", fontWeight: "700", fontSize: 14 },
-  error: { color: "#A3473F", marginTop: 8, fontSize: 13 },
+  okButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
+  okText: { color: "#191B22", fontWeight: "700", fontSize: 14 },
+  error: { color: "#E58B91", marginTop: 8, fontSize: 13 },
 });

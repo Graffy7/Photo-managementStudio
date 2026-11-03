@@ -14,6 +14,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { RowAction } from "../../ui/RowAction";
 import { DataList, CellMoney, CellSub, CellTitle, type Column } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
 
@@ -83,9 +84,9 @@ export function ExpenseListScreen({
         ) : (
           <>
             <SubscriptionLock compact>
-              <Button label="Edit" variant="link" onPress={() => onEdit(e)} />
+              <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(e)} accessibilityLabel="Edit expense" />
             </SubscriptionLock>
-            <Button label="Delete" variant="link" onPress={() => { setPendingDeleteId(e.expenseId); setActionError(null); }} />
+            <RowAction iconOnly icon="trash-outline" label="Delete" kind="danger" onPress={() => { setPendingDeleteId(e.expenseId); setActionError(null); }} accessibilityLabel="Delete expense" />
           </>
         )}
       </View>
@@ -104,7 +105,7 @@ export function ExpenseListScreen({
     },
     { key: "status", label: "Status", width: 110, render: (e) => <StatusPill label={e.paymentStatus} tone={e.paymentStatus === "Paid" ? "good" : "warn"} /> },
     { key: "amount", label: "Amount", width: 130, align: "right", render: (e) => <CellMoney>{formatCurrency(e.amount)}</CellMoney> },
-    { key: "actions", label: "", width: 190, align: "right", render: actions },
+    { key: "actions", label: "", width: 120, align: "right", render: actions },
   ];
 
   const filtered = !!search || categoryId !== null;

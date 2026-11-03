@@ -34,8 +34,8 @@ const PRESETS: { value: ReportPreset; label: string }[] = [
 ];
 
 // One colour per meaning across the page: blue bookings, green money, orange still to pay, red cancelled.
-const C = { blue: "#5B7A99", green: "#4E7D5B", orange: "#A0762E", red: "#A3473F", sky: "#4F5D75" };
-const TYPE_COLORS = ["#5B7A99", "#8C7FA6", "#4E7D5B", "#A0762E", "#A3473F", "#5ad8e6", "#f58ac8", "#9fb3c8"];
+const C = { blue: "#5B7A99", green: "#78C9A4", orange: "#E5B86B", red: "#E58B91", sky: "#B5A5FF" };
+const TYPE_COLORS = ["#5B7A99", "#8C7FA6", "#78C9A4", "#E5B86B", "#E58B91", "#5ad8e6", "#f58ac8", "#A1A5B3"];
 
 const rupees = (v: number) => `₹${Math.round(v).toLocaleString("en-IN")}`;
 const count = (n: number) => n.toLocaleString("en-IN");
@@ -324,7 +324,7 @@ export function ReportsScreen() {
   );
 }
 
-const glow = Platform.OS === "web" ? ({ boxShadow: "0 0 0 1px rgba(86,86,107,0.1), 0 10px 30px rgba(86,86,107,0.08)" } as object) : {};
+const glow = Platform.OS === "web" ? ({ boxShadow: "0 0 0 1px rgba(181,165,255,0.1), 0 10px 30px rgba(181,165,255,0.08)" } as object) : {};
 const webGrid = (min: number) =>
   (Platform.OS === "web"
     ? { display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: space.md }
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   exportText: { ...type.small, fontWeight: "700", color: colors.text },
   exportMenu: {
     position: "absolute", top: 42, right: 0, width: 210, backgroundColor: colors.cardRaised, borderRadius: radius.control,
-    paddingVertical: 4, zIndex: 20, ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 32px rgba(41,43,49,0.135)" } as object) : {}),
+    paddingVertical: 4, zIndex: 20, ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 32px rgba(8,9,13,0.19)" } as object) : {}),
   },
   exportItem: { paddingVertical: 8, paddingHorizontal: space.md },
   exportItemTitle: { ...type.small, fontWeight: "700", color: colors.text },

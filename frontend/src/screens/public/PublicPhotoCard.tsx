@@ -3,7 +3,7 @@ import { View, Text, Pressable, Image, StyleSheet, ActivityIndicator, PixelRatio
 import { Ionicons } from "@expo/vector-icons";
 import { photoUrl } from "../../api/photoSelectionApi";
 import type { PublicPhoto, SelectionType } from "../../types/photoSelection";
-import { colors, radius } from "../../ui/theme";
+import { colors, radius, transition, hoverMotion } from "../../ui/theme";
 
 export const NORMAL_COLOR = colors.normal;
 export const BIG_COLOR = colors.big;
@@ -37,6 +37,7 @@ function PublicPhotoCardBase({ photo, selection, width, disabled, onOpen, onChan
   const accent = colorFor(selection);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const [attempt, setAttempt] = useState(0);
+  const [hovered, setHovered] = useState(false);
   const uri = sourceFor(photo, width);
   const retry = () => {
     setState("loading");
@@ -46,6 +47,8 @@ function PublicPhotoCardBase({ photo, selection, width, disabled, onOpen, onChan
   return (
     <View style={[styles.card, { width }, selected && { borderColor: accent, borderWidth: 3 }]}>
       <Pressable
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
         onPress={() => (state === "failed" ? retry() : onOpen(photo))}
         accessibilityRole="button"
         accessibilityLabel={state === "failed" ? `Couldn't load ${photo.fileName}. Tap to try again` : `View ${photo.fileName} larger`}
@@ -55,7 +58,7 @@ function PublicPhotoCardBase({ photo, selection, width, disabled, onOpen, onChan
             <Image
               key={`${uri}#${attempt}`}
               source={{ uri }}
-              style={styles.image}
+              style={[styles.image, hovered && styles.imageHover]}
               resizeMode="contain"
               accessibilityLabel={photo.fileName}
               onLoad={() => setState("ready")}
@@ -109,7 +112,7 @@ function PublicPhotoCardBase({ photo, selection, width, disabled, onOpen, onChan
               return (
                 <Pressable
                   key={type}
-                  style={[styles.radio, active && { borderColor: colorFor(type), backgroundColor: "rgba(41,43,49,0.06)" }, disabled && styles.disabled]}
+                  style={[styles.radio, active && { borderColor: colorFor(type), backgroundColor: "rgba(8,9,13,0.08)" }, disabled && styles.disabled]}
                   disabled={disabled}
                   onPress={() => onChange(photo, type)}
                   accessibilityRole="radio"
@@ -139,8 +142,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: "hidden",
   },
-  imageBox: { backgroundColor: "#070e17", width: "100%" },
-  image: { width: "100%", height: "100%" },
+  imageBox: { backgroundColor: "#070e17", width: "100%", overflow: "hidden" },
+  image: { width: "100%", height: "100%" , ...transition },
+  imageHover: { ...hoverMotion([{ scale: 1.03 }]) },
   overlayCenter: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", gap: 6, padding: 8 },
   failText: { color: colors.textMuted, fontSize: 12, textAlign: "center" },
   // A light wash of the selection colour, so a picked photo stands out even at a glance.

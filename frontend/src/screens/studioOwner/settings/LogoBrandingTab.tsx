@@ -69,7 +69,7 @@ export function LogoBrandingTab() {
   };
 
   if (isPending) {
-    return <ActivityIndicator color="#4F5D75" style={{ marginTop: 40 }} />;
+    return <ActivityIndicator color="#B5A5FF" style={{ marginTop: 40 }} />;
   }
 
   const logoUrl = data?.logoUrl ? `${API_BASE_URL}${data.logoUrl}` : null;
@@ -93,7 +93,7 @@ export function LogoBrandingTab() {
       <View style={styles.actions}>
         <Pressable style={styles.primaryButton} onPress={pickImage} disabled={uploadMutation.isPending}>
           {uploadMutation.isPending ? (
-            <ActivityIndicator color="#F1F0EC" />
+            <ActivityIndicator color="#191B22" />
           ) : (
             <Text style={styles.primaryButtonText}>{logoUrl ? "Replace logo" : "Upload logo"}</Text>
           )}
@@ -114,7 +114,7 @@ export function LogoBrandingTab() {
           </Pressable>
           <Pressable onPress={() => removeMutation.mutate()} disabled={removeMutation.isPending}>
             {removeMutation.isPending ? (
-              <ActivityIndicator color="#A3473F" size="small" />
+              <ActivityIndicator color="#E58B91" size="small" />
             ) : (
               <Text style={styles.confirmRemoveLink}>Yes, remove</Text>
             )}
@@ -126,25 +126,25 @@ export function LogoBrandingTab() {
 }
 
 const styles = StyleSheet.create({
-  hint: { color: "#6F7078", fontSize: 12, marginBottom: 16 },
+  hint: { color: "#A1A5B3", fontSize: 12, marginBottom: 16 },
   previewCard: {
-    width: 140, height: 140, borderRadius: 12, borderWidth: 1, borderColor: "#C4C3BB", backgroundColor: "#ECEBE6",
+    width: 140, height: 140, borderRadius: 12, borderWidth: 1, borderColor: "#4B4F63", backgroundColor: "#292C36",
     alignItems: "center", justifyContent: "center", overflow: "hidden", marginBottom: 16,
   },
   preview: { width: "100%", height: "100%" },
   placeholder: { alignItems: "center", justifyContent: "center" },
-  placeholderText: { color: "#6F7078", fontSize: 12 },
-  error: { color: "#A3473F", fontSize: 13, marginBottom: 8 },
+  placeholderText: { color: "#A1A5B3", fontSize: 12 },
+  error: { color: "#E58B91", fontSize: 13, marginBottom: 8 },
   actions: { flexDirection: "row", gap: 12 },
-  primaryButton: { backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
-  primaryButtonText: { color: "#F1F0EC", fontWeight: "700", fontSize: 13 },
-  dangerButton: { borderWidth: 1, borderColor: "#A3473F", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
-  dangerButtonText: { color: "#A3473F", fontWeight: "700", fontSize: 13 },
+  primaryButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
+  primaryButtonText: { color: "#191B22", fontWeight: "700", fontSize: 13 },
+  dangerButton: { borderWidth: 1, borderColor: "#E58B91", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
+  dangerButtonText: { color: "#E58B91", fontWeight: "700", fontSize: 13 },
   confirmRow: {
     flexDirection: "row", alignItems: "center", gap: 16, marginTop: 14, padding: 12,
-    borderWidth: 1, borderColor: "#C4C3BB", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#E5E4DF",
+    borderWidth: 1, borderColor: "#4B4F63", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#22252E",
   },
-  confirmText: { color: "#292B31", fontSize: 13, flex: 1 },
-  cancelLink: { color: "#6F7078", fontSize: 13, fontWeight: "600" },
-  confirmRemoveLink: { color: "#A3473F", fontSize: 13, fontWeight: "700" },
+  confirmText: { color: "#E6E7EC", fontSize: 13, flex: 1 },
+  cancelLink: { color: "#A1A5B3", fontSize: 13, fontWeight: "600" },
+  confirmRemoveLink: { color: "#E58B91", fontSize: 13, fontWeight: "700" },
 });

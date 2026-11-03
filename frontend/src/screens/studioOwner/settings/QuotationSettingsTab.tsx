@@ -63,7 +63,7 @@ export function QuotationSettingsTab() {
   });
 
   if (isPending) {
-    return <ActivityIndicator color="#4F5D75" style={{ marginTop: 40 }} />;
+    return <ActivityIndicator color="#B5A5FF" style={{ marginTop: 40 }} />;
   }
 
   return (
@@ -71,11 +71,11 @@ export function QuotationSettingsTab() {
       <View style={styles.row}>
         <View style={styles.field}>
           <Text style={styles.label}>Quotation prefix</Text>
-          <TextInput style={styles.input} value={prefix} onChangeText={setPrefix} placeholderTextColor="#6F7078" />
+          <TextInput style={styles.input} value={prefix} onChangeText={setPrefix} placeholderTextColor="#A1A5B3" />
         </View>
         <View style={styles.field}>
           <Text style={styles.label}>Starting quotation number</Text>
-          <TextInput style={styles.input} value={startingNumber} onChangeText={setStartingNumber} keyboardType="numeric" placeholderTextColor="#6F7078" />
+          <TextInput style={styles.input} value={startingNumber} onChangeText={setStartingNumber} keyboardType="numeric" placeholderTextColor="#A1A5B3" />
         </View>
       </View>
 
@@ -87,7 +87,7 @@ export function QuotationSettingsTab() {
           onChangeText={setDefaultTerms}
           multiline
           numberOfLines={3}
-          placeholderTextColor="#6F7078"
+          placeholderTextColor="#A1A5B3"
         />
       </View>
 
@@ -99,7 +99,7 @@ export function QuotationSettingsTab() {
           onChangeText={setDefaultNotes}
           multiline
           numberOfLines={3}
-          placeholderTextColor="#6F7078"
+          placeholderTextColor="#A1A5B3"
         />
       </View>
 
@@ -115,7 +115,7 @@ export function QuotationSettingsTab() {
       {saved ? <Text style={styles.success}>✓ Saved</Text> : null}
 
       <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending}>
-        {mutation.isPending ? <ActivityIndicator color="#F1F0EC" /> : <Text style={styles.saveText}>Save changes</Text>}
+        {mutation.isPending ? <ActivityIndicator color="#191B22" /> : <Text style={styles.saveText}>Save changes</Text>}
       </Pressable>
     </View>
   );
@@ -124,22 +124,22 @@ export function QuotationSettingsTab() {
 const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", columnGap: 16 },
   field: { flexGrow: 1, minWidth: 200, marginBottom: 16 },
-  label: { fontSize: 13, lineHeight: 18, fontWeight: "600", color: "#292B31", marginBottom: 6 },
+  label: { fontSize: 13, lineHeight: 18, fontWeight: "600", color: "#E6E7EC", marginBottom: 6 },
   input: {
-    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44,
-    fontSize: 15, color: "#292B31", backgroundColor: "#F1F0EC",
+    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44,
+    fontSize: 15, color: "#E6E7EC", backgroundColor: "#191B22",
   },
   textArea: { minHeight: 64, textAlignVertical: "top" },
   toggleList: {
-    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 10, backgroundColor: "#ECEBE6", overflow: "hidden", marginBottom: 14,
+    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 10, backgroundColor: "#292C36", overflow: "hidden", marginBottom: 14,
   },
   toggleRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#D2D1CA",
+    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#343746",
   },
-  toggleLabel: { color: "#292B31", fontSize: 14, fontWeight: "600" },
-  error: { color: "#A3473F", fontSize: 13, marginTop: 4 },
-  success: { color: "#4E7D5B", fontSize: 13, marginTop: 4, fontWeight: "600" },
-  saveButton: { backgroundColor: "#56566B", borderRadius: 8, minHeight: 44, justifyContent: "center", alignItems: "center", marginTop: 8, alignSelf: "flex-start", paddingHorizontal: 24 },
-  saveText: { color: "#F6F5F1", fontWeight: "600", fontSize: 15 },
+  toggleLabel: { color: "#E6E7EC", fontSize: 14, fontWeight: "600" },
+  error: { color: "#E58B91", fontSize: 13, marginTop: 4 },
+  success: { color: "#78C9A4", fontSize: 13, marginTop: 4, fontWeight: "600" },
+  saveButton: { backgroundColor: "#B5A5FF", borderRadius: 8, minHeight: 44, justifyContent: "center", alignItems: "center", marginTop: 8, alignSelf: "flex-start", paddingHorizontal: 24 },
+  saveText: { color: "#191B22", fontWeight: "600", fontSize: 15 },
 });

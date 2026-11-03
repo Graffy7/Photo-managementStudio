@@ -77,7 +77,7 @@ export function MiniTimePicker({
     <View>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <Pressable style={styles.trigger} onPress={openPicker}>
-        <Ionicons name="time-outline" size={18} color="#4F5D75" />
+        <Ionicons name="time-outline" size={18} color="#B5A5FF" />
         <Text style={[styles.triggerText, !value && styles.placeholderText]}>{value ? display(value) : placeholder}</Text>
       </Pressable>
 
@@ -152,49 +152,49 @@ export function MiniTimePicker({
 }
 
 const styles = StyleSheet.create({
-  label: { color: "#6F7078", fontSize: 12, fontWeight: "600", marginBottom: 6 },
+  label: { color: "#A1A5B3", fontSize: 12, fontWeight: "600", marginBottom: 6 },
   trigger: {
-    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8,
-    paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#ECEBE6", width: "100%",
+    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8,
+    paddingVertical: 10, paddingHorizontal: 14, backgroundColor: "#292C36", width: "100%",
   },
-  triggerText: { color: "#292B31", fontSize: 15 },
-  placeholderText: { color: "#6F7078" },
+  triggerText: { color: "#E6E7EC", fontSize: 15 },
+  placeholderText: { color: "#A1A5B3" },
 
-  backdrop: { flex: 1, backgroundColor: "rgba(41,43,49,0.36)", alignItems: "center", justifyContent: "center" },
-  popover: { width: 300, backgroundColor: "#ECEBE6", borderRadius: 14, borderWidth: 1, borderColor: "#C4C3BB", padding: 18 },
+  backdrop: { flex: 1, backgroundColor: "rgba(8,9,13,0.5)", alignItems: "center", justifyContent: "center" },
+  popover: { width: 300, backgroundColor: "#292C36", borderRadius: 14, borderWidth: 1, borderColor: "#4B4F63", padding: 18 },
 
   readout: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  readoutBox: { backgroundColor: "#E5E4DF", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "#D2D1CA" },
-  readoutBoxActive: { borderColor: "#4F5D75", backgroundColor: "rgba(86,86,107,0.14)" },
-  readoutText: { color: "#6F7078", fontSize: 34, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  readoutTextActive: { color: "#292B31" },
-  readoutColon: { color: "#6F7078", fontSize: 30, fontWeight: "700" },
+  readoutBox: { backgroundColor: "#22252E", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "#343746" },
+  readoutBoxActive: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
+  readoutText: { color: "#A1A5B3", fontSize: 34, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  readoutTextActive: { color: "#E6E7EC" },
+  readoutColon: { color: "#A1A5B3", fontSize: 30, fontWeight: "700" },
   periodStack: { marginLeft: 6, gap: 4 },
-  periodButton: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 9 },
-  periodButtonActive: { backgroundColor: "#4F5D75", borderColor: "#4F5D75" },
-  periodText: { color: "#6F7078", fontSize: 12, fontWeight: "700" },
-  periodTextActive: { color: "#F1F0EC" },
+  periodButton: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 9 },
+  periodButtonActive: { backgroundColor: "#B5A5FF", borderColor: "#B5A5FF" },
+  periodText: { color: "#A1A5B3", fontSize: 12, fontWeight: "700" },
+  periodTextActive: { color: "#191B22" },
 
-  modeHint: { color: "#6F7078", fontSize: 12, textAlign: "center", marginTop: 12 },
+  modeHint: { color: "#A1A5B3", fontSize: 12, textAlign: "center", marginTop: 12 },
 
   dial: {
-    width: DIAL_SIZE, height: DIAL_SIZE, borderRadius: DIAL_SIZE / 2, backgroundColor: "#E5E4DF",
-    alignSelf: "center", marginTop: 10, borderWidth: 1, borderColor: "#D2D1CA",
+    width: DIAL_SIZE, height: DIAL_SIZE, borderRadius: DIAL_SIZE / 2, backgroundColor: "#22252E",
+    alignSelf: "center", marginTop: 10, borderWidth: 1, borderColor: "#343746",
   },
-  dialCenter: { position: "absolute", left: DIAL_SIZE / 2 - 4, top: DIAL_SIZE / 2 - 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#4F5D75" },
+  dialCenter: { position: "absolute", left: DIAL_SIZE / 2 - 4, top: DIAL_SIZE / 2 - 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#B5A5FF" },
   dialNumber: { position: "absolute", width: NUMBER_SIZE, height: NUMBER_SIZE, borderRadius: NUMBER_SIZE / 2, alignItems: "center", justifyContent: "center" },
-  dialNumberSelected: { backgroundColor: "#4F5D75" },
-  dialNumberText: { color: "#3E4047", fontSize: 14, fontWeight: "600" },
-  dialNumberTextSelected: { color: "#F1F0EC", fontWeight: "800" },
+  dialNumberSelected: { backgroundColor: "#B5A5FF" },
+  dialNumberText: { color: "#C9CBD3", fontSize: 14, fontWeight: "600" },
+  dialNumberTextSelected: { color: "#191B22", fontWeight: "800" },
 
   nudgeRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginTop: 10 },
-  nudgeButton: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
-  nudgeText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
+  nudgeButton: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
+  nudgeText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
 
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#D2D1CA" },
+  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#343746" },
   footerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
-  clearText: { color: "#A3473F", fontSize: 13, fontWeight: "700" },
-  cancelText: { color: "#6F7078", fontSize: 13, fontWeight: "600" },
-  okButton: { backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 20 },
-  okText: { color: "#F1F0EC", fontSize: 13, fontWeight: "700" },
+  clearText: { color: "#E58B91", fontSize: 13, fontWeight: "700" },
+  cancelText: { color: "#A1A5B3", fontSize: 13, fontWeight: "600" },
+  okButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 20 },
+  okText: { color: "#191B22", fontSize: 13, fontWeight: "700" },
 });

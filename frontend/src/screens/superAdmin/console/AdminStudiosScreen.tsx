@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   tableCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, overflow: "hidden", position: "relative" },
   tr: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border },
   thead: { backgroundColor: C.raised },
-  trHover: { backgroundColor: "rgba(86,86,107,0.05)" },
+  trHover: { backgroundColor: "rgba(181,165,255,0.05)" },
   td: { paddingVertical: 12, paddingRight: 12, justifyContent: "center" },
   th: { color: C.faint, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   name: { color: C.text, fontSize: 13.5, fontWeight: "700" },

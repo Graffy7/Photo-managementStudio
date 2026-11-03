@@ -34,8 +34,8 @@ const styles = StyleSheet.create({
     minHeight: 34, justifyContent: "center", borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill,
     paddingHorizontal: 14, backgroundColor: colors.card, ...transition,
   },
-  chipHover: { borderColor: "#C4C3BB", backgroundColor: "#DEDDD7" },
-  chipOn: { borderColor: "#C4C3BB", backgroundColor: colors.primarySoft },
+  chipHover: { borderColor: "#4B4F63", backgroundColor: "#303441" },
+  chipOn: { borderColor: "#4B4F63", backgroundColor: colors.primarySoft },
   text: { ...type.small, fontWeight: "600", color: colors.textMuted },
   textOn: { color: colors.primary },
 });

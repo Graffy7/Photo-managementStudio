@@ -60,7 +60,7 @@ export function RootNavigator() {
   if (isHydrating) {
     return (
       <View style={styles.splash}>
-        <ActivityIndicator color="#56566B" size="large" />
+        <ActivityIndicator color="#B5A5FF" size="large" />
       </View>
     );
   }
@@ -124,7 +124,7 @@ export function RootNavigator() {
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: "#ECEBE6",
+    backgroundColor: "#292C36",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -26,7 +26,7 @@ import { Skeleton } from "../../ui/Skeleton";
 import { EmptyState } from "../../ui/EmptyState";
 import { SummaryStrip } from "../../ui/Detail";
 import { StepGuide, StepTitle, type Step } from "../../ui/Steps";
-import { colors, radius, space, type } from "../../ui/theme";
+import { colors, radius, space, type, transition, hoverMotion } from "../../ui/theme";
 
 // Customer selection period: 5 days by default, or 10. Previews are deleted 10 days after sending.
 const EXPIRY_PRESETS = [5, 10];
@@ -395,7 +395,7 @@ function ImportPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged:
             value={folder}
             onChangeText={setFolder}
             placeholder={"Server folder, e.g. D:\\Photos\\Meera Wedding\\Selected"}
-            placeholderTextColor="#6F7078"
+            placeholderTextColor="#A1A5B3"
             editable={!running && !uploading}
             autoCapitalize="none"
             autoCorrect={false}
@@ -521,7 +521,7 @@ function ImportedFolders({ gallery, onChanged, onRemoved }: {
                 <Text style={styles.sourceCancel}>Cancel</Text>
               </Pressable>
               <Pressable onPress={() => remove(s.sourceFolder)} disabled={removing}>
-                {removing ? <ActivityIndicator size="small" color="#A3473F" /> : <Text style={styles.sourceYes}>Yes, remove</Text>}
+                {removing ? <ActivityIndicator size="small" color="#E58B91" /> : <Text style={styles.sourceYes}>Yes, remove</Text>}
               </Pressable>
             </View>
           ) : (
@@ -846,29 +846,33 @@ function PhotosPanel({ gallery }: { gallery: OwnerGallery }) {
         value={search}
         onChangeText={setSearch}
         placeholder="Search by file name or photo number"
-        placeholderTextColor="#6F7078"
+        placeholderTextColor="#A1A5B3"
         autoCapitalize="none"
       />
 
       {isPending ? (
-        <ActivityIndicator color="#56566B" style={{ marginVertical: 24 }} />
+        <ActivityIndicator color="#B5A5FF" style={{ marginVertical: 24 }} />
       ) : photos.length === 0 ? (
         <Text style={styles.hint}>{filter === "All" && !search ? "No photos." : "Nothing matches."}</Text>
       ) : view === "grid" ? (
         <View style={styles.grid}>
           {photos.map((p) => (
             <Pressable key={p.photoId} style={[styles.tile, p.selectionType === "Big" && styles.tileBig, p.selectionType === "Normal" && styles.tileNormal]} onPress={() => setPreview(p)}>
+              {(state) => (<>
               {p.thumbnailUrl ? (
-                <Image source={{ uri: photoUrl(p.thumbnailUrl) }} style={styles.tileImage} resizeMode="contain" />
+                <View style={styles.tileImageBox}>
+                  <Image source={{ uri: photoUrl(p.thumbnailUrl) }} style={[styles.tileImage, (state as { hovered?: boolean }).hovered && styles.tileImageHover]} resizeMode="contain" />
+                </View>
               ) : (
                 <View style={[styles.tileImage, styles.tileEmpty]}><Text style={styles.hintSmall}>No preview</Text></View>
               )}
               <Text style={styles.tileName} numberOfLines={1}>{p.fileName}</Text>
               {p.selectionType && (
-                <View style={[styles.tileBadge, { backgroundColor: p.selectionType === "Big" ? "#56566B" : "#4F5D75" }]}>
+                <View style={[styles.tileBadge, { backgroundColor: p.selectionType === "Big" ? colors.big : colors.normal }]}>
                   <Text style={styles.tileBadgeText}>{p.selectionType}</Text>
                 </View>
               )}
+            </>)}
             </Pressable>
           ))}
         </View>
@@ -934,89 +938,91 @@ const styles = StyleSheet.create({
   subTitle: { ...type.body, fontWeight: "700", color: colors.text },
 
   section: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.md },
-  hint: { color: "#6F7078", fontSize: 13, lineHeight: 19 },
-  hintSmall: { color: "#6F7078", fontSize: 12 },
-  label: { color: "#6F7078", fontSize: 12, fontWeight: "600", marginTop: 6 },
-  error: { color: "#A3473F", fontSize: 13 },
-  serverLink: { color: "#4F5D75", fontSize: 13, textDecorationLine: "underline" },
-  okText: { color: "#4E7D5B", fontSize: 13 },
-  warnText: { color: "#A0762E", fontSize: 13 },
+  hint: { color: "#A1A5B3", fontSize: 13, lineHeight: 19 },
+  hintSmall: { color: "#A1A5B3", fontSize: 12 },
+  label: { color: "#A1A5B3", fontSize: 12, fontWeight: "600", marginTop: 6 },
+  error: { color: "#E58B91", fontSize: 13 },
+  serverLink: { color: "#B5A5FF", fontSize: 13, textDecorationLine: "underline" },
+  okText: { color: "#78C9A4", fontSize: 13 },
+  warnText: { color: "#E5B86B", fontSize: 13 },
   disabled: { opacity: 0.45 },
 
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  statCard: { flexGrow: 1, flexBasis: 120, backgroundColor: "#ECEBE6", borderRadius: 10, borderWidth: 1, borderColor: "#C4C3BB", padding: 14 },
+  statCard: { flexGrow: 1, flexBasis: 120, backgroundColor: "#292C36", borderRadius: 10, borderWidth: 1, borderColor: "#4B4F63", padding: 14 },
   statValue: { fontSize: 26, fontWeight: "800" },
-  statLabel: { color: "#6F7078", fontSize: 12, marginTop: 2 },
+  statLabel: { color: "#A1A5B3", fontSize: 12, marginTop: 2 },
   metaRow: { flexDirection: "row", flexWrap: "wrap", rowGap: space.md, columnGap: space.xl, paddingHorizontal: space.xs },
   meta: { gap: 2 },
-  metaLabel: { color: "#6F7078", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 },
-  metaValue: { color: "#292B31", fontSize: 13, fontWeight: "600" },
+  metaLabel: { color: "#A1A5B3", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 },
+  metaValue: { color: "#E6E7EC", fontSize: 13, fontWeight: "600" },
 
   folderRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
   input: {
-    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    color: "#292B31", backgroundColor: "#ECEBE6", fontSize: 13, minWidth: 200,
+    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    color: "#E6E7EC", backgroundColor: "#292C36", fontSize: 13, minWidth: 200,
   },
-  primaryButton: { minHeight: 44, backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
-  primaryButtonText: { color: "#F1F0EC", fontWeight: "700", fontSize: 13 },
-  secondaryButton: { minHeight: 44, backgroundColor: "#ECEBE6", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#C4C3BB", justifyContent: "center" },
-  secondaryButtonText: { color: "#4F5D75", fontWeight: "600", fontSize: 13 },
-  copiedButton: { borderColor: "#3fbf7f", backgroundColor: "rgba(78,125,91,0.14)" },
+  primaryButton: { minHeight: 44, backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
+  primaryButtonText: { color: "#191B22", fontWeight: "700", fontSize: 13 },
+  secondaryButton: { minHeight: 44, backgroundColor: "#292C36", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#4B4F63", justifyContent: "center" },
+  secondaryButtonText: { color: "#B5A5FF", fontWeight: "600", fontSize: 13 },
+  copiedButton: { borderColor: "#3fbf7f", backgroundColor: "rgba(120,201,164,0.14)" },
   copiedButtonText: { color: "#6fe0a4" },
   whatsButton: { minHeight: 44, backgroundColor: "#25a95a", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, justifyContent: "center" },
   whatsButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 13 },
-  dangerButton: { minHeight: 44, backgroundColor: "rgba(163,71,63,0.12)", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(163,71,63,0.4)", justifyContent: "center" },
-  dangerButtonText: { color: "#A3473F", fontWeight: "600", fontSize: 13 },
+  dangerButton: { minHeight: 44, backgroundColor: "rgba(229,139,145,0.12)", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(229,139,145,0.4)", justifyContent: "center" },
+  dangerButtonText: { color: "#E58B91", fontWeight: "600", fontSize: 13 },
   sourceList: { gap: 8 },
-  sourceRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#ECEBE6", borderRadius: 8, borderWidth: 1, borderColor: "#D2D1CA", paddingVertical: 8, paddingHorizontal: 12 },
+  sourceRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#292C36", borderRadius: 8, borderWidth: 1, borderColor: "#343746", paddingVertical: 8, paddingHorizontal: 12 },
   sourceMain: { flex: 1, minWidth: 180 },
-  sourcePath: { color: "#292B31", fontSize: 13, fontWeight: "600" },
-  sourceMeta: { color: "#6F7078", fontSize: 12, marginTop: 2 },
+  sourcePath: { color: "#E6E7EC", fontSize: 13, fontWeight: "600" },
+  sourceMeta: { color: "#A1A5B3", fontSize: 12, marginTop: 2 },
   sourceConfirm: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12, flexBasis: "100%" },
-  sourceConfirmText: { color: "#6F7078", fontSize: 12, flexShrink: 1 },
-  sourceCancel: { color: "#4F5D75", fontSize: 12, fontWeight: "600" },
-  sourceYes: { color: "#A3473F", fontSize: 12, fontWeight: "700" },
+  sourceConfirmText: { color: "#A1A5B3", fontSize: 12, flexShrink: 1 },
+  sourceCancel: { color: "#B5A5FF", fontSize: 12, fontWeight: "600" },
+  sourceYes: { color: "#E58B91", fontSize: 12, fontWeight: "700" },
 
   progressBox: { gap: 6, marginTop: 4 },
-  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#ECEBE6", overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: "#56566B", borderRadius: 4 },
-  progressText: { color: "#6F7078", fontSize: 12 },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: "#292C36", overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: "#B5A5FF", borderRadius: 4 },
+  progressText: { color: "#A1A5B3", fontSize: 12 },
 
-  linkBox: { backgroundColor: "#ECEBE6", borderRadius: 8, borderWidth: 1, borderColor: "#C4C3BB", padding: 12, gap: 4 },
-  linkText: { color: "#4F5D75", fontSize: 13, textDecorationLine: "underline" },
-  linkMeta: { color: "#6F7078", fontSize: 12 },
+  linkBox: { backgroundColor: "#292C36", borderRadius: 8, borderWidth: 1, borderColor: "#4B4F63", padding: 12, gap: 4 },
+  linkText: { color: "#B5A5FF", fontSize: 13, textDecorationLine: "underline" },
+  linkMeta: { color: "#A1A5B3", fontSize: 12 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
-  divider: { borderTopWidth: 1, borderTopColor: "#D2D1CA", paddingTop: 14, marginTop: 6 },
+  divider: { borderTopWidth: 1, borderTopColor: "#343746", paddingTop: 14, marginTop: 6 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  chip: { minHeight: 36, justifyContent: "center", borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#ECEBE6" },
-  chipSelected: { borderColor: "#56566B", backgroundColor: "rgba(86,86,107,0.14)" },
-  chipText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#56566B" },
+  chip: { minHeight: 36, justifyContent: "center", borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#292C36" },
+  chipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
+  chipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  chipTextSelected: { color: "#B5A5FF" },
 
   photosHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: space.sm },
-  viewToggle: { flexDirection: "row", borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, overflow: "hidden" },
-  toggleItem: { minHeight: 36, justifyContent: "center", paddingVertical: 6, paddingHorizontal: 14, backgroundColor: "#ECEBE6" },
-  toggleItemActive: { backgroundColor: "#4F5D75" },
-  toggleText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
-  toggleTextActive: { color: "#F1F0EC" },
+  viewToggle: { flexDirection: "row", borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, overflow: "hidden" },
+  toggleItem: { minHeight: 36, justifyContent: "center", paddingVertical: 6, paddingHorizontal: 14, backgroundColor: "#292C36" },
+  toggleItemActive: { backgroundColor: "#B5A5FF" },
+  toggleText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  toggleTextActive: { color: "#191B22" },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  tile: { width: 150, backgroundColor: "#ECEBE6", borderRadius: 8, borderWidth: 2, borderColor: "#D2D1CA", overflow: "hidden" },
-  tileNormal: { borderColor: "#4F5D75" },
-  tileBig: { borderColor: "#56566B" },
-  tileImage: { width: "100%", height: 100, backgroundColor: "#0a1320" },
+  tile: { width: 150, backgroundColor: "#292C36", borderRadius: 8, borderWidth: 2, borderColor: "#343746", overflow: "hidden" },
+  tileNormal: { borderColor: colors.normal },
+  tileBig: { borderColor: colors.big },
+  tileImageBox: { overflow: "hidden" },
+  tileImage: { width: "100%", height: 100, backgroundColor: "#0a1320", ...transition },
+  tileImageHover: { ...hoverMotion([{ scale: 1.03 }]) },
   tileEmpty: { alignItems: "center", justifyContent: "center" },
-  tileName: { color: "#6F7078", fontSize: 12, padding: 6 },
+  tileName: { color: "#A1A5B3", fontSize: 12, padding: 6 },
   tileBadge: { position: "absolute", top: 6, right: 6, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  tileBadgeText: { color: "#F1F0EC", fontSize: 10, fontWeight: "800" },
+  tileBadgeText: { color: "#191B22", fontSize: 10, fontWeight: "800" },
 
-  tr: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#D2D1CA" },
-  trHead: { borderBottomColor: "#C4C3BB" },
-  th: { color: "#6F7078", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
-  td: { color: "#292B31", fontSize: 13 },
+  tr: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#343746" },
+  trHead: { borderBottomColor: "#4B4F63" },
+  th: { color: "#A1A5B3", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
+  td: { color: "#E6E7EC", fontSize: 13 },
   tdMuted: { color: "#4a5d78", fontSize: 13 },
 
   previewOverlay: { flex: 1, backgroundColor: "rgba(5,10,18,0.94)", alignItems: "center", justifyContent: "center", padding: 20 },
   previewImage: { width: "100%", height: "85%" },
-  previewCaption: { color: "#6F7078", fontSize: 13, marginTop: 10 },
+  previewCaption: { color: "#A1A5B3", fontSize: 13, marginTop: 10 },
 });

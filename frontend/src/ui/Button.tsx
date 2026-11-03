@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Pressable, Text, View, ActivityIndicator, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radius, touch, shadow, transition, webShadow } from "./theme";
+import { colors, radius, touch, shadow, transition, webShadow, hoverMotion } from "./theme";
 
 type Variant = "primary" | "secondary" | "link" | "danger";
 
@@ -58,12 +58,12 @@ export function Button({ label, onPress, variant = "secondary", icon, disabled, 
   );
 }
 
-const lift = { transform: [{ translateY: -1 }] };
+const lift = hoverMotion([{ translateY: -1 }]);
 const VARIANTS: Record<Variant, { box: ViewStyle; hover: ViewStyle; pressed: ViewStyle; text: { color: string } }> = {
   primary: {
     box: { backgroundColor: colors.primary },
     hover: { backgroundColor: colors.primaryHover, ...lift, ...webShadow(shadow.button) },
-    pressed: { backgroundColor: colors.primaryHover, transform: [{ translateY: 0 }] },
+    pressed: { backgroundColor: colors.primaryHover },
     text: { color: colors.onPrimary },
   },
   secondary: {

@@ -8,8 +8,8 @@ const TONE_COLORS: Record<Tone, { bg: string; fg: string }> = {
   bad: { bg: colors.dangerSoft, fg: colors.danger },
   warn: { bg: colors.warningSoft, fg: colors.warning },
   info: { bg: colors.primarySoft, fg: colors.primary },
-  blue: { bg: "#DCE3EA", fg: "#4F6A86" },
-  neutral: { bg: "#DDDCD6", fg: colors.textMuted },
+  blue: { bg: "#24324A", fg: "#85B9E8" },
+  neutral: { bg: "#2C2F3A", fg: colors.textMuted },
 };
 
 // Colour carries meaning only: green done/paid, amber waiting, red cancelled/overdue, blue upcoming.

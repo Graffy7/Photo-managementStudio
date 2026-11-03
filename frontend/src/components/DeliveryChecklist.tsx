@@ -97,7 +97,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
                 <Ionicons
                   name={item.isDelivered ? "checkmark-circle" : "ellipse-outline"}
                   size={13}
-                  color={item.isDelivered ? "#4E7D5B" : "#6F7078"}
+                  color={item.isDelivered ? "#78C9A4" : "#A1A5B3"}
                 />
                 <Text style={[styles.pillText, item.isDelivered && styles.pillTextDone]}>{item.name}</Text>
               </Pressable>
@@ -111,7 +111,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
                   accessibilityLabel={`Remove ${item.name}`}
                   hitSlop={6}
                 >
-                  <Ionicons name="close" size={10} color="#6F7078" />
+                  <Ionicons name="close" size={10} color="#A1A5B3" />
                 </Pressable>
               )}
             </View>
@@ -125,7 +125,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Pendrive"
-              placeholderTextColor="#6F7078"
+              placeholderTextColor="#A1A5B3"
               autoFocus
               maxLength={100}
               onSubmitEditing={() => newName.trim() && add.mutate(newName.trim())}
@@ -138,8 +138,8 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               accessibilityLabel="Save delivery item"
             >
               {add.isPending
-                ? <ActivityIndicator size="small" color="#4E7D5B" />
-                : <Ionicons name="checkmark" size={13} color="#4E7D5B" />}
+                ? <ActivityIndicator size="small" color="#78C9A4" />
+                : <Ionicons name="checkmark" size={13} color="#78C9A4" />}
             </Pressable>
             <Pressable
               style={styles.addCancel}
@@ -147,7 +147,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Cancel"
             >
-              <Ionicons name="close" size={13} color="#6F7078" />
+              <Ionicons name="close" size={13} color="#A1A5B3" />
             </Pressable>
           </View>
         ) : (
@@ -172,7 +172,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
           </Pressable>
           <Pressable onPress={() => remove.mutate(pendingDelete)} disabled={remove.isPending} accessibilityRole="button">
             {remove.isPending
-              ? <ActivityIndicator size="small" color="#A3473F" />
+              ? <ActivityIndicator size="small" color="#E58B91" />
               : <Text style={styles.confirmYes}>Yes, remove</Text>}
           </Pressable>
         </View>
@@ -186,41 +186,41 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
   label: {
-    color: "#6F7078", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4,
+    color: "#A1A5B3", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4,
   },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
 
   pillWrap: { position: "relative" },
   pill: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 100,
-    paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#E5E4DF",
+    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100,
+    paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#22252E",
   },
-  pillDone: { borderColor: "rgba(78,125,91,0.45)", backgroundColor: "rgba(78,125,91,0.1)" },
-  pillText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
-  pillTextDone: { color: "#4E7D5B" },
+  pillDone: { borderColor: "rgba(120,201,164,0.45)", backgroundColor: "rgba(120,201,164,0.1)" },
+  pillText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  pillTextDone: { color: "#78C9A4" },
 
   // Only appears while the pill is hovered, and sits clear of the tap target so a tick can't delete.
   removeButton: {
     position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: 8,
-    alignItems: "center", justifyContent: "center", backgroundColor: "#ECEBE6", borderWidth: 1, borderColor: "#C4C3BB",
+    alignItems: "center", justifyContent: "center", backgroundColor: "#292C36", borderWidth: 1, borderColor: "#4B4F63",
   },
 
   addTrigger: { paddingVertical: 4, paddingHorizontal: 8 },
-  addTriggerText: { color: "#4F5D75", fontSize: 12, fontWeight: "600" },
+  addTriggerText: { color: "#B5A5FF", fontSize: 12, fontWeight: "600" },
   addRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   addInput: {
-    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
-    color: "#292B31", backgroundColor: "#E5E4DF", fontSize: 12, minWidth: 130,
+    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
+    color: "#E6E7EC", backgroundColor: "#22252E", fontSize: 12, minWidth: 130,
     outlineStyle: "none",
   } as any,
   addConfirm: { padding: 4 },
   addCancel: { padding: 4 },
 
   confirmRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 2 },
-  confirmText: { color: "#6F7078", fontSize: 12, flexShrink: 1 },
-  confirmCancel: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
-  confirmYes: { color: "#A3473F", fontSize: 12, fontWeight: "700" },
+  confirmText: { color: "#A1A5B3", fontSize: 12, flexShrink: 1 },
+  confirmCancel: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  confirmYes: { color: "#E58B91", fontSize: 12, fontWeight: "700" },
 
-  error: { color: "#A3473F", fontSize: 12 },
+  error: { color: "#E58B91", fontSize: 12 },
 });

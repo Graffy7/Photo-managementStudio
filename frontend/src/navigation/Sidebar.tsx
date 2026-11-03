@@ -10,7 +10,7 @@ import { settingsApi } from "../api/settingsApi";
 import { API_BASE_URL } from "../constants/config";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { NAV_GROUPS } from "./navItems";
-import { colors, radius, space, type, transition } from "../ui/theme";
+import { colors, radius, space, type, transition, hoverMotion } from "../ui/theme";
 
 interface SidebarProps {
   navigationRef: NavigationContainerRefWithCurrent<any>;
@@ -192,7 +192,7 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 232, backgroundColor: colors.bar, borderRightWidth: 1, borderRightColor: colors.border,
+    width: 235, backgroundColor: colors.bar, borderRightWidth: 1, borderRightColor: colors.border,
     paddingTop: space.lg, paddingHorizontal: space.md,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.xs, marginBottom: space.lg },
@@ -213,11 +213,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.control, marginBottom: 2, ...transition,
   },
   itemLarge: { minHeight: 48 },
-  // Hover: a muted stone fades in and the item slides 2px right.
-  itemHover: { backgroundColor: "#D1D0C9", transform: [{ translateX: 2 }] },
-  // Active page: soft slate fill with a thin gold marker (the photography accent).
+  // Hover: a soft surface fades in and the item slides 2px right.
+  itemHover: { backgroundColor: colors.hover, ...hoverMotion([{ translateX: 2 }]) },
+  // Active page: soft lavender fill with a thin lavender marker.
   itemActive: { backgroundColor: colors.primarySoft, borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: space.md - 3 },
-  itemPressed: { backgroundColor: "#D1D0C9" },
+  itemPressed: { backgroundColor: "#303441" },
   label: { ...type.small, fontWeight: "600", color: colors.textMuted, flex: 1 },
   labelLarge: { fontSize: 16 },
   labelActive: { color: colors.primary },
@@ -231,5 +231,5 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.md,
     marginBottom: space.sm, borderRadius: radius.control, ...transition,
   },
-  signOutHover: { backgroundColor: colors.dangerSoft, transform: [{ translateX: 2 }] },
+  signOutHover: { backgroundColor: colors.dangerSoft, ...hoverMotion([{ translateX: 2 }]) },
 });

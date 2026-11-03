@@ -13,6 +13,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { RowAction } from "../../ui/RowAction";
 import { DataList, CellSub, CellTitle, type Column } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
 
@@ -40,12 +41,15 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
   const actions = (w: Worker) => (
     <View style={styles.actionRow}>
       <SubscriptionLock compact>
-        <Button label="Edit" variant="link" onPress={() => onEdit(w)} />
+        <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(w)} accessibilityLabel={`Edit ${w.fullName}`} />
       </SubscriptionLock>
-      <Button
+      <RowAction
+        iconOnly
+        icon={w.isActive ? "pause-circle-outline" : "play-circle-outline"}
         label={w.isActive ? "Deactivate" : "Activate"}
-        variant="link"
+        kind={w.isActive ? "neutral" : "primary"}
         onPress={() => (w.isActive ? deactivate.mutate(w.workerId) : activate.mutate(w.workerId))}
+        accessibilityLabel={`${w.isActive ? "Deactivate" : "Activate"} ${w.fullName}`}
       />
     </View>
   );
@@ -55,7 +59,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
     { key: "role", label: "Role", flex: 1, render: (w) => <CellSub>{w.workerTypeName ?? "—"}</CellSub> },
     { key: "contact", label: "Contact", flex: 2, render: (w) => (<><CellTitle>{w.mobileNumber ?? "—"}</CellTitle><CellSub>{w.email ?? "No email"}</CellSub></>) },
     { key: "status", label: "Status", width: 110, render: (w) => <StatusPill label={w.isActive ? "Active" : "Inactive"} tone={w.isActive ? "good" : "neutral"} /> },
-    { key: "actions", label: "", width: 180, align: "right", render: actions },
+    { key: "actions", label: "", width: 90, align: "right", render: actions },
   ];
 
   const filtered = !!search || workerTypeId !== null;
@@ -118,7 +122,7 @@ export function WorkerListScreen({ onCreate, onEdit, onView }: { onCreate: () =>
 }
 
 const styles = StyleSheet.create({
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
   cardSub: { ...type.small, color: colors.textMuted },

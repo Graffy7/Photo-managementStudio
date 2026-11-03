@@ -40,7 +40,7 @@ export function ChangePasswordScreen() {
           onChangeText={setCurrentPassword}
           secureTextEntry
           placeholder="••••••••"
-          placeholderTextColor="#6F7078"
+          placeholderTextColor="#A1A5B3"
         />
 
         <Text style={styles.label}>New password</Text>
@@ -50,7 +50,7 @@ export function ChangePasswordScreen() {
           onChangeText={setNewPassword}
           secureTextEntry
           placeholder="At least 8 characters"
-          placeholderTextColor="#6F7078"
+          placeholderTextColor="#A1A5B3"
         />
 
         <Text style={styles.label}>Confirm new password</Text>
@@ -60,13 +60,13 @@ export function ChangePasswordScreen() {
           onChangeText={setConfirmPassword}
           secureTextEntry
           placeholder="Repeat your new password"
-          placeholderTextColor="#6F7078"
+          placeholderTextColor="#A1A5B3"
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable style={[styles.button, isSubmitting && styles.buttonDisabled]} onPress={submit} disabled={isSubmitting}>
-          {isSubmitting ? <ActivityIndicator color="#F1F0EC" /> : <Text style={styles.buttonText}>Change password</Text>}
+          {isSubmitting ? <ActivityIndicator color="#191B22" /> : <Text style={styles.buttonText}>Change password</Text>}
         </Pressable>
       </View>
     </View>
@@ -74,22 +74,22 @@ export function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F1F0EC", alignItems: "center", justifyContent: "center", padding: 24 },
+  screen: { flex: 1, backgroundColor: "#191B22", alignItems: "center", justifyContent: "center", padding: 24 },
   card: {
-    width: "100%", maxWidth: 400, backgroundColor: "#ECEBE6", borderRadius: 12,
-    padding: 28, borderWidth: 1, borderColor: "#C4C3BB",
+    width: "100%", maxWidth: 400, backgroundColor: "#292C36", borderRadius: 12,
+    padding: 28, borderWidth: 1, borderColor: "#4B4F63",
   },
   backButton: { marginBottom: 14 },
-  backText: { color: "#4F5D75", fontSize: 13, fontWeight: "600" },
-  title: { fontSize: 22, fontWeight: "700", color: "#292B31" },
-  subtitle: { fontSize: 13, color: "#6F7078", marginTop: 6, marginBottom: 10, lineHeight: 18 },
-  label: { fontSize: 13, color: "#6F7078", marginBottom: 6, marginTop: 14 },
+  backText: { color: "#B5A5FF", fontSize: 13, fontWeight: "600" },
+  title: { fontSize: 22, fontWeight: "700", color: "#E6E7EC" },
+  subtitle: { fontSize: 13, color: "#A1A5B3", marginTop: 6, marginBottom: 10, lineHeight: 18 },
+  label: { fontSize: 13, color: "#A1A5B3", marginBottom: 6, marginTop: 14 },
   input: {
-    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#292B31", backgroundColor: "#F1F0EC",
+    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#E6E7EC", backgroundColor: "#191B22",
   },
-  error: { color: "#A3473F", marginTop: 14, fontSize: 13 },
-  button: { backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 13, marginTop: 22, alignItems: "center" },
+  error: { color: "#E58B91", marginTop: 14, fontSize: 13 },
+  button: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 13, marginTop: 22, alignItems: "center" },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#F1F0EC", fontWeight: "700", fontSize: 15 },
+  buttonText: { color: "#191B22", fontWeight: "700", fontSize: 15 },
 });
