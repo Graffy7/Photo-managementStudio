@@ -38,7 +38,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
       <Text style={styles.title}>{isEdit ? "Edit category" : "New category"}</Text>
 
       <Text style={styles.label}>Category name</Text>
-      <TextInput style={styles.input} value={categoryName} onChangeText={setCategoryName} placeholder="Travel" placeholderTextColor="#8a9cb6" />
+      <TextInput style={styles.input} value={categoryName} onChangeText={setCategoryName} placeholder="Travel" placeholderTextColor="#6F7078" />
 
       <Text style={styles.label}>Description</Text>
       <TextInput
@@ -46,7 +46,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
         value={description}
         onChangeText={setDescription}
         placeholder="Optional"
-        placeholderTextColor="#8a9cb6"
+        placeholderTextColor="#6F7078"
         multiline
         numberOfLines={3}
       />
@@ -58,7 +58,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
         <Pressable style={styles.saveButton} onPress={() => mutation.mutate()} disabled={mutation.isPending || !canSave}>
-          {mutation.isPending ? <ActivityIndicator color="#0b1522" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create category"}</Text>}
+          {mutation.isPending ? <ActivityIndicator color="#F1F0EC" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create category"}</Text>}
         </Pressable>
       </View>
     </ScrollView>
@@ -66,19 +66,19 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
+  screen: { flex: 1, backgroundColor: "#F1F0EC" },
   content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
-  title: { fontSize: 22, fontWeight: "700", color: "#e8edf3", marginBottom: 20 },
-  label: { fontSize: 13, color: "#9fb0c5", marginBottom: 6, marginTop: 14 },
+  title: { fontSize: 22, fontWeight: "700", color: "#292B31", marginBottom: 20 },
+  label: { fontSize: 13, color: "#6F7078", marginBottom: 6, marginTop: 14 },
   input: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#172a42",
+    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#292B31", backgroundColor: "#ECEBE6",
   },
   textArea: { minHeight: 72, textAlignVertical: "top" },
-  error: { color: "#ff9a93", marginTop: 16, fontSize: 13 },
+  error: { color: "#A3473F", marginTop: 16, fontSize: 13 },
   buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#9fb0c5", fontWeight: "600" },
-  saveButton: { flex: 2, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  saveText: { color: "#0b1522", fontWeight: "700" },
+  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  cancelText: { color: "#6F7078", fontWeight: "600" },
+  saveButton: { flex: 2, backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  saveText: { color: "#F1F0EC", fontWeight: "700" },
 });

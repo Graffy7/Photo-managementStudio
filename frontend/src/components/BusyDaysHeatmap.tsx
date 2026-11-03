@@ -13,7 +13,7 @@ function parts(iso: string) {
 
 // Quiet days are near the card colour; the busiest day is bright blue.
 function shade(count: number, max: number): string {
-  if (count <= 0) return "rgba(127,160,200,0.10)";
+  if (count <= 0) return "rgba(111,112,120,0.1)";
   const t = max <= 1 ? 1 : (count - 1) / (max - 1);
   return `rgba(77,163,255,${(0.32 + 0.68 * t).toFixed(2)})`;
 }
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   dayActive: { borderWidth: 1.5, borderColor: "#cfe6ff" },
   dayText: { ...type.caption, color: colors.textFaint },
   dayTextBusy: { color: colors.text, fontWeight: "700" },
-  dayTextBright: { color: "#ffffff" },
+  dayTextBright: { color: "#F6F5F1" },
   monthRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   monthLabel: { width: 48, ...type.caption, fontSize: 10, color: colors.textMuted },
   legend: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-end" },

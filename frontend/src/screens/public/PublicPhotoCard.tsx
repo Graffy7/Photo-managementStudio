@@ -109,7 +109,7 @@ function PublicPhotoCardBase({ photo, selection, width, disabled, onOpen, onChan
               return (
                 <Pressable
                   key={type}
-                  style={[styles.radio, active && { borderColor: colorFor(type), backgroundColor: "rgba(255,255,255,0.06)" }, disabled && styles.disabled]}
+                  style={[styles.radio, active && { borderColor: colorFor(type), backgroundColor: "rgba(41,43,49,0.06)" }, disabled && styles.disabled]}
                   disabled={disabled}
                   onPress={() => onChange(photo, type)}
                   accessibilityRole="radio"

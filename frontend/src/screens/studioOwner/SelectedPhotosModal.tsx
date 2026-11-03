@@ -6,8 +6,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { photoSelectionApi, photoUrl } from "../../api/photoSelectionApi";
 import type { OwnerGallery, OwnerPhoto } from "../../types/photoSelection";
 
-const NORMAL_COLOR = "#8cc8f0";
-const BIG_COLOR = "#ff9a4d";
+const NORMAL_COLOR = "#4F5D75";
+const BIG_COLOR = "#56566B";
 const GAP = 12;
 const PADDING = 20;
 const PAGE_SIZE = 60;
@@ -47,13 +47,13 @@ export function SelectedPhotosModal({ gallery, visible, onClose }: { gallery: Ow
         </View>
 
         <View style={styles.totals}>
-          <Total label="Total Selected" value={c.selected} color="#e8edf3" />
+          <Total label="Total Selected" value={c.selected} color="#292B31" />
           <Total label="Normal" value={c.normal} color={NORMAL_COLOR} />
           <Total label="Big Size" value={c.big} color={BIG_COLOR} />
         </View>
 
         {isPending ? (
-          <ActivityIndicator color="#ff9a4d" style={{ marginTop: 40 }} />
+          <ActivityIndicator color="#56566B" style={{ marginTop: 40 }} />
         ) : isError ? (
           <View style={styles.center}>
             <Text style={styles.error}>Couldn't load the selected photos.</Text>
@@ -75,7 +75,7 @@ export function SelectedPhotosModal({ gallery, visible, onClose }: { gallery: Ow
             columnWrapperStyle={{ gap: GAP }}
             onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
             onEndReachedThreshold={0.6}
-            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 16 }} /> : null}
+            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color="#56566B" style={{ marginVertical: 16 }} /> : null}
             renderItem={({ item }) => <SelectedCard photo={item} width={cardWidth} onPress={() => setPreview(item)} />}
           />
         )}
@@ -121,7 +121,7 @@ function SelectedCard({ photo, width, onPress }: { photo: OwnerPhoto; width: num
       </View>
       <View style={styles.cardFooter}>
         <Text style={styles.fileName} numberOfLines={1}>{photo.fileName}</Text>
-        <Text style={[styles.selectedLabel, { color: "#6ee0ad" }]}>✓ Selected</Text>
+        <Text style={[styles.selectedLabel, { color: "#4E7D5B" }]}>✓ Selected</Text>
         <View style={[styles.sizeBadge, { backgroundColor: accent }]}>
           <Text style={styles.sizeText}>{big ? "Big Size" : "Normal"}</Text>
         </View>
@@ -131,37 +131,37 @@ function SelectedCard({ photo, width, onPress }: { photo: OwnerPhoto; width: num
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
+  screen: { flex: 1, backgroundColor: "#F1F0EC" },
   header: { flexDirection: "row", alignItems: "center", gap: 12, padding: PADDING, paddingBottom: 12 },
-  title: { color: "#e8edf3", fontSize: 22, fontWeight: "700" },
-  subtitle: { color: "#8a9cb6", fontSize: 13, marginTop: 2 },
-  backButton: { backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#2c4463" },
-  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
+  title: { color: "#292B31", fontSize: 22, fontWeight: "700" },
+  subtitle: { color: "#6F7078", fontSize: 13, marginTop: 2 },
+  backButton: { backgroundColor: "#ECEBE6", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#C4C3BB" },
+  backText: { color: "#4F5D75", fontWeight: "600", fontSize: 13 },
   totals: {
     flexDirection: "row", flexWrap: "wrap", gap: 28, paddingHorizontal: PADDING, paddingVertical: 12,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#1f3149", backgroundColor: "#122033",
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#D2D1CA", backgroundColor: "#E5E4DF",
   },
   total: { gap: 1 },
   totalValue: { fontSize: 26, fontWeight: "800" },
-  totalLabel: { color: "#8a9cb6", fontSize: 12 },
+  totalLabel: { color: "#6F7078", fontSize: 12 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
-  empty: { color: "#8a9cb6", fontSize: 14, textAlign: "center" },
-  error: { color: "#ff9a93", fontSize: 13, textAlign: "center" },
-  secondaryButton: { backgroundColor: "#172a42", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#2c4463" },
-  secondaryText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
+  empty: { color: "#6F7078", fontSize: 14, textAlign: "center" },
+  error: { color: "#A3473F", fontSize: 13, textAlign: "center" },
+  secondaryButton: { backgroundColor: "#ECEBE6", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "#C4C3BB" },
+  secondaryText: { color: "#4F5D75", fontWeight: "600", fontSize: 13 },
 
-  card: { backgroundColor: "#172a42", borderRadius: 10, borderWidth: 2, overflow: "hidden" },
+  card: { backgroundColor: "#ECEBE6", borderRadius: 10, borderWidth: 2, overflow: "hidden" },
   imageBox: { backgroundColor: "#0a1320", width: "100%" },
   image: { width: "100%", height: "100%" },
   noPreview: { alignItems: "center", justifyContent: "center" },
-  noPreviewText: { color: "#8a9cb6", fontSize: 12 },
-  cardFooter: { padding: 10, gap: 5, borderTopWidth: 1, borderTopColor: "#1f3149" },
-  fileName: { color: "#9fb0c5", fontSize: 12 },
+  noPreviewText: { color: "#6F7078", fontSize: 12 },
+  cardFooter: { padding: 10, gap: 5, borderTopWidth: 1, borderTopColor: "#D2D1CA" },
+  fileName: { color: "#6F7078", fontSize: 12 },
   selectedLabel: { fontSize: 14, fontWeight: "800" },
   sizeBadge: { alignSelf: "flex-start", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 3 },
-  sizeText: { color: "#0b1522", fontSize: 12, fontWeight: "800" },
+  sizeText: { color: "#F1F0EC", fontSize: 12, fontWeight: "800" },
 
   previewOverlay: { flex: 1, backgroundColor: "#050a12", alignItems: "center", justifyContent: "center", padding: 20 },
   previewImage: { width: "100%", height: "85%" },
-  previewCaption: { color: "#9fb0c5", fontSize: 13, marginTop: 10 },
+  previewCaption: { color: "#6F7078", fontSize: 13, marginTop: 10 },
 });

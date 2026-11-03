@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { eventsApi } from "../../api/eventsApi";
@@ -16,7 +17,9 @@ import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
 import { DataList, CellMoney, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
-import { colors, space, type } from "../../ui/theme";
+import { RowAction } from "../../ui/RowAction";
+import { categorizeEventType, CATEGORY_COLORS } from "../../utils/eventCategory";
+import { colors, radius, space, type } from "../../ui/theme";
 
 const PAGE_SIZE = 20;
 
@@ -40,6 +43,36 @@ function teamText(e: StudioEvent): string {
   return names.length === 0 ? "No team yet" : names.length <= 2 ? names.join(", ") : `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
 }
 
+// "Sat · 10:30" under the date - the weekday helps more than the year when planning shoots.
+function dayAndTime(e: StudioEvent): string {
+  const day = new Date(e.eventDate).toLocaleDateString("en-IN", { weekday: "short" });
+  return `${day} · ${e.startTime ? e.startTime.slice(0, 5) : "All day"}`;
+}
+
+// The event type as a soft colour-coded badge (Wedding, Reception, Birthday, Photoshoot...).
+function TypeBadge({ name }: { name: string | null }) {
+  const color = CATEGORY_COLORS[categorizeEventType(name)];
+  return (
+    <View style={[styles.typeBadge, { backgroundColor: `${color}26`, borderColor: `${color}55` }]}>
+      <View style={[styles.typeDot, { backgroundColor: color }]} />
+      <Text style={styles.typeText} numberOfLines={1}>{name ?? "Event"}</Text>
+    </View>
+  );
+}
+
+// Who is shooting: the first two crew with their role, then "+N".
+function TeamCell({ e }: { e: StudioEvent }) {
+  if (e.assignedWorkers.length === 0) return <CellSub>Not assigned</CellSub>;
+  const [first, second] = e.assignedWorkers;
+  const line = (w: typeof first) => `${w.workerName}${w.workerTypeName ? ` · ${w.workerTypeName}` : ""}`;
+  return (
+    <>
+      <CellTitle>{line(first)}</CellTitle>
+      {second && <CellSub>{line(second)}{e.assignedWorkers.length > 2 ? `  +${e.assignedWorkers.length - 2} more` : ""}</CellSub>}
+    </>
+  );
+}
+
 function deliveryText(e: StudioEvent): string | null {
   if (e.eventStatus !== "Completed" || e.deliveryItems.length === 0) return null;
   const done = e.deliveryItems.filter((d) => d.isDelivered).length;
@@ -48,6 +81,7 @@ function deliveryText(e: StudioEvent): string | null {
 
 export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (event: StudioEvent) => void; onView: (event: StudioEvent) => void }) {
   const queryClient = useQueryClient();
+  const navigation = useNavigation();
   const [search, setSearch] = useState("");
   const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
   const [eventDate, setEventDate] = useState("");
@@ -99,49 +133,52 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
       </View>
     ) : (
       <View style={styles.actionRow}>
-        <Button label="Quote" icon="document-text-outline" variant="link" onPress={() => setQuoteFor(item)} />
+        <RowAction iconOnly icon="document-text-outline" label="Quote" onPress={() => setQuoteFor(item)} accessibilityLabel={`Quotation for ${item.customerName}`} />
         <SubscriptionLock compact>
-          <Button label="Edit" variant="link" onPress={() => onEdit(item)} />
+          <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(item)} accessibilityLabel={`Edit event for ${item.customerName}`} />
         </SubscriptionLock>
-        <Button label="Delete" variant="link" onPress={() => { setPendingDeleteId(item.eventId); setDeleteError(null); }} accessibilityLabel={`Delete event for ${item.customerName}`} />
+        <RowAction iconOnly icon="trash-outline" label="Delete" kind="danger" onPress={() => { setPendingDeleteId(item.eventId); setDeleteError(null); }}
+          accessibilityLabel={`Delete event for ${item.customerName}`} />
       </View>
     );
 
   const columns: Column<StudioEvent>[] = [
     {
-      key: "date", label: "Date", width: 130, sortKey: "date",
-      render: (e) => (<><CellTitle>{formatDate(e.eventDate)}</CellTitle><CellSub>{e.startTime ? e.startTime.slice(0, 5) : "All day"}</CellSub></>),
+      key: "date", label: "Date", width: 120, sortKey: "date",
+      render: (e) => (<><CellTitle>{formatDate(e.eventDate)}</CellTitle><CellSub>{dayAndTime(e)}</CellSub></>),
     },
     {
-      key: "customer", label: "Customer", flex: 2, sortKey: "customer",
-      render: (e) => (<><CellTitle>{e.customerName}</CellTitle><CellSub>{e.customerMobileNumber}</CellSub></>),
-    },
-    {
-      key: "event", label: "Event", flex: 2,
-      render: (e) => (<><CellTitle>{e.eventTypeName ?? "Event"}</CellTitle><CellSub>{e.venue ?? "No venue"}</CellSub></>),
-    },
-    {
-      key: "status", label: "Status", width: 120, sortKey: "status",
+      key: "event", label: "Event", flex: 1.8,
       render: (e) => (
-        <View style={{ gap: 4 }}>
-          <StatusPill label={EVENT_STATUS_LABELS[e.eventStatus]} tone={eventStatusTone(e.eventStatus)} />
-          <CellSub>{deliveryText(e) ?? teamText(e)}</CellSub>
+        <View style={{ gap: 4, alignItems: "flex-start" }}>
+          <TypeBadge name={e.eventTypeName} />
+          <CellSub>{e.venue ?? "No venue"}</CellSub>
         </View>
       ),
     },
     {
-      key: "total", label: "Total", width: 110, align: "right", sortKey: "total",
-      render: (e) => <CellMoney>{e.budget !== null ? formatCurrency(e.budget) : "—"}</CellMoney>,
+      key: "customer", label: "Customer", flex: 1.8, sortKey: "customer",
+      render: (e) => (<><CellTitle>{e.customerName}</CellTitle><CellSub>{e.customerMobileNumber}</CellSub></>),
+    },
+    { key: "team", label: "Team", flex: 1.6, render: (e) => <TeamCell e={e} /> },
+    {
+      key: "status", label: "Status", width: 130, sortKey: "status",
+      render: (e) => (
+        <View style={{ gap: 4, alignItems: "flex-start" }}>
+          <StatusPill label={EVENT_STATUS_LABELS[e.eventStatus]} tone={eventStatusTone(e.eventStatus)} />
+          {deliveryText(e) && <CellSub>{deliveryText(e)}</CellSub>}
+        </View>
+      ),
     },
     {
-      key: "balance", label: "Balance", width: 110, align: "right",
+      key: "total", label: "Amount", width: 150, align: "right", sortKey: "total",
       render: (e) => {
         if (e.budget === null) return <CellSub>—</CellSub>;
         const b = balanceText(e);
-        return (<><CellMoney tone={b.tone}>{b.value}</CellMoney><CellSub>{b.label}</CellSub></>);
+        return (<><CellMoney>{formatCurrency(e.budget)}</CellMoney><CellSub><Text style={{ color: b.tone }}>{b.label === "Paid" ? "Paid" : `${b.label} ${b.value}`}</Text></CellSub></>);
       },
     },
-    { key: "actions", label: "", width: 230, align: "right", render: actions },
+    { key: "actions", label: "", width: 126, align: "right", render: actions },
   ];
 
   const filtered = !!(search || eventDate || eventStatus);
@@ -152,9 +189,13 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         title="Events"
         subtitle={data ? `${data.totalCount} event${data.totalCount === 1 ? "" : "s"}` : null}
         actions={
-          <SubscriptionLock>
-            <Button label="New event" icon="add" variant="primary" onPress={onCreate} />
-          </SubscriptionLock>
+          <View style={styles.headerActions}>
+            {/* List / calendar: the calendar shows the same events laid out by day. */}
+            <Button label="Calendar view" icon="calendar-outline" onPress={() => navigation.navigate("Calendar" as never)} />
+            <SubscriptionLock>
+              <Button label="New event" icon="add" variant="primary" onPress={onCreate} />
+            </SubscriptionLock>
+          </View>
         }
       />
 
@@ -203,7 +244,10 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
                 <StatusPill label={EVENT_STATUS_LABELS[e.eventStatus]} tone={eventStatusTone(e.eventStatus)} />
               </View>
               <Text style={styles.cardTitle} numberOfLines={1}>{e.customerName}</Text>
-              <Text style={styles.cardSub} numberOfLines={1}>{e.eventTypeName ?? "Event"}{e.venue ? ` · ${e.venue}` : ""}</Text>
+              <View style={styles.cardTypeRow}>
+                <TypeBadge name={e.eventTypeName} />
+                {e.venue ? <Text style={styles.cardSub} numberOfLines={1}>{e.venue}</Text> : null}
+              </View>
               {e.budget !== null && b && (
                 <Text style={styles.cardSub}>
                   Total <Text style={styles.money}>{formatCurrency(e.budget)}</Text>{"   "}
@@ -235,7 +279,15 @@ const styles = StyleSheet.create({
   toolbar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.sm, marginBottom: space.md },
   search: { flexGrow: 1, flexShrink: 1, flexBasis: 240 },
   chips: { marginBottom: space.lg },
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  typeBadge: {
+    flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", maxWidth: "100%",
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, borderWidth: 1,
+  },
+  typeDot: { width: 7, height: 7, borderRadius: 4 },
+  typeText: { ...type.small, fontWeight: "600", color: colors.text, flexShrink: 1 },
+  cardTypeRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
   confirm: { alignItems: "flex-end", gap: 2 },
   confirmText: { ...type.small, fontWeight: "600", color: colors.danger },
   error: { ...type.caption, color: colors.danger },
@@ -245,5 +297,5 @@ const styles = StyleSheet.create({
   cardSub: { ...type.small, color: colors.textMuted },
   cardMeta: { ...type.caption, color: colors.textFaint },
   money: { fontWeight: "700", color: colors.text },
-  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.xs, marginHorizontal: -space.sm },
+  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.sm },
 });

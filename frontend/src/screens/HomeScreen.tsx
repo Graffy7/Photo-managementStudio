@@ -100,8 +100,8 @@ function Delta({ percent, preset }: { percent: number | null; preset: DateRangeP
   const isUp = percent >= 0;
   return (
     <View style={styles.deltaRow}>
-      <Ionicons name={isUp ? "arrow-up" : "arrow-down"} size={11} color={isUp ? "#4cc493" : "#ff7a72"} />
-      <Text style={[styles.delta, { color: isUp ? "#4cc493" : "#ff7a72" }]}>{Math.abs(percent)}%</Text>
+      <Ionicons name={isUp ? "arrow-up" : "arrow-down"} size={11} color={isUp ? "#4E7D5B" : "#A3473F"} />
+      <Text style={[styles.delta, { color: isUp ? "#4E7D5B" : "#A3473F" }]}>{Math.abs(percent)}%</Text>
       <Text style={styles.deltaLabel}>{comparisonLabel(preset)}</Text>
     </View>
   );
@@ -224,12 +224,12 @@ export function HomeScreen() {
         <View style={styles.headerRight}>
           {data && (
             <View style={styles.rangeChip}>
-              <Ionicons name="calendar-outline" size={14} color="#7fc0e6" />
+              <Ionicons name="calendar-outline" size={14} color="#4F5D75" />
               <Text style={styles.rangeChipText}>{formatDateRange(data.rangeStart, data.rangeEnd)}</Text>
             </View>
           )}
           {showBell && isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
-            <Ionicons name="notifications-outline" size={18} color="#a7b7cb" />
+            <Ionicons name="notifications-outline" size={18} color="#55565E" />
             {!!unreadCount && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
@@ -249,14 +249,14 @@ export function HomeScreen() {
             </Pressable>
           ))}
           <Pressable style={styles.nativeNavButton} onPress={() => logout()}>
-            <Text style={[styles.nativeNavButtonText, { color: "#ff7a72" }]}>Sign out</Text>
+            <Text style={[styles.nativeNavButtonText, { color: "#A3473F" }]}>Sign out</Text>
           </Pressable>
         </ScrollView>
       )}
 
       {!dashboardOn ? (
         <View style={styles.welcomeCard}>
-          <Ionicons name="grid-outline" size={22} color="#7fc0e6" />
+          <Ionicons name="grid-outline" size={22} color="#4F5D75" />
           <Text style={styles.welcomeTitle}>Welcome back</Text>
           <Text style={styles.welcomeText}>Choose where to start from the menu.</Text>
         </View>
@@ -274,7 +274,7 @@ export function HomeScreen() {
       {preset === "Custom" && (
         <View style={styles.customRangeRow}>
           <MiniDatePicker label="From" value={customStart} onChange={setCustomStart} />
-          <Ionicons name="arrow-forward" size={14} color="#6f83a0" style={{ marginTop: 20 }} />
+          <Ionicons name="arrow-forward" size={14} color="#8A8B92" style={{ marginTop: 20 }} />
           <MiniDatePicker label="To" value={customEnd} onChange={setCustomEnd} />
         </View>
       )}
@@ -282,16 +282,16 @@ export function HomeScreen() {
       {preset === "Custom" && !customRangeReady ? (
         <Text style={styles.empty}>Enter both dates above to load this range.</Text>
       ) : isPending ? (
-        <ActivityIndicator color="#7fc0e6" style={{ marginTop: 40 }} />
+        <ActivityIndicator color="#4F5D75" style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the dashboard.</Text>
       ) : (
         <>
           <View style={styles.statRow}>
-            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#7fc0e6" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} compact={stacked} />}
-            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#4cc493" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} compact={stacked} />}
-            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#f2bd5c" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} compact={stacked} />}
-            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#ff9a4d" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} compact={stacked} />}
+            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#4F5D75" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} compact={stacked} />}
+            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#4E7D5B" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} compact={stacked} />}
+            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#A0762E" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} compact={stacked} />}
+            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#56566B" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} compact={stacked} />}
           </View>
 
           <View style={[styles.columns, stacked && styles.columnsStacked]}>
@@ -302,18 +302,18 @@ export function HomeScreen() {
                 <View style={styles.overviewStats}>
                   <View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Revenue</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#4cc493" }]}>{formatCurrency(data.collectedRevenue)}</Text>
+                    <Text style={[styles.overviewStatValue, { color: "#4E7D5B" }]}>{formatCurrency(data.collectedRevenue)}</Text>
                   </View>
                   {isOn("EXPENSES") && (
 <View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Expenses</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#ff7a72" }]}>{formatCurrency(data.totalExpenses)}</Text>
+                    <Text style={[styles.overviewStatValue, { color: "#A3473F" }]}>{formatCurrency(data.totalExpenses)}</Text>
                   </View>
 )}
                   {isOn("EXPENSES") && (
 <View style={styles.overviewStat}>
                     <Text style={styles.overviewStatLabel}>Profit</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#4cc493" }]}>{formatCurrency(data.cashProfit)}</Text>
+                    <Text style={[styles.overviewStatValue, { color: "#4E7D5B" }]}>{formatCurrency(data.cashProfit)}</Text>
                   </View>
 )}
                   {isOn("EXPENSES") && (
@@ -340,31 +340,31 @@ export function HomeScreen() {
                   {isOn("PAYMENTS") && (
 <View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Collected Revenue</Text>
-                    <Text style={[styles.financeValue, { color: "#4cc493" }]}>{formatCurrency(data.collectedRevenue)}</Text>
+                    <Text style={[styles.financeValue, { color: "#4E7D5B" }]}>{formatCurrency(data.collectedRevenue)}</Text>
                   </View>
 )}
                   {isOn("PAYMENTS") && (
 <View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Outstanding</Text>
-                    <Text style={[styles.financeValue, { color: data.outstandingBalance > 0 ? "#f2bd5c" : "#e8edf3" }]}>{formatCurrency(data.outstandingBalance)}</Text>
+                    <Text style={[styles.financeValue, { color: data.outstandingBalance > 0 ? "#A0762E" : "#292B31" }]}>{formatCurrency(data.outstandingBalance)}</Text>
                   </View>
 )}
                   {isOn("EXPENSES") && (
 <View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Expenses</Text>
-                    <Text style={[styles.financeValue, { color: "#ff7a72" }]}>{formatCurrency(data.totalExpenses)}</Text>
+                    <Text style={[styles.financeValue, { color: "#A3473F" }]}>{formatCurrency(data.totalExpenses)}</Text>
                   </View>
 )}
                   {isOn("QUOTATIONS") && isOn("EXPENSES") && (
 <View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Expected Profit</Text>
-                    <Text style={[styles.financeValue, { color: data.expectedProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>{formatCurrency(data.expectedProfit)}</Text>
+                    <Text style={[styles.financeValue, { color: data.expectedProfit >= 0 ? "#4E7D5B" : "#A3473F" }]}>{formatCurrency(data.expectedProfit)}</Text>
                   </View>
 )}
                   {isOn("PAYMENTS") && isOn("EXPENSES") && (
 <View style={styles.financeTile}>
                     <Text style={styles.financeLabel}>Cash Profit</Text>
-                    <Text style={[styles.financeValue, { color: data.cashProfit >= 0 ? "#4cc493" : "#ff7a72" }]}>{formatCurrency(data.cashProfit)}</Text>
+                    <Text style={[styles.financeValue, { color: data.cashProfit >= 0 ? "#4E7D5B" : "#A3473F" }]}>{formatCurrency(data.cashProfit)}</Text>
                   </View>
 )}
                 </View>
@@ -380,10 +380,10 @@ export function HomeScreen() {
                   centerLabel="Total"
                   centerValue={data.totalEvents}
                   segments={[
-                    { label: "Upcoming", value: data.upcomingEvents, color: "#f2bd5c" },
-                    { label: "Ongoing", value: data.ongoingEvents ?? 0, color: "#7fc0e6" },
-                    { label: "Completed", value: data.completedEvents, color: "#4cc493" },
-                    { label: "Cancelled", value: data.cancelledEvents, color: "#ff7a72" },
+                    { label: "Upcoming", value: data.upcomingEvents, color: "#A0762E" },
+                    { label: "Ongoing", value: data.ongoingEvents ?? 0, color: "#4F5D75" },
+                    { label: "Completed", value: data.completedEvents, color: "#4E7D5B" },
+                    { label: "Cancelled", value: data.cancelledEvents, color: "#A3473F" },
                   ]}
                 />
               </Panel>
@@ -468,7 +468,7 @@ export function HomeScreen() {
           </View>
 
           <View style={styles.tipBanner}>
-            <Ionicons name="star" size={16} color="#7fc0e6" />
+            <Ionicons name="star" size={16} color="#4F5D75" />
             <Text style={styles.tipText}><Text style={styles.tipLabel}>Tip of the day: </Text>{tip}</Text>
           </View>
         </>
@@ -493,60 +493,60 @@ function dayOfYear(): number {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0d1826" },
+  screen: { flex: 1, backgroundColor: "#ECEBE6" },
   content: { padding: 24, maxWidth: 1760, width: "100%", alignSelf: "center" },
   contentNarrow: { padding: 16 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 16, flexWrap: "wrap" },
   // On a phone there isn't room for the greeting beside the date and bell, so they wrap below it.
   headerLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 260 },
-  greeting: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  greetingName: { color: "#7fc0e6" },
-  subtitle: { fontSize: 13, color: "#6f83a0", marginTop: 3 },
+  greeting: { fontSize: 24, fontWeight: "700", color: "#292B31" },
+  greetingName: { color: "#4F5D75" },
+  subtitle: { fontSize: 13, color: "#8A8B92", marginTop: 3 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   rangeChip: {
-    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#23405c",
-    borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#132540",
+    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#D2D1CA",
+    borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#E5E4DF",
   },
-  rangeChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  rangeChipText: { color: "#55565E", fontSize: 12, fontWeight: "600" },
   iconButton: {
-    width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderColor: "#23405c", backgroundColor: "#132540",
+    width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderColor: "#D2D1CA", backgroundColor: "#E5E4DF",
     alignItems: "center", justifyContent: "center",
   },
   badge: {
-    position: "absolute", top: -5, right: -5, backgroundColor: "#ff7a72", borderRadius: 100,
+    position: "absolute", top: -5, right: -5, backgroundColor: "#A3473F", borderRadius: 100,
     minWidth: 16, height: 16, paddingHorizontal: 3, alignItems: "center", justifyContent: "center",
   },
-  badgeText: { color: "#0d1826", fontSize: 12, fontWeight: "700" },
+  badgeText: { color: "#ECEBE6", fontSize: 12, fontWeight: "700" },
   nativeNavRow: { marginBottom: 14 },
   nativeNavRowContent: { gap: 8, paddingRight: 8 },
-  nativeNavButton: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: "#132540" },
-  nativeNavButtonText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
+  nativeNavButton: { borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: "#E5E4DF" },
+  nativeNavButtonText: { color: "#55565E", fontSize: 12, fontWeight: "600" },
   presetRow: { marginBottom: 18 },
   presetRowContent: { gap: 8, paddingRight: 8 },
   presetWrap: { flexDirection: "row", flexWrap: "wrap" },
   presetChipNarrow: { flexGrow: 1, alignItems: "center", minHeight: 40, justifyContent: "center" },
   customRangeRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18, flexWrap: "wrap" },
-  presetChip: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#132540" },
-  presetChipSelected: { borderColor: "#7fc0e6", backgroundColor: "rgba(127, 192, 230, 0.14)" },
-  presetChipText: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  presetChipTextSelected: { color: "#7fc0e6" },
-  error: { color: "#ff7a72", marginTop: 40, textAlign: "center" },
-  empty: { color: "#6f83a0", fontSize: 13, paddingVertical: 8 },
+  presetChip: { borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#E5E4DF" },
+  presetChipSelected: { borderColor: "#4F5D75", backgroundColor: "rgba(86,86,107,0.14)" },
+  presetChipText: { color: "#55565E", fontSize: 12, fontWeight: "600" },
+  presetChipTextSelected: { color: "#4F5D75" },
+  error: { color: "#A3473F", marginTop: 40, textAlign: "center" },
+  empty: { color: "#8A8B92", fontSize: 13, paddingVertical: 8 },
 
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginBottom: 18 },
   statCard: {
-    flexGrow: 1, minWidth: 200, backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18,
+    flexGrow: 1, minWidth: 200, backgroundColor: "#E5E4DF", borderRadius: 12, borderWidth: 1, borderColor: "#D2D1CA", padding: 18,
   },
   // Phones: two cards per row instead of one card filling the screen.
   statCardCompact: { minWidth: 0, flexBasis: "40%", padding: 14 },
   statValueCompact: { fontSize: 22 },
   statIcon: { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  statValue: { fontSize: 24, fontWeight: "700", color: "#e8edf3", fontVariant: ["tabular-nums"] },
-  statLabel: { fontSize: 12, color: "#a7b7cb", marginTop: 2 },
+  statValue: { fontSize: 24, fontWeight: "700", color: "#292B31", fontVariant: ["tabular-nums"] },
+  statLabel: { fontSize: 12, color: "#55565E", marginTop: 2 },
   deltaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 },
   delta: { fontSize: 12, fontWeight: "700" },
-  deltaLabel: { fontSize: 12, color: "#6f83a0" },
-  deltaNeutral: { fontSize: 12, color: "#6f83a0", marginTop: 8 },
+  deltaLabel: { fontSize: 12, color: "#8A8B92" },
+  deltaNeutral: { fontSize: 12, color: "#8A8B92", marginTop: 8 },
 
   columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
   columnsStacked: { flexDirection: "column", flexWrap: "nowrap", alignItems: "stretch" },
@@ -555,47 +555,47 @@ const styles = StyleSheet.create({
   mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 16 },
   sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 16 },
 
-  panel: { backgroundColor: "#132540", borderRadius: 12, borderWidth: 1, borderColor: "#23405c", padding: 18 },
+  panel: { backgroundColor: "#E5E4DF", borderRadius: 12, borderWidth: 1, borderColor: "#D2D1CA", padding: 18 },
   panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  panelTitle: { fontSize: 15, fontWeight: "700", color: "#e8edf3" },
-  panelLink: { fontSize: 12, color: "#7fc0e6", fontWeight: "600" },
+  panelTitle: { fontSize: 15, fontWeight: "700", color: "#292B31" },
+  panelLink: { fontSize: 12, color: "#4F5D75", fontWeight: "600" },
 
-  overviewStats: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: "#1b2c42", paddingTop: 16 },
+  overviewStats: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: "#D2D1CA", paddingTop: 16 },
   overviewStat: { minWidth: 90 },
-  overviewStatLabel: { fontSize: 12, color: "#6f83a0" },
-  overviewStatValue: { fontSize: 16, fontWeight: "700", color: "#e8edf3", marginTop: 2 },
+  overviewStatLabel: { fontSize: 12, color: "#8A8B92" },
+  overviewStatValue: { fontSize: 16, fontWeight: "700", color: "#292B31", marginTop: 2 },
 
   financeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  financeTile: { flexGrow: 1, flexBasis: "30%", minWidth: 130, backgroundColor: "#0f1e30", borderRadius: 8, padding: 12 },
-  financeLabel: { fontSize: 12, color: "#6f83a0" },
-  financeValue: { fontSize: 15, fontWeight: "700", color: "#e8edf3", marginTop: 3, fontVariant: ["tabular-nums"] },
+  financeTile: { flexGrow: 1, flexBasis: "30%", minWidth: 130, backgroundColor: "#ECEBE6", borderRadius: 8, padding: 12 },
+  financeLabel: { fontSize: 12, color: "#8A8B92" },
+  financeValue: { fontSize: 15, fontWeight: "700", color: "#292B31", marginTop: 3, fontVariant: ["tabular-nums"] },
 
 
   scheduleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  scheduleTime: { color: "#7fc0e6", fontSize: 12, fontWeight: "700", width: 44 },
-  scheduleTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "600" },
-  scheduleSubtitle: { color: "#6f83a0", fontSize: 12, marginTop: 1 },
+  scheduleTime: { color: "#4F5D75", fontSize: 12, fontWeight: "700", width: 44 },
+  scheduleTitle: { color: "#292B31", fontSize: 13, fontWeight: "600" },
+  scheduleSubtitle: { color: "#8A8B92", fontSize: 12, marginTop: 1 },
   upcomingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   dateBadge: {
     width: 40, alignItems: "center", paddingVertical: 4, borderRadius: 8,
-    backgroundColor: "rgba(127, 192, 230, 0.10)", borderWidth: 1, borderColor: "#23405c",
+    backgroundColor: "rgba(86,86,107,0.1)", borderWidth: 1, borderColor: "#D2D1CA",
   },
-  dateBadgeDay: { color: "#e8edf3", fontSize: 14, fontWeight: "700", lineHeight: 16 },
-  dateBadgeMonth: { color: "#7fc0e6", fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
-  statusPill: { borderWidth: 1, borderColor: "#23405c", borderRadius: 100, paddingVertical: 3, paddingHorizontal: 8 },
-  statusPillText: { color: "#7fc0e6", fontSize: 12, fontWeight: "700" },
+  dateBadgeDay: { color: "#292B31", fontSize: 14, fontWeight: "700", lineHeight: 16 },
+  dateBadgeMonth: { color: "#4F5D75", fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
+  statusPill: { borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 100, paddingVertical: 3, paddingHorizontal: 8 },
+  statusPillText: { color: "#4F5D75", fontSize: 12, fontWeight: "700" },
 
 
   welcomeCard: {
     alignItems: "center", gap: 6, paddingVertical: 40, paddingHorizontal: 20, borderRadius: 12,
-    borderWidth: 1, borderColor: "#1b2c42", backgroundColor: "#0f1e30",
+    borderWidth: 1, borderColor: "#D2D1CA", backgroundColor: "#ECEBE6",
   },
-  welcomeTitle: { color: "#e8edf3", fontSize: 17, fontWeight: "700" },
-  welcomeText: { color: "#6f83a0", fontSize: 13 },
+  welcomeTitle: { color: "#292B31", fontSize: 17, fontWeight: "700" },
+  welcomeText: { color: "#8A8B92", fontSize: 13 },
   tipBanner: {
-    flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#132540", borderWidth: 1,
-    borderColor: "#23405c", borderRadius: 12, padding: 16, marginTop: 16,
+    flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#E5E4DF", borderWidth: 1,
+    borderColor: "#D2D1CA", borderRadius: 12, padding: 16, marginTop: 16,
   },
-  tipText: { color: "#a7b7cb", fontSize: 13, flex: 1 },
-  tipLabel: { color: "#e8edf3", fontWeight: "700" },
+  tipText: { color: "#55565E", fontSize: 13, flex: 1 },
+  tipLabel: { color: "#292B31", fontWeight: "700" },
 });

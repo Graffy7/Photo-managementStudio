@@ -8,18 +8,18 @@ import type { AdminStudioStatus } from "../../../types/adminConsole";
 // Shared look for the platform admin console: calm navy surfaces, one blue accent for data, the
 // app's orange only for the main action on a screen, and green/amber/red kept for status.
 export const C = {
-  page: "#0b1522",
-  surface: "#101d2e",
-  raised: "#14243a",
-  border: "#1f3047",
-  text: "#e6edf5",
-  muted: "#8a9bb3",
-  faint: "#5f7390",
-  accent: "#7fc0e6",
-  brand: "#ff9a4d",
-  good: "#4cc493",
-  warn: "#f2bd5c",
-  bad: "#ff7a72",
+  page: "#F1F0EC",
+  surface: "#ECEBE6",
+  raised: "#ECEBE6",
+  border: "#D2D1CA",
+  text: "#292B31",
+  muted: "#6F7078",
+  faint: "#8A8B92",
+  accent: "#4F5D75",
+  brand: "#56566B",
+  good: "#4E7D5B",
+  warn: "#A0762E",
+  bad: "#A3473F",
 };
 
 // ---- Formatting --------------------------------------------------------------------------------
@@ -181,7 +181,7 @@ type ButtonKind = "primary" | "secondary" | "danger" | "ghost";
 export function Button({ label, onPress, kind = "secondary", icon, disabled, busy, small }: {
   label: string; onPress: () => void; kind?: ButtonKind; icon?: keyof typeof Ionicons.glyphMap; disabled?: boolean; busy?: boolean; small?: boolean;
 }) {
-  const color = kind === "primary" ? "#0d1826" : kind === "danger" ? C.bad : kind === "ghost" ? C.accent : C.text;
+  const color = kind === "primary" ? "#ECEBE6" : kind === "danger" ? C.bad : kind === "ghost" ? C.accent : C.text;
   return (
     <Pressable
       onPress={onPress}
@@ -321,7 +321,7 @@ export const s = StyleSheet.create({
   buttonSmall: { paddingHorizontal: 10, paddingVertical: 6 },
   button_primary: { backgroundColor: C.brand, borderColor: C.brand },
   button_secondary: { backgroundColor: C.raised, borderColor: C.border },
-  button_danger: { backgroundColor: "rgba(255,122,114,0.1)", borderColor: "rgba(255,122,114,0.45)" },
+  button_danger: { backgroundColor: "rgba(163,71,63,0.1)", borderColor: "rgba(163,71,63,0.45)" },
   button_ghost: { backgroundColor: "transparent", borderColor: "transparent" },
   buttonHover: { opacity: 0.88 },
   buttonText: { fontSize: 13, fontWeight: "700" },
@@ -337,7 +337,7 @@ export const s = StyleSheet.create({
 
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: { borderWidth: 1, borderColor: C.border, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: C.surface },
-  chipOn: { borderColor: C.accent, backgroundColor: "rgba(127,192,230,0.12)" },
+  chipOn: { borderColor: C.accent, backgroundColor: "rgba(86,86,107,0.12)" },
   chipText: { color: C.muted, fontSize: 12, fontWeight: "600" },
   chipTextOn: { color: C.accent },
 
@@ -349,7 +349,7 @@ export const s = StyleSheet.create({
   rangeQuick: { borderWidth: 1, borderColor: C.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 },
   rangeQuickText: { color: C.muted, fontSize: 11.5, fontWeight: "700" },
 
-  backdrop: { flex: 1, backgroundColor: "rgba(4,9,16,0.72)", alignItems: "center", justifyContent: "center", padding: 16 },
+  backdrop: { flex: 1, backgroundColor: "rgba(41,43,49,0.432)", alignItems: "center", justifyContent: "center", padding: 16 },
   dialog: { width: "100%", maxWidth: 440, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 20, gap: 12 },
   dialogHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   dialogTitle: { color: C.text, fontSize: 16, fontWeight: "700" },

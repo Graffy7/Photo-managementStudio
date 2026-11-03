@@ -1,5 +1,5 @@
 import { ScrollView, Pressable, Text, StyleSheet } from "react-native";
-import { colors, radius, space, type } from "./theme";
+import { colors, radius, space, type, transition } from "./theme";
 
 // One row of choices (All / Upcoming / Completed...). Scrolls sideways on narrow screens rather
 // than wrapping, so the list below never jumps when the selection changes.
@@ -16,7 +16,7 @@ export function FilterChips<T extends string | number | null>({ options, value, 
           <Pressable
             key={String(o.value)}
             onPress={() => onChange(o.value)}
-            style={[styles.chip, on && styles.chipOn]}
+            style={(state) => [styles.chip, (state as { hovered?: boolean }).hovered && !on && styles.chipHover, on && styles.chipOn]}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
           >
@@ -29,12 +29,13 @@ export function FilterChips<T extends string | number | null>({ options, value, 
 }
 
 const styles = StyleSheet.create({
-  row: { gap: space.sm },
+  row: { gap: space.sm, paddingVertical: 2 },
   chip: {
-    minHeight: 36, justifyContent: "center", borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill,
-    paddingHorizontal: 14, backgroundColor: colors.card,
+    minHeight: 34, justifyContent: "center", borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill,
+    paddingHorizontal: 14, backgroundColor: colors.card, ...transition,
   },
-  chipOn: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  chipHover: { borderColor: "#C4C3BB", backgroundColor: "#DEDDD7" },
+  chipOn: { borderColor: "#C4C3BB", backgroundColor: colors.primarySoft },
   text: { ...type.small, fontWeight: "600", color: colors.textMuted },
   textOn: { color: colors.primary },
 });

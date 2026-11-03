@@ -46,18 +46,18 @@ export function FolderBrowserModal({
           <View style={styles.header}>
             <Text style={styles.title}>Select the photos folder</Text>
             <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={20} color="#9fb0c5" />
+              <Ionicons name="close" size={20} color="#6F7078" />
             </Pressable>
           </View>
 
           <View style={styles.pathRow}>
             {!atRoot && (
               <Pressable style={styles.upButton} onPress={() => setCurrentPath(data?.parentPath ?? null)}>
-                <Ionicons name="arrow-up-outline" size={14} color="#8cc8f0" />
+                <Ionicons name="arrow-up-outline" size={14} color="#4F5D75" />
                 <Text style={styles.upButtonText}>Up</Text>
               </Pressable>
             )}
-            <Ionicons name="lock-closed-outline" size={12} color="#8a9cb6" />
+            <Ionicons name="lock-closed-outline" size={12} color="#6F7078" />
             <Text style={styles.pathText} numberOfLines={1}>
               {relative ? `Studio photos › ${relative.split(/[\\/]/).join(" › ")}` : "Studio photos"}
             </Text>
@@ -65,7 +65,7 @@ export function FolderBrowserModal({
 
           <View style={styles.listBox}>
             {isPending ? (
-              <ActivityIndicator color="#ff9a4d" style={{ marginVertical: 30 }} />
+              <ActivityIndicator color="#56566B" style={{ marginVertical: 30 }} />
             ) : isError ? (
               <Text style={styles.empty}>{extractErrorMessage(error, "Couldn't open that folder.")}</Text>
             ) : folders.length === 0 ? (
@@ -74,9 +74,9 @@ export function FolderBrowserModal({
               <ScrollView style={{ maxHeight: 340 }}>
                 {folders.map((f) => (
                   <Pressable key={f.fullPath} style={styles.item} onPress={() => setCurrentPath(f.fullPath)}>
-                    <Ionicons name="folder" size={20} color="#8cc8f0" />
+                    <Ionicons name="folder" size={20} color="#4F5D75" />
                     <Text style={styles.itemText} numberOfLines={1}>{f.name}</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#8a9cb6" />
+                    <Ionicons name="chevron-forward" size={14} color="#6F7078" />
                   </Pressable>
                 ))}
               </ScrollView>
@@ -110,23 +110,23 @@ export function FolderBrowserModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(5,10,18,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
-  card: { width: "100%", maxWidth: 560, backgroundColor: "#172a42", borderRadius: 14, borderWidth: 1, borderColor: "#2c4463", padding: 18 },
+  overlay: { flex: 1, backgroundColor: "rgba(41,43,49,0.36)", alignItems: "center", justifyContent: "center", padding: 20 },
+  card: { width: "100%", maxWidth: 560, backgroundColor: "#ECEBE6", borderRadius: 14, borderWidth: 1, borderColor: "#C4C3BB", padding: 18 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  title: { color: "#e8edf3", fontSize: 16, fontWeight: "700" },
+  title: { color: "#292B31", fontSize: 16, fontWeight: "700" },
   pathRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
-  upButton: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#0b1522", borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8, borderWidth: 1, borderColor: "#2c4463" },
-  upButtonText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
-  pathText: { color: "#8cc8f0", fontSize: 12, fontWeight: "600", flexShrink: 1 },
-  listBox: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#0b1522", minHeight: 120 },
-  empty: { color: "#8a9cb6", fontSize: 12, textAlign: "center", padding: 24 },
-  item: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: "#1f3149" },
-  itemText: { color: "#e8edf3", fontSize: 13, flex: 1 },
-  count: { color: "#9fb0c5", fontSize: 12, marginTop: 10 },
+  upButton: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F1F0EC", borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8, borderWidth: 1, borderColor: "#C4C3BB" },
+  upButtonText: { color: "#4F5D75", fontSize: 12, fontWeight: "700" },
+  pathText: { color: "#4F5D75", fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  listBox: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 10, backgroundColor: "#F1F0EC", minHeight: 120 },
+  empty: { color: "#6F7078", fontSize: 12, textAlign: "center", padding: 24 },
+  item: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: "#D2D1CA" },
+  itemText: { color: "#292B31", fontSize: 13, flex: 1 },
+  count: { color: "#6F7078", fontSize: 12, marginTop: 10 },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 16 },
   cancelButton: { paddingVertical: 10, paddingHorizontal: 14 },
-  cancelText: { color: "#9fb0c5", fontSize: 13, fontWeight: "600" },
-  selectButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
+  cancelText: { color: "#6F7078", fontSize: 13, fontWeight: "600" },
+  selectButton: { backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
   selectButtonDisabled: { opacity: 0.4 },
-  selectText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
+  selectText: { color: "#F1F0EC", fontWeight: "700", fontSize: 13 },
 });

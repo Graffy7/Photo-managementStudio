@@ -24,8 +24,8 @@ export function actionTone(action: string): Tone {
 }
 
 export const TONE_COLORS: Record<Tone, string> = {
-  good: "#4cc493",
-  bad: "#ff7a72",
-  warn: "#f2bd5c",
-  neutral: "#7fc0e6",
+  good: "#4E7D5B",
+  bad: "#A3473F",
+  warn: "#A0762E",
+  neutral: "#4F5D75",
 };

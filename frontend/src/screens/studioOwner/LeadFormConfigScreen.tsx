@@ -26,7 +26,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
         </View>
       </View>
 
-      <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Field label" placeholderTextColor="#8a9cb6" />
+      <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Field label" placeholderTextColor="#6F7078" />
 
       {field.options.length > 0 && (
         <Text style={styles.optionsPreview}>Options: {field.options.map((o) => o.optionLabel).join(", ")}</Text>
@@ -53,7 +53,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
           onPress={() => onSave({ ...field, label, isRequired, isVisible, isEnabled })}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#0b1522" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
+          {saving ? <ActivityIndicator color="#F1F0EC" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
         </Pressable>
       )}
     </View>
@@ -119,7 +119,7 @@ export function LeadFormConfigScreen() {
       <Text style={styles.subtitle}>Control what shows on the enquiry form — hide fields, make them required, or add your own.</Text>
 
       {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 30 }} />
+        <ActivityIndicator color="#56566B" style={{ marginTop: 30 }} />
       ) : (
         (fields ?? [])
           .slice()
@@ -134,10 +134,10 @@ export function LeadFormConfigScreen() {
           <Text style={styles.addTitle}>New custom field</Text>
 
           <Text style={styles.smallLabel}>Field key (no spaces)</Text>
-          <TextInput style={styles.labelInput} value={fieldKey} onChangeText={setFieldKey} placeholder="InstagramId" placeholderTextColor="#8a9cb6" autoCapitalize="none" />
+          <TextInput style={styles.labelInput} value={fieldKey} onChangeText={setFieldKey} placeholder="InstagramId" placeholderTextColor="#6F7078" autoCapitalize="none" />
 
           <Text style={styles.smallLabel}>Label</Text>
-          <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Instagram ID" placeholderTextColor="#8a9cb6" />
+          <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Instagram ID" placeholderTextColor="#6F7078" />
 
           <Text style={styles.smallLabel}>Field type</Text>
           <View style={styles.typeChipRow}>
@@ -156,7 +156,7 @@ export function LeadFormConfigScreen() {
                 value={optionsText}
                 onChangeText={setOptionsText}
                 placeholder="Friend, Instagram Ad, Google Search"
-                placeholderTextColor="#8a9cb6"
+                placeholderTextColor="#6F7078"
               />
             </>
           )}
@@ -172,7 +172,7 @@ export function LeadFormConfigScreen() {
               onPress={() => fieldKey.trim() && label.trim() && addField.mutate()}
               disabled={addField.isPending}
             >
-              {addField.isPending ? <ActivityIndicator color="#0b1522" size="small" /> : <Text style={styles.saveButtonText}>Add field</Text>}
+              {addField.isPending ? <ActivityIndicator color="#F1F0EC" size="small" /> : <Text style={styles.saveButtonText}>Add field</Text>}
             </Pressable>
           </View>
         </View>
@@ -186,41 +186,41 @@ export function LeadFormConfigScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
+  screen: { flex: 1, backgroundColor: "#F1F0EC" },
   content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
-  backText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#8a9cb6", marginTop: 4, marginBottom: 20 },
+  backText: { color: "#4F5D75", fontWeight: "600", fontSize: 13 },
+  title: { fontSize: 24, fontWeight: "700", color: "#292B31" },
+  subtitle: { fontSize: 13, color: "#6F7078", marginTop: 4, marginBottom: 20 },
   card: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42",
+    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 10, backgroundColor: "#ECEBE6",
     padding: 16, marginBottom: 12,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  fieldKey: { color: "#8a9cb6", fontSize: 12, fontFamily: "monospace" },
-  typeBadge: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
-  typeBadgeText: { color: "#8cc8f0", fontSize: 12, fontWeight: "700" },
+  fieldKey: { color: "#6F7078", fontSize: 12, fontFamily: "monospace" },
+  typeBadge: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
+  typeBadgeText: { color: "#4F5D75", fontSize: 12, fontWeight: "700" },
   labelInput: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
-    fontSize: 14, color: "#e8edf3", backgroundColor: "#0b1522", marginBottom: 8,
+    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+    fontSize: 14, color: "#292B31", backgroundColor: "#F1F0EC", marginBottom: 8,
   },
-  optionsPreview: { color: "#8a9cb6", fontSize: 12, marginBottom: 8 },
+  optionsPreview: { color: "#6F7078", fontSize: 12, marginBottom: 8 },
   switchRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   switchItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  switchLabel: { color: "#9fb0c5", fontSize: 12 },
-  saveButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 12 },
-  saveButtonText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
-  addFieldTrigger: { borderWidth: 1, borderColor: "#2c4463", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
-  addFieldTriggerText: { color: "#8cc8f0", fontWeight: "600", fontSize: 13 },
-  addTitle: { color: "#e8edf3", fontWeight: "700", fontSize: 15, marginBottom: 12 },
-  smallLabel: { color: "#9fb0c5", fontSize: 12, marginBottom: 6, marginTop: 4 },
+  switchLabel: { color: "#6F7078", fontSize: 12 },
+  saveButton: { backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 12 },
+  saveButtonText: { color: "#F1F0EC", fontWeight: "700", fontSize: 13 },
+  addFieldTrigger: { borderWidth: 1, borderColor: "#C4C3BB", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
+  addFieldTriggerText: { color: "#4F5D75", fontWeight: "600", fontSize: 13 },
+  addTitle: { color: "#292B31", fontWeight: "700", fontSize: 15, marginBottom: 12 },
+  smallLabel: { color: "#6F7078", fontSize: 12, marginBottom: 6, marginTop: 4 },
   typeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  typeChip: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
-  typeChipSelected: { borderColor: "#ff9a4d", backgroundColor: "rgba(255, 154, 77, 0.12)" },
-  typeChipText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
-  typeChipTextSelected: { color: "#ff9a4d" },
-  error: { color: "#ff9a93", fontSize: 12, marginTop: 4 },
+  typeChip: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
+  typeChipSelected: { borderColor: "#56566B", backgroundColor: "rgba(86,86,107,0.12)" },
+  typeChipText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
+  typeChipTextSelected: { color: "#56566B" },
+  error: { color: "#A3473F", fontSize: 12, marginTop: 4 },
   addFieldButtonRow: { flexDirection: "row", gap: 10, marginTop: 4 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingVertical: 9, alignItems: "center" },
-  cancelButtonText: { color: "#9fb0c5", fontWeight: "600", fontSize: 13 },
+  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingVertical: 9, alignItems: "center" },
+  cancelButtonText: { color: "#6F7078", fontWeight: "600", fontSize: 13 },
 });

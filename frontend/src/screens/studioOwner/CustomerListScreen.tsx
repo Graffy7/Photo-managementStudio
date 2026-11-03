@@ -12,6 +12,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { RowAction } from "../../ui/RowAction";
 import { DataList, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
 
@@ -50,12 +51,15 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
   const actions = (c: Customer) => (
     <View style={styles.actionRow}>
       <SubscriptionLock compact>
-        <Button label="Edit" variant="link" onPress={() => onEdit(c)} />
+        <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(c)} accessibilityLabel={`Edit ${c.fullName}`} />
       </SubscriptionLock>
-      <Button
+      <RowAction
+        iconOnly
+        icon={c.isActive ? "pause-circle-outline" : "play-circle-outline"}
         label={c.isActive ? "Deactivate" : "Activate"}
-        variant="link"
+        kind={c.isActive ? "neutral" : "primary"}
         onPress={() => (c.isActive ? deactivate.mutate(c.customerId) : activate.mutate(c.customerId))}
+        accessibilityLabel={`${c.isActive ? "Deactivate" : "Activate"} ${c.fullName}`}
       />
     </View>
   );
@@ -66,7 +70,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
     { key: "address", label: "Address", flex: 2, render: (c) => <CellSub>{c.address ?? "—"}</CellSub> },
     { key: "status", label: "Status", width: 110, render: (c) => <StatusPill label={c.isActive ? "Active" : "Inactive"} tone={c.isActive ? "good" : "neutral"} /> },
     { key: "created", label: "Added", width: 120, sortKey: "created", render: (c) => <CellSub>{formatDate(c.createdAt)}</CellSub> },
-    { key: "actions", label: "", width: 180, align: "right", render: actions },
+    { key: "actions", label: "", width: 90, align: "right", render: actions },
   ];
 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
@@ -128,7 +132,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
 }
 
 const styles = StyleSheet.create({
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
   cardSub: { ...type.small, color: colors.textMuted },

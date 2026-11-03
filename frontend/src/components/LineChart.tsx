@@ -83,8 +83,8 @@ export function LineChart({
   points,
   height = 220,
   formatValue = (v) => String(v),
-  color = "#a78bfa",
-  accentColor = "#7fc0e6",
+  color = "#8C7FA6",
+  accentColor = "#4F5D75",
   hideLabels = false,
 }: LineChartProps) {
   // Drawn at its real pixel width so circles stay round and the line keeps an even thickness.
@@ -201,7 +201,7 @@ export function LineChart({
           {gridLines.map((g) => {
             const y = paddingTop + plotHeight * (1 - g);
             return (
-              <Line key={g} x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#1b2c42" strokeWidth={1} strokeDasharray="2 6" />
+              <Line key={g} x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#D2D1CA" strokeWidth={1} strokeDasharray="2 6" />
             );
           })}
 
@@ -221,11 +221,11 @@ export function LineChart({
               {/* A soft beam from the best point down to the baseline. */}
               <Line x1={peak.x} y1={peak.y} x2={peak.x} y2={baseline} stroke="url(#peakBeam)" strokeWidth={1.5} strokeDasharray="3 4" />
               <Circle cx={peak.x} cy={peak.y} r={11} fill={color} opacity={0.14} />
-              <Circle cx={peak.x} cy={peak.y} r={5} fill={color} stroke="#0d1826" strokeWidth={2} />
+              <Circle cx={peak.x} cy={peak.y} r={5} fill={color} stroke="#ECEBE6" strokeWidth={2} />
               {last !== peak && (
                 <>
                   <Circle cx={last.x} cy={last.y} r={8} fill={accentColor} opacity={0.12} />
-                  <Circle cx={last.x} cy={last.y} r={3.5} fill="#0d1826" stroke={color} strokeWidth={2} />
+                  <Circle cx={last.x} cy={last.y} r={3.5} fill="#ECEBE6" stroke={color} strokeWidth={2} />
                 </>
               )}
             </>
@@ -236,7 +236,7 @@ export function LineChart({
             <>
               <Line x1={active.x} y1={paddingTop - 6} x2={active.x} y2={baseline} stroke={color} strokeOpacity={0.45} strokeWidth={1} strokeDasharray="3 3" />
               <Circle cx={active.x} cy={active.y} r={13} fill={color} opacity={0.18} />
-              <Circle cx={active.x} cy={active.y} r={5.5} fill="#e8edf3" stroke={color} strokeWidth={2.5} />
+              <Circle cx={active.x} cy={active.y} r={5.5} fill="#292B31" stroke={color} strokeWidth={2.5} />
             </>
           )}
         </Svg>
@@ -305,32 +305,32 @@ export function LineChart({
 
 const styles = StyleSheet.create({
   empty: { alignItems: "center", justifyContent: "center" },
-  emptyText: { color: "#8a9cb6", fontSize: 13 },
+  emptyText: { color: "#6F7078", fontSize: 13 },
   labelRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8, marginTop: 4 },
-  label: { color: "#8a9cb6", fontSize: 12 },
+  label: { color: "#6F7078", fontSize: 12 },
   labelFaded: { opacity: 0 },
   peakBadge: {
     position: "absolute", top: 0, right: 12, flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "rgba(35, 64, 92, 0.7)", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: "rgba(167, 139, 250, 0.35)",
+    backgroundColor: "rgba(210,209,202,0.7)", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: "rgba(140,127,166,0.35)",
   },
   peakDot: { width: 6, height: 6, borderRadius: 3 },
-  peakText: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
+  peakText: { color: "#292B31", fontSize: 12, fontWeight: "600" },
 
   hitArea: { position: "absolute", top: 0, left: 0 },
   tooltip: {
     position: "absolute", zIndex: 10,
-    backgroundColor: "rgba(13, 24, 38, 0.96)", borderRadius: 10, padding: 12, gap: 2,
-    borderWidth: 1, borderColor: "rgba(167, 139, 250, 0.4)",
-    boxShadow: "0 8px 28px rgba(0, 0, 0, 0.45)",
+    backgroundColor: "rgba(237,236,231,0.96)", borderRadius: 10, padding: 12, gap: 2,
+    borderWidth: 1, borderColor: "rgba(140,127,166,0.4)",
+    boxShadow: "0 8px 28px rgba(41,43,49,0.135)",
   },
-  tooltipDate: { color: "#a7b7cb", fontSize: 12, fontWeight: "600" },
-  tooltipTotal: { color: "#e8edf3", fontSize: 18, fontWeight: "800", marginBottom: 2 },
-  tooltipItems: { borderTopWidth: 1, borderTopColor: "#23405c", marginTop: 6, paddingTop: 8, gap: 7 },
+  tooltipDate: { color: "#55565E", fontSize: 12, fontWeight: "600" },
+  tooltipTotal: { color: "#292B31", fontSize: 18, fontWeight: "800", marginBottom: 2 },
+  tooltipItems: { borderTopWidth: 1, borderTopColor: "#D2D1CA", marginTop: 6, paddingTop: 8, gap: 7 },
   tooltipRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   tooltipBullet: { width: 7, height: 7, borderRadius: 4 },
-  tooltipName: { color: "#e8edf3", fontSize: 12, fontWeight: "600" },
-  tooltipSub: { color: "#8a9cb6", fontSize: 12 },
-  tooltipValue: { color: "#4cc493", fontSize: 12, fontWeight: "700" },
-  tooltipMore: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
+  tooltipName: { color: "#292B31", fontSize: 12, fontWeight: "600" },
+  tooltipSub: { color: "#6F7078", fontSize: 12 },
+  tooltipValue: { color: "#4E7D5B", fontSize: 12, fontWeight: "700" },
+  tooltipMore: { color: "#6F7078", fontSize: 12, marginTop: 2 },
 });

@@ -6,6 +6,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/auth/authStore";
 import { CameraCursor } from "./src/cameraCursor/CameraCursor";
 import { installWebScrollbars } from "./src/ui/webScrollbars";
+import { installWebFont } from "./src/ui/webFont";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
 
 // Data counts as fresh for 30 seconds, so moving between screens re-uses it instead of re-asking.
@@ -25,6 +26,7 @@ function photoSelectionToken(): string | null {
 }
 
 installWebScrollbars();
+installWebFont();
 
 export default function App() {
   const [token] = useState(photoSelectionToken);
@@ -37,7 +39,7 @@ function PublicPhotoSelection({ token }: { token: string }) {
   return (
     <QueryClientProvider client={publicQueryClient}>
       <PublicPhotoSelectionScreen token={token} />
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </QueryClientProvider>
   );
 }
@@ -54,7 +56,7 @@ function AuthenticatedApp() {
       <RootNavigator />
       {/* Optional camera-shaped pointer for the studio app (switched on from the menu). */}
       <CameraCursor />
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </QueryClientProvider>
   );
 }

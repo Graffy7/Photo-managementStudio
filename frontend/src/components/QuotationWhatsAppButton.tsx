@@ -96,8 +96,8 @@ export function QuotationWhatsAppButton({ quotation, onError, onNotice }: {
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#2c4463",
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#C4C3BB",
     borderRadius: 8, paddingHorizontal: 12, minHeight: 40, minWidth: 64,
   },
-  buttonText: { color: "#8cc8f0", fontSize: 14, fontWeight: "600" },
+  buttonText: { color: "#4F5D75", fontSize: 14, fontWeight: "600" },
 });

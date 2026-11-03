@@ -8,8 +8,8 @@ import { openRazorpayCheckout } from "../../../utils/razorpayCheckout";
 import type { BillingHistoryItem, Plan, SubscriptionStatus } from "../../../types/billing";
 
 export const T = {
-  page: "#0b1522", surface: "#122033", raised: "#172a42", border: "#1f3149", text: "#e8edf3",
-  muted: "#9fb0c5", faint: "#8a9cb6", accent: "#8cc8f0", brand: "#ff9a4d", good: "#6ee0ad", warn: "#f5c66b", bad: "#ff9a93",
+  page: "#F1F0EC", surface: "#E5E4DF", raised: "#ECEBE6", border: "#D2D1CA", text: "#292B31",
+  muted: "#6F7078", faint: "#6F7078", accent: "#4F5D75", brand: "#56566B", good: "#4E7D5B", warn: "#A0762E", bad: "#A3473F",
 };
 
 const asUtc = (v: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(v) ? v : `${v}Z`);
@@ -101,7 +101,7 @@ export function PlanPicker({ status, highlightRenew }: { status: SubscriptionSta
                 accessibilityRole="button"
                 accessibilityLabel={`${renewing ? "Renew with" : "Buy"} ${p.name} for ${fmtMoney(p.price)}`}
               >
-                {thisBusy ? <ActivityIndicator size="small" color={isSelected ? "#0b1522" : T.text} /> : (
+                {thisBusy ? <ActivityIndicator size="small" color={isSelected ? "#F1F0EC" : T.text} /> : (
                   <Text style={[styles.buyText, isSelected && styles.buyTextBest]}>{renewing || highlightRenew ? "Renew" : "Buy"}</Text>
                 )}
               </Pressable>
@@ -233,10 +233,10 @@ const styles = StyleSheet.create({
   buy: { marginTop: "auto", borderRadius: 8, borderWidth: 1, borderColor: T.border, backgroundColor: T.surface, paddingVertical: 10, alignItems: "center" },
   buyBest: { backgroundColor: T.brand, borderColor: T.brand },
   buyHover: { borderColor: T.brand, backgroundColor: `${T.brand}22` },
-  buyBestHover: { backgroundColor: "#ffb071", borderColor: "#ffb071" },
+  buyBestHover: { backgroundColor: "#454559", borderColor: "#454559" },
   buyPressed: { transform: [{ scale: 0.98 }] },
   buyText: { color: T.text, fontWeight: "700", fontSize: 13.5 },
-  buyTextBest: { color: "#0b1522" },
+  buyTextBest: { color: "#F1F0EC" },
   disabled: { opacity: 0.5 },
   notice: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 10, padding: 12, backgroundColor: T.surface },
   noticeText: { color: T.muted, fontSize: 13, flex: 1, lineHeight: 19 },

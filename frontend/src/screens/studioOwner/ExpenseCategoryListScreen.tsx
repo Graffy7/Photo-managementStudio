@@ -37,7 +37,7 @@ export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCrea
       </View>
 
       {isPending ? (
-        <ActivityIndicator color="#ff9a4d" style={{ marginTop: 30 }} />
+        <ActivityIndicator color="#56566B" style={{ marginTop: 30 }} />
       ) : isError ? (
         <Text style={styles.error}>Couldn't load expense categories.</Text>
       ) : (
@@ -72,26 +72,26 @@ export function ExpenseCategoryListScreen({ onCreate, onEdit, onBack }: { onCrea
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1522" },
+  screen: { flex: 1, backgroundColor: "#F1F0EC" },
   content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { marginBottom: 14 },
-  backText: { color: "#8cc8f0", fontSize: 13, fontWeight: "600" },
+  backText: { color: "#4F5D75", fontSize: 13, fontWeight: "600" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: "700", color: "#e8edf3" },
-  subtitle: { fontSize: 13, color: "#8a9cb6", marginTop: 2 },
-  newButton: { backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  newButtonText: { color: "#0b1522", fontWeight: "700", fontSize: 13 },
-  list: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden" },
+  title: { fontSize: 24, fontWeight: "700", color: "#292B31" },
+  subtitle: { fontSize: 13, color: "#6F7078", marginTop: 2 },
+  newButton: { backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
+  newButtonText: { color: "#F1F0EC", fontWeight: "700", fontSize: 13 },
+  list: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 10, backgroundColor: "#ECEBE6", overflow: "hidden" },
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1f3149", gap: 10,
+    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#D2D1CA", gap: 10,
   },
   rowMain: { flex: 1, gap: 4 },
-  rowName: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },
-  rowDescription: { color: "#9fb0c5", fontSize: 12 },
+  rowName: { color: "#292B31", fontSize: 15, fontWeight: "600" },
+  rowDescription: { color: "#6F7078", fontSize: 12 },
   actions: { flexDirection: "row", gap: 8 },
-  actionBtn: { borderWidth: 1, borderColor: "#2c4463", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
-  actionText: { color: "#9fb0c5", fontSize: 12, fontWeight: "600" },
-  error: { color: "#ff9a93", marginTop: 30, textAlign: "center" },
-  empty: { color: "#8a9cb6", fontSize: 13, textAlign: "center", padding: 20 },
+  actionBtn: { borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 6, paddingVertical: 7, paddingHorizontal: 12 },
+  actionText: { color: "#6F7078", fontSize: 12, fontWeight: "600" },
+  error: { color: "#A3473F", marginTop: 30, textAlign: "center" },
+  empty: { color: "#6F7078", fontSize: 13, textAlign: "center", padding: 20 },
 });

@@ -60,7 +60,7 @@ export function NotificationSettingsTab() {
   };
 
   if (isPending || !settings) {
-    return <ActivityIndicator color="#8cc8f0" style={{ marginTop: 40 }} />;
+    return <ActivityIndicator color="#4F5D75" style={{ marginTop: 40 }} />;
   }
 
   return (
@@ -88,14 +88,14 @@ export function NotificationSettingsTab() {
 
 const styles = StyleSheet.create({
   list: {
-    borderWidth: 1, borderColor: "#2c4463", borderRadius: 10, backgroundColor: "#172a42", overflow: "hidden",
+    borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 10, backgroundColor: "#ECEBE6", overflow: "hidden",
   },
   row: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1f3149",
+    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#D2D1CA",
   },
-  rowLabel: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  rowCaption: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
-  error: { color: "#ff9a93", fontSize: 13, padding: 12 },
-  success: { color: "#6ee0ad", fontSize: 13, padding: 12, fontWeight: "600" },
+  rowLabel: { color: "#292B31", fontSize: 14, fontWeight: "600" },
+  rowCaption: { color: "#6F7078", fontSize: 12, marginTop: 2 },
+  error: { color: "#A3473F", fontSize: 13, padding: 12 },
+  success: { color: "#4E7D5B", fontSize: 13, padding: 12, fontWeight: "600" },
 });

@@ -130,7 +130,7 @@ function AdminSidebar({ section, onNavigate, onClose }: { section: Section; onNa
   return (
     <View style={styles.sidebar}>
       <View style={styles.brand}>
-        <View style={styles.brandIcon}><Ionicons name="shield-checkmark" size={17} color="#0d1826" /></View>
+        <View style={styles.brandIcon}><Ionicons name="shield-checkmark" size={17} color="#ECEBE6" /></View>
         <View style={{ flex: 1 }}>
           <Text style={styles.brandName}>Studio OS</Text>
           <Text style={styles.brandSub}>Platform admin</Text>
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   shell: { flex: 1, flexDirection: "row", backgroundColor: C.page },
   shellNarrow: { flexDirection: "column" },
   main: { flex: 1, minWidth: 0 },
-  sidebar: { width: 232, backgroundColor: "#0d1a2a", borderRightWidth: 1, borderRightColor: C.border, paddingVertical: 18, paddingHorizontal: 12 },
+  sidebar: { width: 232, backgroundColor: "#ECEBE6", borderRightWidth: 1, borderRightColor: C.border, paddingVertical: 18, paddingHorizontal: 12 },
   brand: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 6, marginBottom: 22 },
   brandIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: C.accent, alignItems: "center", justifyContent: "center" },
   brandName: { color: C.text, fontSize: 15, fontWeight: "700" },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   nav: { gap: 2, flex: 1 },
   navItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8 },
   navItemOn: { backgroundColor: C.raised },
-  navItemHover: { backgroundColor: "rgba(127,192,230,0.06)" },
+  navItemHover: { backgroundColor: "rgba(86,86,107,0.06)" },
   navLabel: { color: C.muted, fontSize: 13.5, fontWeight: "600" },
   navLabelOn: { color: C.text },
   footer: { borderTopWidth: 1, borderTopColor: C.border, paddingTop: 14, gap: 8 },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   userRole: { color: C.faint, fontSize: 11 },
   footerLink: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 8, paddingVertical: 5 },
   footerText: { color: C.muted, fontSize: 12.5, fontWeight: "600" },
-  topBar: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border, backgroundColor: "#0d1a2a" },
+  topBar: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border, backgroundColor: "#ECEBE6" },
   topTitle: { color: C.text, fontSize: 16, fontWeight: "700" },
-  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, flexDirection: "row", backgroundColor: "rgba(4,9,16,0.6)", zIndex: 50 },
+  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, flexDirection: "row", backgroundColor: "rgba(41,43,49,0.36)", zIndex: 50 },
 });

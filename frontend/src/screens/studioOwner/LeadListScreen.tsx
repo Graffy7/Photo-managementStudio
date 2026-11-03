@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { RowAction } from "../../ui/RowAction";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { leadsApi } from "../../api/leadsApi";
 import { lookupApis } from "../../api/lookupsApi";
 import type { Lead } from "../../types/lead";
-import { StatusPill } from "../../components/StatusPill";
+import { StatusPill, type Tone } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { PERIODS, periodRange, type Period } from "../../utils/periods";
@@ -32,6 +33,17 @@ function formatCurrency(value: number): string {
 function planLine(l: Lead): string | null {
   const parts = [l.eventTypeName, l.expectedEventDate ? formatDate(l.expectedEventDate) : null, l.expectedBudget ? formatCurrency(l.expectedBudget) : null].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
+}
+
+// Enquiry statuses are each studio's own list, so the colour follows the usual meaning of the name.
+function statusTone(name: string): Tone {
+  const n = name.toLowerCase();
+  if (n.includes("won") || n.includes("book") || n.includes("confirm")) return "good";
+  if (n.includes("lost") || n.includes("cancel") || n.includes("reject")) return "bad";
+  if (n.includes("quot") || n.includes("follow")) return "warn";
+  if (n.includes("contact") || n.includes("call")) return "blue";
+  if (n.includes("new")) return "info";
+  return "neutral";
 }
 
 // react-native-web's Alert.alert() is a no-op stub, so confirmations are rendered inline
@@ -98,17 +110,21 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
     return (
       <View style={styles.actionRow}>
         <SubscriptionLock compact>
-          <Button label="Edit" variant="link" onPress={() => onEdit(l)} />
+          <RowAction iconOnly icon="create-outline" label="Edit" kind="neutral" onPress={() => onEdit(l)} accessibilityLabel={`Edit enquiry from ${l.fullName}`} />
         </SubscriptionLock>
-        {!l.convertedCustomerId && <Button label="Convert" variant="link" onPress={() => setPending({ leadId: l.leadId, kind: "convert" })} />}
-        <Button label="Delete" variant="link" onPress={() => setPending({ leadId: l.leadId, kind: "delete" })} accessibilityLabel={`Delete enquiry from ${l.fullName}`} />
+        {!l.convertedCustomerId && (
+          <RowAction iconOnly icon="person-add-outline" label="Convert" kind="primary" onPress={() => setPending({ leadId: l.leadId, kind: "convert" })}
+            accessibilityLabel={`Convert ${l.fullName} to a customer`} />
+        )}
+        <RowAction iconOnly icon="trash-outline" label="Delete" kind="danger" onPress={() => setPending({ leadId: l.leadId, kind: "delete" })}
+          accessibilityLabel={`Delete enquiry from ${l.fullName}`} />
       </View>
     );
   };
 
   const statusPills = (l: Lead) => (
     <View style={styles.pills}>
-      {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone="info" /> : null}
+      {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone={statusTone(l.leadStatusName)} /> : null}
       {!!l.leadSourceName && <StatusPill label={l.leadSourceName} tone="neutral" />}
     </View>
   );
@@ -118,7 +134,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
     { key: "plan", label: "Looking for", flex: 2, render: (l) => <CellSub>{planLine(l) ?? "—"}</CellSub> },
     { key: "status", label: "Status", flex: 1.5, render: statusPills },
     { key: "created", label: "Received", width: 120, sortKey: "created", render: (l) => <CellSub>{formatDate(l.createdAt)}</CellSub> },
-    { key: "actions", label: "", width: 250, align: "right", render: actions },
+    { key: "actions", label: "", width: 126, align: "right", render: actions },
   ];
 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
@@ -144,17 +160,25 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
         actions={<SubscriptionLock><Button label="New enquiry" icon="add" variant="primary" onPress={onCreate} /></SubscriptionLock>}
       />
       <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={setFilter(setSearch)} placeholder="Search by name or mobile number" />
-      {leadStatuses && leadStatuses.length > 0 && (
-        <View style={{ marginBottom: space.md }}>
-          <FilterChips
-            options={[{ value: null, label: "All" }, ...leadStatuses.map((s) => ({ value: s.id, label: s.name }))] as { value: number | null; label: string }[]}
-            value={leadStatusId}
-            onChange={setFilter(setLeadStatusId)}
-          />
+      <View style={styles.filters}>
+        {leadStatuses && leadStatuses.length > 0 && (
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Status</Text>
+            <View style={styles.filterChips}>
+              <FilterChips
+                options={[{ value: null, label: "All" }, ...leadStatuses.map((s) => ({ value: s.id, label: s.name }))] as { value: number | null; label: string }[]}
+                value={leadStatusId}
+                onChange={setFilter(setLeadStatusId)}
+              />
+            </View>
+          </View>
+        )}
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Received</Text>
+          <View style={styles.filterChips}>
+            <FilterChips<Period> options={PERIODS} value={period} onChange={choosePeriod} />
+          </View>
         </View>
-      )}
-      <View style={{ marginBottom: space.md }}>
-        <FilterChips<Period> options={PERIODS} value={period} onChange={choosePeriod} />
       </View>
       {period === "custom" && (
         <View style={styles.dates}>
@@ -209,7 +233,11 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
 const styles = StyleSheet.create({
   dates: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
+  filters: { gap: space.sm, marginBottom: space.lg },
+  filterRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  filterLabel: { width: 64, ...type.caption, fontWeight: "700", color: colors.textFaint, textTransform: "uppercase", letterSpacing: 0.6 },
+  filterChips: { flex: 1, minWidth: 0 },
   confirm: { alignItems: "flex-end", gap: 2 },
   confirmText: { ...type.small, fontWeight: "600", color: colors.danger },
   error: { ...type.caption, color: colors.danger },
@@ -218,5 +246,5 @@ const styles = StyleSheet.create({
   cardTitle: { ...type.heading, color: colors.text },
   cardSub: { ...type.small, color: colors.textMuted },
   cardMeta: { ...type.caption, color: colors.textFaint },
-  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.xs, marginHorizontal: -space.sm },
+  cardActions: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: space.xs, paddingTop: space.sm },
 });

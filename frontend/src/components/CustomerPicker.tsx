@@ -75,14 +75,14 @@ export function CustomerPicker({
           value={newName}
           onChangeText={setNewName}
           placeholder="Full name"
-          placeholderTextColor="#8a9cb6"
+          placeholderTextColor="#6F7078"
         />
         <TextInput
           style={[styles.input, { marginTop: 8 }]}
           value={newMobile}
           onChangeText={setNewMobile}
           placeholder="Mobile number"
-          placeholderTextColor="#8a9cb6"
+          placeholderTextColor="#6F7078"
           keyboardType="phone-pad"
         />
         {createError ? <Text style={styles.createError}>{createError}</Text> : null}
@@ -113,7 +113,7 @@ export function CustomerPicker({
             onPress={() => createMutation.mutate()}
           >
             {createMutation.isPending ? (
-              <ActivityIndicator color="#0d1826" size="small" />
+              <ActivityIndicator color="#ECEBE6" size="small" />
             ) : (
               <Text style={styles.createSaveText}>Create & select</Text>
             )}
@@ -132,7 +132,7 @@ export function CustomerPicker({
         value={query}
         onChangeText={setQuery}
         placeholder="Type a name or mobile number"
-        placeholderTextColor="#8a9cb6"
+        placeholderTextColor="#6F7078"
         accessibilityLabel="Search customer by name or mobile number"
       />
       {!searching ? (
@@ -169,32 +169,32 @@ export function CustomerPicker({
 
 const styles = StyleSheet.create({
   input: {
-    minHeight: 44, borderWidth: 1, borderColor: "#2c4463", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 15, color: "#e8edf3", backgroundColor: "#0b1522",
+    minHeight: 44, borderWidth: 1, borderColor: "#C4C3BB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, color: "#292B31", backgroundColor: "#F1F0EC",
   },
   hintRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 8 },
-  hintText: { color: "#8a9cb6", fontSize: 13 },
+  hintText: { color: "#6F7078", fontSize: 13 },
   pickedRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#132540",
+    borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#E5E4DF",
   },
-  pickedName: { color: "#e8edf3", fontSize: 15, fontWeight: "600" },
-  pickedMeta: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
-  changeLink: { color: "#7fc0e6", fontSize: 13, fontWeight: "600" },
-  pickerList: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, backgroundColor: "#132540", marginTop: 8, overflow: "hidden" },
-  newCustomerRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1b2c42" },
-  newCustomerText: { color: "#7fc0e6", fontSize: 14, fontWeight: "700" },
-  pickerRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1b2c42" },
-  pickerRowName: { color: "#e8edf3", fontSize: 14, fontWeight: "600" },
-  pickerRowMeta: { color: "#8a9cb6", fontSize: 12, marginTop: 2 },
-  pickerEmpty: { color: "#8a9cb6", fontSize: 12, padding: 14, textAlign: "center" },
+  pickedName: { color: "#292B31", fontSize: 15, fontWeight: "600" },
+  pickedMeta: { color: "#6F7078", fontSize: 12, marginTop: 2 },
+  changeLink: { color: "#4F5D75", fontSize: 13, fontWeight: "600" },
+  pickerList: { borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 8, backgroundColor: "#E5E4DF", marginTop: 8, overflow: "hidden" },
+  newCustomerRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#D2D1CA" },
+  newCustomerText: { color: "#4F5D75", fontSize: 14, fontWeight: "700" },
+  pickerRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#D2D1CA" },
+  pickerRowName: { color: "#292B31", fontSize: 14, fontWeight: "600" },
+  pickerRowMeta: { color: "#6F7078", fontSize: 12, marginTop: 2 },
+  pickerEmpty: { color: "#6F7078", fontSize: 12, padding: 14, textAlign: "center" },
 
-  createBox: { borderWidth: 1, borderColor: "#23405c", borderRadius: 8, backgroundColor: "#132540", padding: 14, marginTop: 8 },
-  createTitle: { color: "#e8edf3", fontSize: 13, fontWeight: "700", marginBottom: 8 },
-  createError: { color: "#ff7a72", fontSize: 12, marginTop: 8 },
+  createBox: { borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 8, backgroundColor: "#E5E4DF", padding: 14, marginTop: 8 },
+  createTitle: { color: "#292B31", fontSize: 13, fontWeight: "700", marginBottom: 8 },
+  createError: { color: "#A3473F", fontSize: 12, marginTop: 8 },
   createButtonRow: { flexDirection: "row", gap: 10, marginTop: 12 },
-  createCancelButton: { flex: 1, borderWidth: 1, borderColor: "#23405c", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  createCancelText: { color: "#a7b7cb", fontSize: 13, fontWeight: "600" },
-  createSaveButton: { flex: 1, backgroundColor: "#ff9a4d", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  createSaveText: { color: "#0d1826", fontSize: 13, fontWeight: "700" },
+  createCancelButton: { flex: 1, borderWidth: 1, borderColor: "#D2D1CA", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  createCancelText: { color: "#55565E", fontSize: 13, fontWeight: "600" },
+  createSaveButton: { flex: 1, backgroundColor: "#56566B", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  createSaveText: { color: "#ECEBE6", fontSize: 13, fontWeight: "700" },
 });

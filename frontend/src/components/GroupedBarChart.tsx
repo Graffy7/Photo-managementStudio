@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   plot: { flexDirection: "row", alignItems: "flex-end", gap: 2, borderBottomWidth: 1, borderBottomColor: colors.border },
   grid: { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: colors.border, opacity: 0.5 },
   col: { flex: 1, height: "100%", flexDirection: "row", alignItems: "flex-end", justifyContent: "center", gap: 1, borderRadius: 3 },
-  colActive: { backgroundColor: "rgba(127,192,230,0.08)" },
+  colActive: { backgroundColor: "rgba(86,86,107,0.08)" },
   bar: { flex: 1, maxWidth: 18, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   labels: { flexDirection: "row", gap: 2 },
   label: { ...type.caption, fontSize: 11, color: colors.textMuted, textAlign: "left", paddingLeft: 2 },
