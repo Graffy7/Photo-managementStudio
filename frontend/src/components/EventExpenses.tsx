@@ -11,6 +11,7 @@ import { MiniDatePicker } from "./MiniDatePicker";
 import { StatusPill } from "./StatusPill";
 import { SubscriptionLock, useCanWrite } from "./SubscriptionLock";
 import { Button } from "../ui/Button";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Skeleton } from "../ui/Skeleton";
 import { Field, FieldRow, TextField, ChoiceChips } from "../ui/Form";
 import { InfoCard, EmptyLine } from "../ui/Detail";
@@ -169,15 +170,7 @@ export function EventExpenses({ eventId }: { eventId: number }) {
                         <StatusPill label={e.paymentStatus} tone={e.paymentStatus === "Paid" ? "good" : "warn"} />
                       </View>
                     </View>
-                    {confirmDeleteId === e.expenseId ? (
-                      <View style={styles.confirm}>
-                        <Text style={styles.confirmText}>Delete this expense? This can't be undone.</Text>
-                        <View style={styles.rowActions}>
-                          <Button label="Keep it" onPress={() => { setConfirmDeleteId(null); setRowError(null); }} disabled={remove.isPending} style={styles.smallButton} />
-                          <Button label="Delete" variant="danger" onPress={() => remove.mutate(e.expenseId)} loading={remove.isPending} style={styles.smallButton} />
-                        </View>
-                      </View>
-                    ) : canWrite ? (
+                    {canWrite ? (
                       <View style={styles.rowActions}>
                         {e.paymentStatus === "Pending" && (
                           <Button label="Mark paid" variant="link" onPress={() => markPaid.mutate(e)} disabled={markPaid.isPending} style={styles.linkButton} />
@@ -192,6 +185,16 @@ export function EventExpenses({ eventId }: { eventId: number }) {
           )}
         </>
       )}
+      <ConfirmDialog
+        visible={confirmDeleteId !== null}
+        title="Delete expense?"
+        message="This expense will be removed from the event and its profit. This can't be undone."
+        confirmLabel="Delete"
+        busy={remove.isPending}
+        error={confirmDeleteId !== null ? rowError : null}
+        onCancel={() => { setConfirmDeleteId(null); setRowError(null); }}
+        onConfirm={() => confirmDeleteId !== null && remove.mutate(confirmDeleteId)}
+      />
     </InfoCard>
   );
 }
@@ -381,8 +384,6 @@ const styles = StyleSheet.create({
   rowAmount: { alignItems: "flex-end", gap: 4 },
   amount: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
   rowActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: space.xs },
-  confirm: { backgroundColor: colors.dangerSoft, borderRadius: radius.control, padding: space.md, gap: space.sm, marginTop: space.xs },
-  confirmText: { ...type.small, fontWeight: "600", color: colors.text },
 
   editor: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.control, backgroundColor: colors.page, padding: space.md, gap: space.md, marginVertical: space.xs },
   editorTitle: { ...type.heading, fontSize: 15, color: colors.text },

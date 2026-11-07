@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useBreakpoint } from "./useBreakpoint";
 import { colors, radius, space, touch, type } from "./theme";
+import { hoverGlow } from "./webHover";
 
 // A record's page: back link, who/what it is, its status, the main action - then the details in
 // cards (two columns on desktop, one on phones).
@@ -44,7 +45,7 @@ export function DetailScreen({ backLabel, onBack, title, meta, badges, actions, 
 
 export function InfoCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <View style={styles.card}>
+    <View {...hoverGlow} style={styles.card}>
       <View style={styles.cardHead}>
         <Text style={styles.cardTitle}>{title}</Text>
         {action}

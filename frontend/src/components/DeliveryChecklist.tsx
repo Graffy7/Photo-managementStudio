@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { eventsApi } from "../api/eventsApi";
 import { extractErrorMessage } from "../api/errorMessage";
 import type { DeliveryItem } from "../types/event";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 interface Props {
   eventId: number;
@@ -97,7 +98,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
                 <Ionicons
                   name={item.isDelivered ? "checkmark-circle" : "ellipse-outline"}
                   size={13}
-                  color={item.isDelivered ? "#78C9A4" : "#A1A5B3"}
+                  color={item.isDelivered ? "#22C58B" : "#A4AFCF"}
                 />
                 <Text style={[styles.pillText, item.isDelivered && styles.pillTextDone]}>{item.name}</Text>
               </Pressable>
@@ -111,7 +112,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
                   accessibilityLabel={`Remove ${item.name}`}
                   hitSlop={6}
                 >
-                  <Ionicons name="close" size={10} color="#A1A5B3" />
+                  <Ionicons name="close" size={10} color="#A4AFCF" />
                 </Pressable>
               )}
             </View>
@@ -125,7 +126,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Pendrive"
-              placeholderTextColor="#A1A5B3"
+              placeholderTextColor="#A4AFCF"
               autoFocus
               maxLength={100}
               onSubmitEditing={() => newName.trim() && add.mutate(newName.trim())}
@@ -138,8 +139,8 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               accessibilityLabel="Save delivery item"
             >
               {add.isPending
-                ? <ActivityIndicator size="small" color="#78C9A4" />
-                : <Ionicons name="checkmark" size={13} color="#78C9A4" />}
+                ? <ActivityIndicator size="small" color="#22C58B" />
+                : <Ionicons name="checkmark" size={13} color="#22C58B" />}
             </Pressable>
             <Pressable
               style={styles.addCancel}
@@ -147,7 +148,7 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Cancel"
             >
-              <Ionicons name="close" size={13} color="#A1A5B3" />
+              <Ionicons name="close" size={13} color="#A4AFCF" />
             </Pressable>
           </View>
         ) : (
@@ -162,21 +163,15 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
         )}
       </View>
 
-      {pendingDelete !== null && (
-        <View style={styles.confirmRow}>
-          <Text style={styles.confirmText}>
-            Remove “{checklist.find((i) => i.itemId === pendingDelete)?.name}” from this event's delivery list?
-          </Text>
-          <Pressable onPress={() => setPendingDelete(null)} accessibilityRole="button">
-            <Text style={styles.confirmCancel}>No</Text>
-          </Pressable>
-          <Pressable onPress={() => remove.mutate(pendingDelete)} disabled={remove.isPending} accessibilityRole="button">
-            {remove.isPending
-              ? <ActivityIndicator size="small" color="#E58B91" />
-              : <Text style={styles.confirmYes}>Yes, remove</Text>}
-          </Pressable>
-        </View>
-      )}
+      <ConfirmDialog
+        visible={pendingDelete !== null}
+        title="Remove from delivery list?"
+        message={`“${checklist.find((i) => i.itemId === pendingDelete)?.name ?? "This item"}” will be removed from this event's delivery list.`}
+        confirmLabel="Remove"
+        busy={remove.isPending}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => pendingDelete !== null && remove.mutate(pendingDelete)}
+      />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -186,41 +181,41 @@ export function DeliveryChecklist({ eventId, items, showLabel = true }: Props) {
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
   label: {
-    color: "#A1A5B3", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4,
+    color: "#A4AFCF", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4,
   },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
 
   pillWrap: { position: "relative" },
   pill: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100,
-    paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#22252E",
+    borderWidth: 1, borderColor: "#2E4377", borderRadius: 100,
+    paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#0C1733",
   },
-  pillDone: { borderColor: "rgba(120,201,164,0.45)", backgroundColor: "rgba(120,201,164,0.1)" },
-  pillText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  pillTextDone: { color: "#78C9A4" },
+  pillDone: { borderColor: "rgba(34,197,139,0.45)", backgroundColor: "rgba(34,197,139,0.1)" },
+  pillText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  pillTextDone: { color: "#22C58B" },
 
   // Only appears while the pill is hovered, and sits clear of the tap target so a tick can't delete.
   removeButton: {
     position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: 8,
-    alignItems: "center", justifyContent: "center", backgroundColor: "#292C36", borderWidth: 1, borderColor: "#4B4F63",
+    alignItems: "center", justifyContent: "center", backgroundColor: "#111E3F", borderWidth: 1, borderColor: "#2E4377",
   },
 
   addTrigger: { paddingVertical: 4, paddingHorizontal: 8 },
-  addTriggerText: { color: "#B5A5FF", fontSize: 12, fontWeight: "600" },
+  addTriggerText: { color: "#5B9BFF", fontSize: 12, fontWeight: "600" },
   addRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   addInput: {
-    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
-    color: "#E6E7EC", backgroundColor: "#22252E", fontSize: 12, minWidth: 130,
+    borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
+    color: "#F2F5FF", backgroundColor: "#0C1733", fontSize: 12, minWidth: 130,
     outlineStyle: "none",
   } as any,
   addConfirm: { padding: 4 },
   addCancel: { padding: 4 },
 
   confirmRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 2 },
-  confirmText: { color: "#A1A5B3", fontSize: 12, flexShrink: 1 },
-  confirmCancel: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  confirmYes: { color: "#E58B91", fontSize: 12, fontWeight: "700" },
+  confirmText: { color: "#A4AFCF", fontSize: 12, flexShrink: 1 },
+  confirmCancel: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  confirmYes: { color: "#FF5C75", fontSize: 12, fontWeight: "700" },
 
-  error: { color: "#E58B91", fontSize: 12 },
+  error: { color: "#FF5C75", fontSize: 12 },
 });

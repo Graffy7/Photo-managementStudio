@@ -1,7 +1,10 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useId, useMemo, useState, type ReactNode } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform, useWindowDimensions } from "react-native";
+import { transition } from "../ui/theme";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop, Ellipse, RadialGradient } from "react-native-svg";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../auth/authStore";
 import { studioDashboardApi } from "../api/studioDashboardApi";
@@ -15,6 +18,7 @@ import { DATE_RANGE_PRESET_LABELS, type DateRangePreset } from "../types/studioD
 import { useRefetchOnFocus } from "../hooks/useRefetchOnFocus";
 import { localDateString } from "../utils/localDate";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
+import { hoverGlow } from "../ui/webHover";
 
 // The full DATE_RANGE_PRESETS list is shared with Reports, which still shows every preset —
 // the Dashboard's chip row only surfaces the longer-range ones plus a manual custom range.
@@ -93,40 +97,121 @@ function periodLabel(preset: DateRangePreset): string {
   }
 }
 
+// The dashboard's own navy + electric-blue look. The rest of the app keeps the shared theme
+// (ui/theme.ts); these colours apply to this screen only.
+const D = {
+  page: "#070F24",
+  card: "#0C1733",
+  cardEdge: "rgba(96,140,255,0.16)",
+  inset: "#0A1430",
+  text: "#F2F5FF",
+  muted: "#A4AFCF",
+  faint: "#6F7BA0",
+  grid: "rgba(120,150,230,0.14)",
+  blue: "#2F7BFF",
+  blueBright: "#4C93FF",
+  green: "#22C58B",
+  red: "#FF4D6A",
+  orange: "#FF9F1C",
+  purple: "#8B6CFF",
+};
+
+const CHART_PALETTE = {
+  grid: D.grid,
+  surface: D.card,
+  text: D.text,
+  textMuted: D.muted,
+  tooltipBg: "rgba(12,23,51,0.97)",
+  tooltipBorder: "rgba(76,147,255,0.45)",
+  badgeBg: "rgba(47,123,255,0.16)",
+  badgeBorder: "rgba(76,147,255,0.35)",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  Upcoming: D.orange,
+  Ongoing: D.blue,
+  Completed: D.green,
+  Cancelled: D.red,
+};
+
 function Delta({ percent, preset }: { percent: number | null; preset: DateRangePreset }) {
   if (percent === null) {
     return <Text style={styles.deltaNeutral}>No comparison yet</Text>;
   }
   const isUp = percent >= 0;
+  const tone = isUp ? D.green : D.red;
   return (
     <View style={styles.deltaRow}>
-      <Ionicons name={isUp ? "arrow-up" : "arrow-down"} size={11} color={isUp ? "#78C9A4" : "#E58B91"} />
-      <Text style={[styles.delta, { color: isUp ? "#78C9A4" : "#E58B91" }]}>{Math.abs(percent)}%</Text>
+      <Ionicons name={isUp ? "arrow-up" : "arrow-down"} size={13} color={tone} />
+      <Text style={[styles.delta, { color: tone }]}>{Math.abs(percent)}%</Text>
       <Text style={styles.deltaLabel}>{comparisonLabel(preset)}</Text>
     </View>
   );
 }
 
-function StatCard({
-  icon, iconColor, label, value, percent, preset, compact,
-}: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; label: string; value: string | number; percent: number | null; preset: DateRangePreset; compact?: boolean }) {
+// A soft wave in the card's colour along its lower right corner - decoration only, not data.
+function CardWave({ color }: { color: string }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   return (
-    <View style={[styles.statCard, compact && styles.statCardCompact]}>
-      <View style={[styles.statIcon, { backgroundColor: `${iconColor}22` }]}>
-        <Ionicons name={icon} size={18} color={iconColor} />
-      </View>
-      <Text style={[styles.statValue, compact && styles.statValueCompact]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Delta percent={percent} preset={preset} />
+    <Svg width="58%" height={62} viewBox="0 0 190 80" preserveAspectRatio="none" style={styles.cardWave} pointerEvents="none">
+      <Defs>
+        <SvgGradient id={`wave${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={color} stopOpacity={0.55} />
+          <Stop offset="1" stopColor={color} stopOpacity={0} />
+        </SvgGradient>
+      </Defs>
+      <Path d="M0,80 C40,78 58,58 92,56 C126,54 140,62 160,44 C172,34 182,28 190,26 L190,80 Z" fill={`url(#wave${uid})`} />
+      <Path d="M0,80 C40,78 58,58 92,56 C126,54 140,62 160,44 C172,34 182,28 190,26" stroke={color} strokeWidth={2} fill="none" strokeOpacity={0.9}
+        vectorEffect="non-scaling-stroke" />
+    </Svg>
+  );
+}
+
+// The card's icon tile: glows brighter while the card is hovered.
+function StatIcon({ icon, color, active }: { icon: keyof typeof Ionicons.glyphMap; color: string; active: boolean }) {
+  return (
+    <View style={[styles.statIcon, transition, { backgroundColor: color, boxShadow: active ? `0 8px 26px ${color}AA` : `0 6px 18px ${color}66` }]}>
+      <Ionicons name={icon} size={20} color="#FFFFFF" />
     </View>
   );
 }
 
-function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+function StatCard({
+  icon, color, label, value, percent, preset, compact, onOpen,
+}: {
+  icon: keyof typeof Ionicons.glyphMap; color: string; label: string; value: string | number;
+  percent: number | null; preset: DateRangePreset; compact?: boolean; onOpen: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <View style={styles.panel}>
+    <Pressable onPress={onOpen} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)}
+      accessibilityRole="button" accessibilityLabel={`${label}: ${value}. Open`}
+      style={[styles.statCard, compact && styles.statCardCompact, hovered && styles.statCardHover]}>
+      <LinearGradient colors={[`${color}55`, `${color}14`, D.card]} locations={[0, 0.45, 1]} start={{ x: 1, y: 1 }} end={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
+      {!compact && <CardWave color={color} />}
+      <View style={styles.statTop}>
+        <StatIcon icon={icon} color={color} active={hovered} />
+        <View style={styles.statOpen}>
+          <Ionicons name="chevron-forward" size={16} color={D.text} />
+        </View>
+      </View>
+      <Text style={[styles.statValue, compact && styles.statValueCompact]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Delta percent={percent} preset={preset} />
+    </Pressable>
+  );
+}
+
+function Panel({ title, icon, action, children }: { title: string; icon: keyof typeof Ionicons.glyphMap; action?: ReactNode; children: ReactNode }) {
+  return (
+    <View {...hoverGlow} style={styles.panel}>
       <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>{title}</Text>
+        <View style={styles.panelTitleRow}>
+          <LinearGradient colors={[D.blueBright, D.blue]} style={styles.panelIcon}>
+            <Ionicons name={icon} size={17} color="#FFFFFF" />
+          </LinearGradient>
+          <Text style={styles.panelTitle}>{title}</Text>
+        </View>
         {action}
       </View>
       {children}
@@ -151,6 +236,7 @@ export function HomeScreen() {
   // The device's own day, not UTC's (which is still "yesterday" before 5:30 am in India).
   const today = useMemo(() => localDateString(), []);
   const tip = useMemo(() => TIPS[dayOfYear() % TIPS.length], []);
+  const glowId = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   const customRangeReady = customStart.length > 0 && customEnd.length > 0;
   // Modules the platform admin switched off are neither fetched nor shown.
@@ -213,9 +299,21 @@ export function HomeScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, narrow && styles.contentNarrow]}>
+      {/* A wide blue glow sweeping across the top right of the page. */}
+      <Svg style={styles.pageGlow} width="100%" height={520} viewBox="0 0 1000 520" preserveAspectRatio="none" pointerEvents="none">
+        <Defs>
+          <RadialGradient id={`pageGlow${glowId}`} cx="80%" cy="0%" rx="60%" ry="90%">
+            <Stop offset="0" stopColor={D.blue} stopOpacity={0.38} />
+            <Stop offset="0.5" stopColor={D.blue} stopOpacity={0.1} />
+            <Stop offset="1" stopColor={D.blue} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Ellipse cx="800" cy="0" rx="700" ry="520" fill={`url(#pageGlow${glowId})`} />
+      </Svg>
+
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>
+          <Text style={[styles.greeting, narrow && styles.greetingNarrow]}>
             {greeting()}, <Text style={styles.greetingName}>{user?.fullName?.split(" ")[0] ?? "there"}</Text> 👋
           </Text>
           <Text style={styles.subtitle}>Here's what's happening with your studio today.</Text>
@@ -224,12 +322,13 @@ export function HomeScreen() {
         <View style={styles.headerRight}>
           {data && (
             <View style={styles.rangeChip}>
-              <Ionicons name="calendar-outline" size={14} color="#B5A5FF" />
+              <Ionicons name="calendar-outline" size={16} color={D.blueBright} />
               <Text style={styles.rangeChipText}>{formatDateRange(data.rangeStart, data.rangeEnd)}</Text>
             </View>
           )}
-          {showBell && isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
-            <Ionicons name="notifications-outline" size={18} color="#A1A5B3" />
+          {showBell && isOn("NOTIFICATIONS") && <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}
+            accessibilityRole="button" accessibilityLabel={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}>
+            <Ionicons name="notifications-outline" size={19} color={D.text} />
             {!!unreadCount && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
@@ -249,14 +348,14 @@ export function HomeScreen() {
             </Pressable>
           ))}
           <Pressable style={styles.nativeNavButton} onPress={() => logout()}>
-            <Text style={[styles.nativeNavButtonText, { color: "#E58B91" }]}>Sign out</Text>
+            <Text style={[styles.nativeNavButtonText, { color: D.red }]}>Sign out</Text>
           </Pressable>
         </ScrollView>
       )}
 
       {!dashboardOn ? (
         <View style={styles.welcomeCard}>
-          <Ionicons name="grid-outline" size={22} color="#B5A5FF" />
+          <Ionicons name="grid-outline" size={22} color={D.blueBright} />
           <Text style={styles.welcomeTitle}>Welcome back</Text>
           <Text style={styles.welcomeText}>Choose where to start from the menu.</Text>
         </View>
@@ -274,7 +373,7 @@ export function HomeScreen() {
       {preset === "Custom" && (
         <View style={styles.customRangeRow}>
           <MiniDatePicker label="From" value={customStart} onChange={setCustomStart} />
-          <Ionicons name="arrow-forward" size={14} color="#7D8292" style={{ marginTop: 20 }} />
+          <Ionicons name="arrow-forward" size={14} color={D.faint} style={{ marginTop: 20 }} />
           <MiniDatePicker label="To" value={customEnd} onChange={setCustomEnd} />
         </View>
       )}
@@ -282,147 +381,119 @@ export function HomeScreen() {
       {preset === "Custom" && !customRangeReady ? (
         <Text style={styles.empty}>Enter both dates above to load this range.</Text>
       ) : isPending ? (
-        <ActivityIndicator color="#B5A5FF" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={D.blueBright} style={{ marginTop: 40 }} />
       ) : isError || !data ? (
         <Text style={styles.error}>Couldn't load the dashboard.</Text>
       ) : (
         <>
           <View style={styles.statRow}>
-            {isOn("LEADS") && <StatCard icon="person-add-outline" iconColor="#B5A5FF" label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} compact={stacked} />}
-            {isOn("CUSTOMERS") && <StatCard icon="people-outline" iconColor="#78C9A4" label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} compact={stacked} />}
-            {isOn("EVENTS") && <StatCard icon="calendar-outline" iconColor="#E5B86B" label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} compact={stacked} />}
-            {isOn("PAYMENTS") && <StatCard icon="cash-outline" iconColor="#B5A5FF" label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} compact={stacked} />}
+            {isOn("LEADS") && <StatCard icon="people-outline" color={D.purple} label="Total Enquiries" value={data.totalLeads} percent={data.leadsChangePercent} preset={preset} compact={stacked} onOpen={() => navigation.navigate("Leads")} />}
+            {isOn("CUSTOMERS") && <StatCard icon="people-circle-outline" color={D.green} label="Total Customers" value={data.totalCustomers} percent={data.customersChangePercent} preset={preset} compact={stacked} onOpen={() => navigation.navigate("Customers")} />}
+            {isOn("EVENTS") && <StatCard icon="calendar-outline" color={D.orange} label={`Events ${periodLabel(preset)}`} value={data.totalEvents} percent={data.eventsChangePercent} preset={preset} compact={stacked} onOpen={() => navigation.navigate("Events")} />}
+            {isOn("PAYMENTS") && <StatCard icon="cash-outline" color={D.blue} label={`Revenue ${periodLabel(preset)}`} value={formatCurrency(data.collectedRevenue)} percent={data.revenueChangePercent} preset={preset} compact={stacked} onOpen={() => navigation.navigate("Payments")} />}
           </View>
 
           <View style={[styles.columns, stacked && styles.columnsStacked]}>
             <View style={[styles.mainColumn, stacked && styles.columnStacked]}>
               {isOn("PAYMENTS") && (
-<Panel title="Overview">
-                <LineChart points={revenuePoints} formatValue={formatCurrencyShort} height={narrow ? 220 : 320} />
-                <View style={styles.overviewStats}>
-                  <View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Revenue</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#78C9A4" }]}>{formatCurrency(data.collectedRevenue)}</Text>
+                <Panel title="Overview" icon="bar-chart">
+                  <LineChart points={revenuePoints} formatValue={formatCurrencyShort} height={narrow ? 220 : 320}
+                    color={D.blue} accentColor={D.blueBright} showYAxis={!narrow} showDots palette={CHART_PALETTE} />
+                  <View style={styles.overviewStats}>
+                    <OverviewStat label="Revenue" value={formatCurrency(data.collectedRevenue)} color={D.green} divided={false} />
+                    {isOn("EXPENSES") && <OverviewStat divided={!narrow} label="Expenses" value={formatCurrency(data.totalExpenses)} color={D.red} />}
+                    {isOn("EXPENSES") && <OverviewStat divided={!narrow} label="Profit" value={formatCurrency(data.cashProfit)} color={data.cashProfit >= 0 ? D.green : D.red} />}
+                    {isOn("EXPENSES") && (
+                      <OverviewStat divided={!narrow} label="Margin" value={data.collectedRevenue === 0 ? "—" : `${Math.round((data.cashProfit / data.collectedRevenue) * 100)}%`} />
+                    )}
                   </View>
-                  {isOn("EXPENSES") && (
-<View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Expenses</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#E58B91" }]}>{formatCurrency(data.totalExpenses)}</Text>
-                  </View>
-)}
-                  {isOn("EXPENSES") && (
-<View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Profit</Text>
-                    <Text style={[styles.overviewStatValue, { color: "#78C9A4" }]}>{formatCurrency(data.cashProfit)}</Text>
-                  </View>
-)}
-                  {isOn("EXPENSES") && (
-<View style={styles.overviewStat}>
-                    <Text style={styles.overviewStatLabel}>Margin</Text>
-                    <Text style={styles.overviewStatValue}>
-                      {data.collectedRevenue === 0 ? "—" : `${Math.round((data.cashProfit / data.collectedRevenue) * 100)}%`}
-                    </Text>
-                  </View>
-)}
-                </View>
-              </Panel>
-)}
+                </Panel>
+              )}
 
               {(isOn("QUOTATIONS") || isOn("PAYMENTS") || isOn("EXPENSES")) && (
-<Panel title="Financial Summary">
-                <View style={styles.financeGrid}>
-                  {isOn("QUOTATIONS") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Quotation Value</Text>
-                    <Text style={styles.financeValue}>{formatCurrency(data.quotationValue)}</Text>
+                <Panel
+                  title="Financial Summary"
+                  icon="wallet"
+                  action={
+                    <View style={styles.periodPill}>
+                      <Ionicons name="calendar-outline" size={13} color={D.blueBright} />
+                      <Text style={styles.periodPillText}>{periodLabel(preset)}</Text>
+                    </View>
+                  }
+                >
+                  <View style={styles.financeGrid}>
+                    {isOn("QUOTATIONS") && <FinanceTile icon="document-text-outline" label="Quotation Value" value={formatCurrency(data.quotationValue)} />}
+                    {isOn("PAYMENTS") && <FinanceTile icon="checkmark-circle-outline" label="Collected Revenue" value={formatCurrency(data.collectedRevenue)} color={D.green} />}
+                    {isOn("PAYMENTS") && <FinanceTile icon="hourglass-outline" label="Outstanding" value={formatCurrency(data.outstandingBalance)} color={data.outstandingBalance > 0 ? D.orange : undefined} />}
+                    {isOn("EXPENSES") && <FinanceTile icon="receipt-outline" label="Expenses" value={formatCurrency(data.totalExpenses)} color={D.red} />}
+                    {isOn("QUOTATIONS") && isOn("EXPENSES") && (
+                      <FinanceTile icon="trending-up-outline" label="Expected Profit" value={formatCurrency(data.expectedProfit)} color={data.expectedProfit >= 0 ? D.green : D.red} />
+                    )}
+                    {isOn("PAYMENTS") && isOn("EXPENSES") && (
+                      <FinanceTile icon="cash-outline" label="Cash Profit" value={formatCurrency(data.cashProfit)} color={data.cashProfit >= 0 ? D.green : D.red} />
+                    )}
                   </View>
-)}
-                  {isOn("PAYMENTS") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Collected Revenue</Text>
-                    <Text style={[styles.financeValue, { color: "#78C9A4" }]}>{formatCurrency(data.collectedRevenue)}</Text>
-                  </View>
-)}
-                  {isOn("PAYMENTS") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Outstanding</Text>
-                    <Text style={[styles.financeValue, { color: data.outstandingBalance > 0 ? "#E5B86B" : "#E6E7EC" }]}>{formatCurrency(data.outstandingBalance)}</Text>
-                  </View>
-)}
-                  {isOn("EXPENSES") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Expenses</Text>
-                    <Text style={[styles.financeValue, { color: "#E58B91" }]}>{formatCurrency(data.totalExpenses)}</Text>
-                  </View>
-)}
-                  {isOn("QUOTATIONS") && isOn("EXPENSES") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Expected Profit</Text>
-                    <Text style={[styles.financeValue, { color: data.expectedProfit >= 0 ? "#78C9A4" : "#E58B91" }]}>{formatCurrency(data.expectedProfit)}</Text>
-                  </View>
-)}
-                  {isOn("PAYMENTS") && isOn("EXPENSES") && (
-<View style={styles.financeTile}>
-                    <Text style={styles.financeLabel}>Cash Profit</Text>
-                    <Text style={[styles.financeValue, { color: data.cashProfit >= 0 ? "#78C9A4" : "#E58B91" }]}>{formatCurrency(data.cashProfit)}</Text>
-                  </View>
-)}
-                </View>
-              </Panel>
-)}
+                </Panel>
+              )}
             </View>
 
             {/* Right column: events at a glance, then today's and upcoming bookings. */}
             <View style={[styles.sideColumn, stacked && styles.columnStacked]}>
               {isOn("EVENTS") && (
-<Panel title="Events Summary">
-                <DonutChart
-                  centerLabel="Total"
-                  centerValue={data.totalEvents}
-                  segments={[
-                    { label: "Upcoming", value: data.upcomingEvents, color: "#E5B86B" },
-                    { label: "Ongoing", value: data.ongoingEvents ?? 0, color: "#B5A5FF" },
-                    { label: "Completed", value: data.completedEvents, color: "#78C9A4" },
-                    { label: "Cancelled", value: data.cancelledEvents, color: "#E58B91" },
-                  ]}
-                />
-              </Panel>
-)}
+                <Panel title="Events Summary" icon="calendar-clear">
+                  <DonutChart
+                    centerLabel="Total"
+                    centerValue={data.totalEvents}
+                    trackColor="#1A2852"
+                    segments={[
+                      { label: "Upcoming", value: data.upcomingEvents, color: STATUS_COLORS.Upcoming },
+                      { label: "Ongoing", value: data.ongoingEvents ?? 0, color: STATUS_COLORS.Ongoing },
+                      { label: "Completed", value: data.completedEvents, color: STATUS_COLORS.Completed },
+                      { label: "Cancelled", value: data.cancelledEvents, color: STATUS_COLORS.Cancelled },
+                    ]}
+                  />
+                </Panel>
+              )}
               {isOn("DAY_BOARD") && (
-              <Panel
-                title="Today's Schedule"
-                action={
-                  <Pressable onPress={() => navigation.navigate("DayBoard")}>
-                    <Text style={styles.panelLink}>View Full Day Board →</Text>
-                  </Pressable>
-                }
-              >
-                {!dayBoard || dayBoard.events.length === 0 ? (
-                  <Text style={styles.empty}>Nothing scheduled for today.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {dayBoard.events.map((e) => (
-                      <View key={e.eventId} style={styles.scheduleRow}>
-                        <Text style={styles.scheduleTime}>{e.startTime ? e.startTime.slice(0, 5) : "—"}</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.scheduleTitle} numberOfLines={1}>{e.eventTypeName ?? "Event"} — {e.customerName}</Text>
-                          <Text style={styles.scheduleSubtitle} numberOfLines={1}>{e.venue ?? "No venue set"}</Text>
+                <Panel
+                  title="Today's Schedule"
+                  icon="today"
+                  action={
+                    <Pressable onPress={() => navigation.navigate("DayBoard")} accessibilityRole="link">
+                      <Text style={styles.panelLink}>View Full Day Board →</Text>
+                    </Pressable>
+                  }
+                >
+                  {!dayBoard || dayBoard.events.length === 0 ? (
+                    <Text style={styles.empty}>Nothing scheduled for today.</Text>
+                  ) : (
+                    <View>
+                      {dayBoard.events.map((e, i) => (
+                        <View key={e.eventId} style={styles.scheduleRow}>
+                          {/* Timeline: a dot per booking, joined by a line down to the next one. */}
+                          <View style={styles.timeline}>
+                            {i < dayBoard.events.length - 1 && <View style={styles.timelineLine} />}
+                            <View style={styles.timelineDot} />
+                          </View>
+                          <Text style={styles.scheduleTime}>{e.startTime ? e.startTime.slice(0, 5) : "—"}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.scheduleTitle} numberOfLines={1}>{e.eventTypeName ?? "Event"} — {e.customerName}</Text>
+                            <Text style={styles.scheduleSubtitle} numberOfLines={1}>{e.venue ?? "No venue set"}</Text>
+                          </View>
+                          <StatusPill status={e.eventStatus} />
                         </View>
-                        <View style={styles.statusPill}>
-                          <Text style={styles.statusPillText}>{e.eventStatus}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Panel>
+                      ))}
+                    </View>
+                  )}
+                </Panel>
               )}
 
               {isOn("EVENTS") && (
               <Panel
                 title="Upcoming Events"
+                icon="time"
                 action={
-                  <Pressable onPress={() => navigation.navigate("Events")}>
+                  <Pressable onPress={() => navigation.navigate("Events")} accessibilityRole="link">
                     <Text style={styles.panelLink}>View All →</Text>
                   </Pressable>
                 }
@@ -453,9 +524,7 @@ export function HomeScreen() {
                               {e.venue ? ` · ${e.venue}` : ""}
                             </Text>
                           </View>
-                          <View style={styles.statusPill}>
-                            <Text style={styles.statusPillText}>{e.eventStatus}</Text>
-                          </View>
+                          <StatusPill status={e.eventStatus} />
                         </Pressable>
                       );
                     })}
@@ -468,13 +537,43 @@ export function HomeScreen() {
           </View>
 
           <View style={styles.tipBanner}>
-            <Ionicons name="star" size={16} color="#B5A5FF" />
+            <Ionicons name="star" size={16} color={D.orange} />
             <Text style={styles.tipText}><Text style={styles.tipLabel}>Tip of the day: </Text>{tip}</Text>
           </View>
         </>
       )}
       </>)}
     </ScrollView>
+  );
+}
+
+function OverviewStat({ label, value, color, divided }: { label: string; value: string; color?: string; divided: boolean }) {
+  return (
+    <View style={[styles.overviewStat, divided && styles.overviewStatDivided]}>
+      <Text style={styles.overviewStatLabel}>{label}</Text>
+      <Text style={[styles.overviewStatValue, color ? { color } : undefined]} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
+function FinanceTile({ icon, label, value, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color?: string }) {
+  return (
+    <View style={styles.financeTile}>
+      <View style={styles.financeLabelRow}>
+        <Ionicons name={icon} size={14} color={color ?? D.muted} />
+        <Text style={styles.financeLabel}>{label}</Text>
+      </View>
+      <Text style={[styles.financeValue, color ? { color } : undefined]} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const color = STATUS_COLORS[status] ?? D.faint;
+  return (
+    <View style={[styles.statusPill, { backgroundColor: color, boxShadow: `0 2px 10px ${color}55` }]}>
+      <Text style={styles.statusPillText}>{status}</Text>
+    </View>
   );
 }
 
@@ -493,109 +592,142 @@ function dayOfYear(): number {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#292C36" },
-  content: { padding: 24, maxWidth: 1760, width: "100%", alignSelf: "center" },
+  screen: { flex: 1, backgroundColor: D.page },
+  content: { padding: 28, maxWidth: 1760, width: "100%", alignSelf: "center" },
   contentNarrow: { padding: 16 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 16, flexWrap: "wrap" },
+  pageGlow: { position: "absolute", top: 0, left: 0, right: 0 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 16, flexWrap: "wrap" },
   // On a phone there isn't room for the greeting beside the date and bell, so they wrap below it.
   headerLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 260 },
-  greeting: { fontSize: 24, fontWeight: "700", color: "#E6E7EC" },
-  greetingName: { color: "#B5A5FF" },
-  subtitle: { fontSize: 13, color: "#7D8292", marginTop: 3 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+  greeting: { fontSize: 30, fontWeight: "800", color: D.text, letterSpacing: -0.4 },
+  greetingNarrow: { fontSize: 24 },
+  greetingName: { color: D.blueBright },
+  subtitle: { fontSize: 15, color: D.muted, marginTop: 4 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
   rangeChip: {
-    flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#343746",
-    borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: "#22252E",
+    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: D.cardEdge,
+    borderRadius: 100, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "rgba(12,23,51,0.8)",
   },
-  rangeChipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
+  rangeChipText: { color: D.text, fontSize: 13, fontWeight: "600" },
   iconButton: {
-    width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderColor: "#343746", backgroundColor: "#22252E",
+    width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: D.cardEdge, backgroundColor: "rgba(12,23,51,0.8)",
     alignItems: "center", justifyContent: "center",
   },
   badge: {
-    position: "absolute", top: -5, right: -5, backgroundColor: "#E58B91", borderRadius: 100,
-    minWidth: 16, height: 16, paddingHorizontal: 3, alignItems: "center", justifyContent: "center",
+    position: "absolute", top: -4, right: -6, backgroundColor: D.red, borderRadius: 100,
+    minWidth: 20, height: 18, paddingHorizontal: 4, alignItems: "center", justifyContent: "center",
   },
-  badgeText: { color: "#292C36", fontSize: 12, fontWeight: "700" },
+  badgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
   nativeNavRow: { marginBottom: 14 },
   nativeNavRowContent: { gap: 8, paddingRight: 8 },
-  nativeNavButton: { borderWidth: 1, borderColor: "#343746", borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: "#22252E" },
-  nativeNavButtonText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  presetRow: { marginBottom: 18 },
-  presetRowContent: { gap: 8, paddingRight: 8 },
+  nativeNavButton: { borderWidth: 1, borderColor: D.cardEdge, borderRadius: 100, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: D.card },
+  nativeNavButtonText: { color: D.muted, fontSize: 12, fontWeight: "600" },
+  presetRow: { marginBottom: 22 },
+  presetRowContent: { gap: 10, paddingRight: 8 },
   presetWrap: { flexDirection: "row", flexWrap: "wrap" },
   presetChipNarrow: { flexGrow: 1, alignItems: "center", minHeight: 40, justifyContent: "center" },
   customRangeRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18, flexWrap: "wrap" },
-  presetChip: { borderWidth: 1, borderColor: "#343746", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#22252E" },
-  presetChipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
-  presetChipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  presetChipTextSelected: { color: "#B5A5FF" },
-  error: { color: "#E58B91", marginTop: 40, textAlign: "center" },
-  empty: { color: "#7D8292", fontSize: 13, paddingVertical: 8 },
-
-  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginBottom: 18 },
-  statCard: {
-    flexGrow: 1, minWidth: 200, backgroundColor: "#22252E", borderRadius: 12, borderWidth: 1, borderColor: "#343746", padding: 18,
+  presetChip: {
+    borderWidth: 1, borderColor: "rgba(164,175,207,0.28)", borderRadius: 100, paddingVertical: 9, paddingHorizontal: 18,
+    backgroundColor: "rgba(12,23,51,0.6)",
   },
-  // Phones: two cards per row instead of one card filling the screen.
-  statCardCompact: { minWidth: 0, flexBasis: "40%", padding: 14 },
-  statValueCompact: { fontSize: 22 },
-  statIcon: { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  statValue: { fontSize: 24, fontWeight: "700", color: "#E6E7EC", fontVariant: ["tabular-nums"] },
-  statLabel: { fontSize: 12, color: "#A1A5B3", marginTop: 2 },
-  deltaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 },
-  delta: { fontSize: 12, fontWeight: "700" },
-  deltaLabel: { fontSize: 12, color: "#7D8292" },
-  deltaNeutral: { fontSize: 12, color: "#7D8292", marginTop: 8 },
+  presetChipSelected: { borderColor: D.blue, backgroundColor: D.blue, boxShadow: `0 6px 20px ${D.blue}66` },
+  presetChipText: { color: D.text, fontSize: 13, fontWeight: "600" },
+  presetChipTextSelected: { color: "#FFFFFF" },
+  error: { color: D.red, marginTop: 40, textAlign: "center" },
+  empty: { color: D.faint, fontSize: 13, paddingVertical: 8 },
 
-  columns: { flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" },
+  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 18, marginBottom: 20 },
+  statCard: {
+    flexGrow: 1, flexBasis: 0, minWidth: 230, minHeight: 156, backgroundColor: D.card, borderRadius: 18, borderWidth: 1,
+    borderColor: D.cardEdge, padding: 20, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+  },
+  statCardHover: { transform: [{ translateY: -2 }], borderColor: "rgba(120,160,255,0.35)" },
+  // Phones: two cards per row instead of one card filling the screen.
+  statCardCompact: { minWidth: 0, flexBasis: "40%", minHeight: 0, padding: 14 },
+  statValueCompact: { fontSize: 24 },
+  cardWave: { position: "absolute", right: 0, bottom: 0 },
+  statTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
+  statIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  statOpen: {
+    width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+  },
+  statValue: { fontSize: 32, fontWeight: "800", color: D.text, fontVariant: ["tabular-nums"], letterSpacing: -0.5 },
+  statLabel: { fontSize: 15, color: D.text, opacity: 0.9, marginTop: 2 },
+  deltaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 10 },
+  delta: { fontSize: 14, fontWeight: "800" },
+  deltaLabel: { fontSize: 13, color: D.muted },
+  deltaNeutral: { fontSize: 13, color: D.muted, marginTop: 10 },
+
+  columns: { flexDirection: "row", flexWrap: "wrap", gap: 20, alignItems: "flex-start" },
   columnsStacked: { flexDirection: "column", flexWrap: "nowrap", alignItems: "stretch" },
   // In a column, flexBasis would become a height: reset it so each panel is as tall as its content.
   columnStacked: { flexBasis: "auto", flexGrow: 0 },
-  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 16 },
-  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 16 },
+  mainColumn: { flexGrow: 2, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 20 },
+  sideColumn: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 20 },
 
-  panel: { backgroundColor: "#22252E", borderRadius: 12, borderWidth: 1, borderColor: "#343746", padding: 18 },
-  panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  panelTitle: { fontSize: 15, fontWeight: "700", color: "#E6E7EC" },
-  panelLink: { fontSize: 12, color: "#B5A5FF", fontWeight: "600" },
+  panel: {
+    backgroundColor: D.card, borderRadius: 18, borderWidth: 1, borderColor: D.cardEdge, padding: 20,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+  },
+  panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 10 },
+  panelTitleRow: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
+  panelIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  panelTitle: { fontSize: 18, fontWeight: "800", color: D.text },
+  panelLink: { fontSize: 13, color: D.blueBright, fontWeight: "700" },
+  periodPill: {
+    flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14,
+    backgroundColor: "rgba(47,123,255,0.14)", borderWidth: 1, borderColor: "rgba(76,147,255,0.3)",
+  },
+  periodPillText: { color: D.text, fontSize: 13, fontWeight: "600" },
 
-  overviewStats: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: "#343746", paddingTop: 16 },
-  overviewStat: { minWidth: 90 },
-  overviewStatLabel: { fontSize: 12, color: "#7D8292" },
-  overviewStatValue: { fontSize: 16, fontWeight: "700", color: "#E6E7EC", marginTop: 2 },
+  overviewStats: { flexDirection: "row", flexWrap: "wrap", rowGap: 14, marginTop: 18, borderTopWidth: 1, borderTopColor: D.grid, paddingTop: 18 },
+  overviewStat: { flexGrow: 1, flexBasis: 120, paddingHorizontal: 4 },
+  overviewStatDivided: { borderLeftWidth: 1, borderLeftColor: D.grid, paddingLeft: 20 },
+  overviewStatLabel: { fontSize: 14, color: D.text, opacity: 0.85 },
+  overviewStatValue: { fontSize: 22, fontWeight: "800", color: D.text, marginTop: 4, fontVariant: ["tabular-nums"] },
 
   financeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  financeTile: { flexGrow: 1, flexBasis: "30%", minWidth: 130, backgroundColor: "#292C36", borderRadius: 8, padding: 12 },
-  financeLabel: { fontSize: 12, color: "#7D8292" },
-  financeValue: { fontSize: 15, fontWeight: "700", color: "#E6E7EC", marginTop: 3, fontVariant: ["tabular-nums"] },
-
-
-  scheduleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  scheduleTime: { color: "#B5A5FF", fontSize: 12, fontWeight: "700", width: 44 },
-  scheduleTitle: { color: "#E6E7EC", fontSize: 13, fontWeight: "600" },
-  scheduleSubtitle: { color: "#7D8292", fontSize: 12, marginTop: 1 },
-  upcomingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  dateBadge: {
-    width: 40, alignItems: "center", paddingVertical: 4, borderRadius: 8,
-    backgroundColor: "rgba(181,165,255,0.1)", borderWidth: 1, borderColor: "#343746",
+  financeTile: {
+    flexGrow: 1, flexBasis: "30%", minWidth: 150, backgroundColor: D.inset, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: D.cardEdge,
   },
-  dateBadgeDay: { color: "#E6E7EC", fontSize: 14, fontWeight: "700", lineHeight: 16 },
-  dateBadgeMonth: { color: "#B5A5FF", fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
-  statusPill: { borderWidth: 1, borderColor: "#343746", borderRadius: 100, paddingVertical: 3, paddingHorizontal: 8 },
-  statusPillText: { color: "#B5A5FF", fontSize: 12, fontWeight: "700" },
+  financeLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  financeLabel: { fontSize: 13, color: D.muted },
+  financeValue: { fontSize: 18, fontWeight: "800", color: D.text, marginTop: 6, fontVariant: ["tabular-nums"] },
 
+  scheduleRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 9 },
+  timeline: { width: 14, alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
+  // Runs from this dot's centre down to the next row's dot.
+  timelineLine: { position: "absolute", top: "50%", height: "100%", width: 2, backgroundColor: D.blue, opacity: 0.55 },
+  timelineDot: {
+    width: 12, height: 12, borderRadius: 6, backgroundColor: D.blue, borderWidth: 2, borderColor: "#9CC2FF",
+    boxShadow: `0 0 10px ${D.blue}`,
+  },
+  scheduleTime: { color: D.text, fontSize: 14, fontWeight: "600", width: 46, fontVariant: ["tabular-nums"] },
+  scheduleTitle: { color: D.text, fontSize: 14, fontWeight: "700" },
+  scheduleSubtitle: { color: D.muted, fontSize: 12, marginTop: 2 },
+  upcomingRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  dateBadge: {
+    width: 44, alignItems: "center", paddingVertical: 5, borderRadius: 10,
+    backgroundColor: "rgba(47,123,255,0.14)", borderWidth: 1, borderColor: "rgba(76,147,255,0.3)",
+  },
+  dateBadgeDay: { color: D.text, fontSize: 15, fontWeight: "800", lineHeight: 18 },
+  dateBadgeMonth: { color: D.blueBright, fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  statusPill: { borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10 },
+  statusPillText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
 
   welcomeCard: {
-    alignItems: "center", gap: 6, paddingVertical: 40, paddingHorizontal: 20, borderRadius: 12,
-    borderWidth: 1, borderColor: "#343746", backgroundColor: "#292C36",
+    alignItems: "center", gap: 6, paddingVertical: 40, paddingHorizontal: 20, borderRadius: 18,
+    borderWidth: 1, borderColor: D.cardEdge, backgroundColor: D.card,
   },
-  welcomeTitle: { color: "#E6E7EC", fontSize: 17, fontWeight: "700" },
-  welcomeText: { color: "#7D8292", fontSize: 13 },
+  welcomeTitle: { color: D.text, fontSize: 17, fontWeight: "700" },
+  welcomeText: { color: D.muted, fontSize: 13 },
   tipBanner: {
-    flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#22252E", borderWidth: 1,
-    borderColor: "#343746", borderRadius: 12, padding: 16, marginTop: 16,
+    flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: D.card, borderWidth: 1,
+    borderColor: D.cardEdge, borderRadius: 18, padding: 16, marginTop: 20,
   },
-  tipText: { color: "#A1A5B3", fontSize: 13, flex: 1 },
-  tipLabel: { color: "#E6E7EC", fontWeight: "700" },
+  tipText: { color: D.muted, fontSize: 13, flex: 1 },
+  tipLabel: { color: D.text, fontWeight: "700" },
 });

@@ -27,15 +27,15 @@ export const CATEGORY_LABELS: Record<EventCategory, string> = {
   other: "Other",
 };
 
-// Soft, muted and clearly different from each other (they appear side by side in the calendar).
+// Bright on navy and clearly different from each other (they appear side by side in the calendar).
 export const CATEGORY_COLORS: Record<EventCategory, string> = {
-  wedding: "#B08D5B",
-  reception: "#8C7FA6",
-  preWedding: "#B57F7A",
-  portrait: "#5B7A99",
-  birthday: "#6E9478",
-  corporate: "#7D7F86",
-  other: "#9A9890",
+  wedding: "#FF9F1C",
+  reception: "#8B6CFF",
+  preWedding: "#FF5FA2",
+  portrait: "#22B8CF",
+  birthday: "#22C58B",
+  corporate: "#F2D24B",
+  other: "#94A3C8",
 };
 
 export const CATEGORY_ICONS: Record<EventCategory, string> = {

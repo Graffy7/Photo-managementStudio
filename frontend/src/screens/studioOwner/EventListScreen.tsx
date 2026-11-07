@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
@@ -16,6 +17,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { DataList, CellMoney, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
 import { RowAction } from "../../ui/RowAction";
 import { categorizeEventType, CATEGORY_COLORS } from "../../utils/eventCategory";
@@ -79,7 +81,25 @@ function deliveryText(e: StudioEvent): string | null {
   return done === e.deliveryItems.length ? "Everything delivered" : `Delivered ${done} of ${e.deliveryItems.length}`;
 }
 
-export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (event: StudioEvent) => void; onView: (event: StudioEvent) => void }) {
+// A filter another page opened the list with, e.g. the Calendar's "Weddings" tile: one month, and
+// optionally only some event types (eventTypeIds; includeUntyped adds events with no type).
+export interface EventListPreset {
+  label: string;
+  dateFrom: string;
+  dateTo: string;
+  eventTypeIds?: number[];
+  includeUntyped?: boolean;
+  // Page the "Back" link returns to, e.g. "Calendar".
+  returnTo?: string;
+}
+
+export function EventListScreen({ onCreate, onEdit, onView, preset, onClearPreset }: {
+  onCreate: () => void;
+  onEdit: (event: StudioEvent) => void;
+  onView: (event: StudioEvent) => void;
+  preset?: EventListPreset | null;
+  onClearPreset?: () => void;
+}) {
   const queryClient = useQueryClient();
   const navigation = useNavigation();
   const [search, setSearch] = useState("");
@@ -95,11 +115,15 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
 
   const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
-    queryKey: ["events", search, eventStatus, eventDate, page, sort?.by, sort?.desc],
+    queryKey: ["events", search, eventStatus, eventDate, page, sort?.by, sort?.desc, preset?.dateFrom, preset?.dateTo, preset?.eventTypeIds?.join(","), preset?.includeUntyped],
     queryFn: () => eventsApi.search({
       search: search || undefined,
       eventStatus: eventStatus ?? undefined,
       eventDate: eventDate || undefined,
+      dateFrom: preset?.dateFrom,
+      dateTo: preset?.dateTo,
+      eventTypeIds: preset?.eventTypeIds?.join(","),
+      includeUntyped: preset?.includeUntyped || undefined,
       page,
       pageSize: PAGE_SIZE,
       sortBy: sort?.by,
@@ -121,17 +145,21 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
     onError: (err) => setDeleteError(extractErrorMessage(err)),
   });
 
-  const actions = (item: StudioEvent) =>
-    pendingDeleteId === item.eventId ? (
-      <View style={styles.confirm}>
-        <Text style={styles.confirmText}>Delete this event?</Text>
-        {deleteError && <Text style={styles.error}>{deleteError}</Text>}
-        <View style={styles.actionRow}>
-          <Button label="Keep" variant="link" onPress={() => { setPendingDeleteId(null); setDeleteError(null); }} disabled={deleteEvent.isPending} />
-          <Button label="Delete" variant="danger" onPress={() => deleteEvent.mutate(item.eventId)} loading={deleteEvent.isPending} />
-        </View>
-      </View>
-    ) : (
+  const pendingEvent = pendingDeleteId !== null ? data?.items.find((e) => e.eventId === pendingDeleteId) : undefined;
+  const confirmDialog = (
+    <ConfirmDialog
+      visible={pendingDeleteId !== null}
+      title="Delete event?"
+      message={`${pendingEvent ? `${pendingEvent.eventTypeName ?? "The event"} for ${pendingEvent.customerName}` : "This event"} will be removed. This can't be undone.`}
+      confirmLabel="Delete"
+      busy={deleteEvent.isPending}
+      error={deleteError}
+      onCancel={() => { setPendingDeleteId(null); setDeleteError(null); }}
+      onConfirm={() => pendingDeleteId !== null && deleteEvent.mutate(pendingDeleteId)}
+    />
+  );
+
+  const actions = (item: StudioEvent) => (
       <View style={styles.actionRow}>
         <RowAction iconOnly icon="document-text-outline" label="Quote" onPress={() => setQuoteFor(item)} accessibilityLabel={`Quotation for ${item.customerName}`} />
         <SubscriptionLock compact>
@@ -199,6 +227,22 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         }
       />
 
+      {preset && (
+        <View style={styles.presetBar}>
+          {!!preset.returnTo && (
+            <Pressable style={styles.presetBack} onPress={() => navigation.navigate(preset.returnTo as never)} accessibilityRole="link">
+              <Ionicons name="chevron-back" size={15} color={colors.primary} />
+              <Text style={styles.presetBackText}>{preset.returnTo}</Text>
+            </Pressable>
+          )}
+          <View style={styles.presetChip}>
+            <Ionicons name="funnel-outline" size={14} color={colors.primary} />
+            <Text style={styles.presetText}>Showing: {preset.label}</Text>
+          </View>
+          <Button label="Show all events" variant="link" icon="close" onPress={() => { onClearPreset?.(); setPage(1); }} />
+        </View>
+      )}
+
       <View style={styles.toolbar}>
         <SearchInput style={styles.search} value={search} onChangeText={setFilter(setSearch)} placeholder="Search by customer or venue" />
         {/* Pick a day to see only that day's events. */}
@@ -228,7 +272,10 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
         pageSize={PAGE_SIZE}
         totalCount={data?.totalCount ?? 0}
         onPageChange={setPage}
-        empty={filtered ? (
+        empty={preset && !filtered ? (
+          <EmptyState icon="calendar-clear-outline" title={`No ${preset.label.split(" · ")[0].toLowerCase()}`} text={`Nothing booked for ${preset.label.split(" · ")[1] ?? "this period"}.`}
+            action={<Button label="Show all events" onPress={() => { onClearPreset?.(); setPage(1); }} />} />
+        ) : filtered ? (
           <EmptyState icon="search-outline" title="No events match" text="Try another search, date or status."
             action={<Button label="Clear filters" onPress={() => { setSearch(""); setEventDate(""); setEventStatus(null); setPage(1); }} />} />
         ) : (
@@ -271,6 +318,7 @@ export function EventListScreen({ onCreate, onEdit, onView }: { onCreate: () => 
           eventLabel={`${formatDate(quoteFor.eventDate)}${quoteFor.venue ? ` · ${quoteFor.venue}` : ""}`}
         />
       )}
+      {confirmDialog}
     </Screen>
   );
 }
@@ -281,6 +329,14 @@ const styles = StyleSheet.create({
   chips: { marginBottom: space.lg },
   actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  presetBar: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: space.sm, marginBottom: space.md },
+  presetBack: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 6, paddingRight: space.sm },
+  presetBackText: { ...type.small, fontWeight: "700", color: colors.primary },
+  presetChip: {
+    flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.pill, paddingVertical: 7, paddingHorizontal: 14,
+    backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary,
+  },
+  presetText: { ...type.small, fontWeight: "700", color: colors.text },
   typeBadge: {
     flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", maxWidth: "100%",
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, borderWidth: 1,
@@ -288,8 +344,6 @@ const styles = StyleSheet.create({
   typeDot: { width: 7, height: 7, borderRadius: 4 },
   typeText: { ...type.small, fontWeight: "600", color: colors.text, flexShrink: 1 },
   cardTypeRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
-  confirm: { alignItems: "flex-end", gap: 2 },
-  confirmText: { ...type.small, fontWeight: "600", color: colors.danger },
   error: { ...type.caption, color: colors.danger },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardDate: { ...type.small, fontWeight: "600", color: colors.link },

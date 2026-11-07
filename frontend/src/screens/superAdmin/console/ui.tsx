@@ -4,22 +4,23 @@ import { View, Text, Pressable, StyleSheet, Modal, ActivityIndicator, type ViewS
 import { Ionicons } from "@expo/vector-icons";
 import { MiniDatePicker } from "../../../components/MiniDatePicker";
 import type { AdminStudioStatus } from "../../../types/adminConsole";
+import { hoverGlow, hoverLift } from "../../../ui/webHover";
 
 // Shared look for the platform admin console: calm navy surfaces, one blue accent for data, the
 // app's orange only for the main action on a screen, and green/amber/red kept for status.
 export const C = {
-  page: "#191B22",
-  surface: "#292C36",
-  raised: "#292C36",
-  border: "#343746",
-  text: "#E6E7EC",
-  muted: "#A1A5B3",
-  faint: "#7D8292",
-  accent: "#B5A5FF",
-  brand: "#B5A5FF",
-  good: "#78C9A4",
-  warn: "#E5B86B",
-  bad: "#E58B91",
+  page: "#070F24",
+  surface: "#111E3F",
+  raised: "#111E3F",
+  border: "#1E2D57",
+  text: "#F2F5FF",
+  muted: "#A4AFCF",
+  faint: "#6F7BA0",
+  accent: "#5B9BFF",
+  brand: "#5B9BFF",
+  good: "#22C58B",
+  warn: "#FFA53D",
+  bad: "#FF5C75",
 };
 
 // ---- Formatting --------------------------------------------------------------------------------
@@ -138,7 +139,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 
 export function Card({ title, action, children, style }: { title?: string; action?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[s.card, style]}>
+    <View {...hoverGlow} style={[s.card, style]}>
       {(title || action) && (
         <View style={s.cardHeader}>
           {!!title && <Text style={s.cardTitle}>{title}</Text>}
@@ -154,7 +155,7 @@ export function StatCard({ label, value, hint, icon, tone }: {
   label: string; value: string; hint?: string; icon: keyof typeof Ionicons.glyphMap; tone?: string;
 }) {
   return (
-    <View style={s.stat}>
+    <View {...hoverLift} style={s.stat}>
       <View style={s.statTop}>
         <Text style={s.statLabel}>{label}</Text>
         <View style={s.statIcon}>
@@ -181,7 +182,7 @@ type ButtonKind = "primary" | "secondary" | "danger" | "ghost";
 export function Button({ label, onPress, kind = "secondary", icon, disabled, busy, small }: {
   label: string; onPress: () => void; kind?: ButtonKind; icon?: keyof typeof Ionicons.glyphMap; disabled?: boolean; busy?: boolean; small?: boolean;
 }) {
-  const color = kind === "primary" ? "#292C36" : kind === "danger" ? C.bad : kind === "ghost" ? C.accent : C.text;
+  const color = kind === "primary" ? "#111E3F" : kind === "danger" ? C.bad : kind === "ghost" ? C.accent : C.text;
   return (
     <Pressable
       onPress={onPress}
@@ -321,7 +322,7 @@ export const s = StyleSheet.create({
   buttonSmall: { paddingHorizontal: 10, paddingVertical: 6 },
   button_primary: { backgroundColor: C.brand, borderColor: C.brand },
   button_secondary: { backgroundColor: C.raised, borderColor: C.border },
-  button_danger: { backgroundColor: "rgba(229,139,145,0.1)", borderColor: "rgba(229,139,145,0.45)" },
+  button_danger: { backgroundColor: "rgba(255,92,117,0.1)", borderColor: "rgba(255,92,117,0.45)" },
   button_ghost: { backgroundColor: "transparent", borderColor: "transparent" },
   buttonHover: { opacity: 0.88 },
   buttonText: { fontSize: 13, fontWeight: "700" },
@@ -337,7 +338,7 @@ export const s = StyleSheet.create({
 
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: { borderWidth: 1, borderColor: C.border, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: C.surface },
-  chipOn: { borderColor: C.accent, backgroundColor: "rgba(181,165,255,0.12)" },
+  chipOn: { borderColor: C.accent, backgroundColor: "rgba(91,155,255,0.12)" },
   chipText: { color: C.muted, fontSize: 12, fontWeight: "600" },
   chipTextOn: { color: C.accent },
 
@@ -349,7 +350,7 @@ export const s = StyleSheet.create({
   rangeQuick: { borderWidth: 1, borderColor: C.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 },
   rangeQuickText: { color: C.muted, fontSize: 11.5, fontWeight: "700" },
 
-  backdrop: { flex: 1, backgroundColor: "rgba(8,9,13,0.6)", alignItems: "center", justifyContent: "center", padding: 16 },
+  backdrop: { flex: 1, backgroundColor: "rgba(2,6,20,0.6)", alignItems: "center", justifyContent: "center", padding: 16 },
   dialog: { width: "100%", maxWidth: 440, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 20, gap: 12 },
   dialogHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   dialogTitle: { color: C.text, fontSize: 16, fontWeight: "700" },

@@ -340,7 +340,7 @@ export function PhotoLightbox({ photos, index, total, hasMore, disabled, effecti
                   return (
                     <Pressable
                       key={type}
-                      style={[styles.radio, active && { borderColor: color, backgroundColor: "rgba(8,9,13,0.11)" }, disabled && styles.disabled]}
+                      style={[styles.radio, active && { borderColor: color, backgroundColor: "rgba(2,6,20,0.11)" }, disabled && styles.disabled]}
                       disabled={disabled}
                       onPress={() => onChange(photo, type)}
                       accessibilityRole="radio"
@@ -372,36 +372,36 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "#050a12" },
   topBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8, minHeight: 64 },
   title: { flexGrow: 1, flexShrink: 1, flexBasis: 120 },
-  name: { color: "#E6E7EC", fontSize: 14, fontWeight: "700" },
-  counter: { color: "#7D8292", fontSize: 12, marginTop: 1 },
+  name: { color: "#F2F5FF", fontSize: 14, fontWeight: "700" },
+  counter: { color: "#6F7BA0", fontSize: 12, marginTop: 1 },
   zoomGroup: { flexDirection: "row", alignItems: "center", gap: 4 },
-  zoomLabel: { color: "#A1A5B3", fontSize: 12, minWidth: 44, textAlign: "center", fontVariant: ["tabular-nums"] },
-  iconButton: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#22252E", alignItems: "center", justifyContent: "center" },
+  zoomLabel: { color: "#A4AFCF", fontSize: 12, minWidth: 44, textAlign: "center", fontVariant: ["tabular-nums"] },
+  iconButton: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#0C1733", alignItems: "center", justifyContent: "center" },
   iconDisabled: { opacity: 0.4 },
-  textButton: { height: 34, paddingHorizontal: 12, borderRadius: 8, backgroundColor: "#22252E", alignItems: "center", justifyContent: "center" },
-  textButtonLabel: { color: "#E6E7EC", fontSize: 12, fontWeight: "700" },
-  closeButton: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#343746", alignItems: "center", justifyContent: "center" },
-  iconText: { color: "#E6E7EC", fontSize: 16, fontWeight: "700" },
+  textButton: { height: 34, paddingHorizontal: 12, borderRadius: 8, backgroundColor: "#0C1733", alignItems: "center", justifyContent: "center" },
+  textButtonLabel: { color: "#F2F5FF", fontSize: 12, fontWeight: "700" },
+  closeButton: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#1E2D57", alignItems: "center", justifyContent: "center" },
+  iconText: { color: "#F2F5FF", fontSize: 16, fontWeight: "700" },
   stage: { width: "100%", overflow: "hidden", justifyContent: "center" },
   image: { position: "absolute", top: 0, left: 0 },
   arrow: {
     position: "absolute", top: "50%", marginTop: -24, width: 44, height: 48, borderRadius: 10,
     backgroundColor: "rgba(34,37,46,0.85)", alignItems: "center", justifyContent: "center",
   },
-  arrowText: { color: "#E6E7EC", fontSize: 30, lineHeight: 34, fontWeight: "300" },
-  hint: { position: "absolute", bottom: 8, alignSelf: "center", color: "#7D8292", fontSize: 11 },
+  arrowText: { color: "#F2F5FF", fontSize: 30, lineHeight: 34, fontWeight: "300" },
+  hint: { position: "absolute", bottom: 8, alignSelf: "center", color: "#6F7BA0", fontSize: 11 },
   bottomBar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10, padding: 12, minHeight: 86 },
   primary: { backgroundColor: NORMAL_COLOR, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 26 },
-  primaryText: { color: "#292C36", fontWeight: "800", fontSize: 14 },
+  primaryText: { color: "#111E3F", fontWeight: "800", fontSize: 14 },
   selectedButton: { borderRadius: 10, paddingVertical: 12, paddingHorizontal: 18 },
-  selectedText: { color: "#292C36", fontWeight: "800", fontSize: 13 },
+  selectedText: { color: "#111E3F", fontWeight: "800", fontSize: 13 },
   radioRow: { flexDirection: "row", gap: 8 },
   radio: {
-    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#343746",
+    flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#1E2D57",
     borderRadius: 10, paddingVertical: 11, paddingHorizontal: 18,
   },
-  radioText: { color: "#A1A5B3", fontSize: 13, fontWeight: "700" },
-  dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: "#7D8292", alignItems: "center", justifyContent: "center" },
+  radioText: { color: "#A4AFCF", fontSize: 13, fontWeight: "700" },
+  dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: "#6F7BA0", alignItems: "center", justifyContent: "center" },
   dotFill: { width: 8, height: 8, borderRadius: 4 },
   disabled: { opacity: 0.45 },
 });

@@ -10,6 +10,7 @@ import { Button } from "../../../ui/Button";
 import { StudioBrandHeader } from "../../../components/StudioBrandHeader";
 import { LogoBrandingTab } from "./LogoBrandingTab";
 import { colors, radius, space, type } from "../../../ui/theme";
+import { hoverGlow } from "../../../ui/webHover";
 
 type Values = {
   studioName: string; description: string; ownerName: string;
@@ -175,12 +176,12 @@ export function StudioProfileTab() {
         <StudioBrandHeader brand={preview} />
       </View>
 
-      <View style={styles.section}>
+      <View {...hoverGlow} style={styles.section}>
         <Text style={styles.sectionTitle}>Logo</Text>
         <LogoBrandingTab />
       </View>
 
-      <View style={styles.section}>
+      <View {...hoverGlow} style={styles.section}>
         <Text style={styles.sectionTitle}>Studio</Text>
         <FieldRow>
           <Field label="Studio name" required error={shown("studioName")} flex>
@@ -195,7 +196,7 @@ export function StudioProfileTab() {
         </Field>
       </View>
 
-      <View style={styles.section}>
+      <View {...hoverGlow} style={styles.section}>
         <Text style={styles.sectionTitle}>Contact</Text>
         <FieldRow>
           <Field label="Contact number" error={shown("phoneNumber")} flex>
@@ -210,7 +211,7 @@ export function StudioProfileTab() {
         </Field>
       </View>
 
-      <View style={styles.section}>
+      <View {...hoverGlow} style={styles.section}>
         <Text style={styles.sectionTitle}>Online</Text>
         <Field label="Website" error={shown("website")}>
           <TextField value={values.website} onChangeText={set("website")} autoCapitalize="none" placeholder="www.yourstudio.com" invalid={!!shown("website")} maxLength={300} />
@@ -225,7 +226,7 @@ export function StudioProfileTab() {
         </FieldRow>
       </View>
 
-      <View style={styles.section}>
+      <View {...hoverGlow} style={styles.section}>
         <Text style={styles.sectionTitle}>Address & tax</Text>
         <Field label="Address">
           <TextField value={values.address} onChangeText={set("address")} maxLength={500} />

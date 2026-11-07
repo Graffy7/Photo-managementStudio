@@ -14,6 +14,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { RowAction } from "../../ui/RowAction";
 import { DataList, CellMoney, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
 import { colors, radius, space, type } from "../../ui/theme";
 
@@ -88,17 +89,18 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
     </View>
   );
 
-  const actions = (q: Quotation) => (
-    <View style={styles.actionRow}>
-      <QuotationPdfButton quotation={q} onError={setDownloadError} />
-      <QuotationWhatsAppButton quotation={q} onError={setDownloadError} onNotice={setShareNotice} />
-      <Button
-        label={changingStatusId === q.quotationId ? "Close" : "Change status"}
-        variant="link"
-        onPress={() => setChangingStatusId(changingStatusId === q.quotationId ? null : q.quotationId)}
-      />
-    </View>
-  );
+  const actions = (q: Quotation) => {
+    const changing = changingStatusId === q.quotationId;
+    return (
+      <View style={styles.actionRow}>
+        <QuotationPdfButton quotation={q} onError={setDownloadError} />
+        <QuotationWhatsAppButton quotation={q} onError={setDownloadError} onNotice={setShareNotice} />
+        <RowAction iconOnly icon={changing ? "close-outline" : "swap-horizontal-outline"} label="Change status" selected={changing}
+          onPress={() => setChangingStatusId(changing ? null : q.quotationId)}
+          accessibilityLabel={changing ? `Close status options for ${q.quotationNumber}` : `Change status of ${q.quotationNumber}`} />
+      </View>
+    );
+  };
 
   const columns: Column<Quotation>[] = [
     { key: "date", label: "Date", width: 130, sortKey: "date", render: (q) => (<><CellTitle>{formatDate(q.quotationDate)}</CellTitle><CellSub>{q.quotationNumber}</CellSub></>) },
@@ -114,7 +116,7 @@ export function QuotationListScreen({ onCreate, onEdit }: { onCreate: () => void
     },
     { key: "status", label: "Status", width: 120, render: (q) => <StatusPill label={q.status} tone={statusTone(q.status)} /> },
     { key: "total", label: "Total", width: 130, align: "right", sortKey: "total", render: (q) => <CellMoney>{formatCurrency(q.grandTotal)}</CellMoney> },
-    { key: "actions", label: "", width: 340, align: "right", render: actions },
+    { key: "actions", label: "", width: 126, align: "right", render: actions },
   ];
 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };

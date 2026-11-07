@@ -18,6 +18,8 @@ public class LeadDto
     public string? Notes { get; set; }
     public DateTime? FollowUpDate { get; set; }
     public int? ConvertedCustomerId { get; set; }
+    // "Converted", "NotConverted" or "EventOver" (see LeadOutcome).
+    public string Outcome { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

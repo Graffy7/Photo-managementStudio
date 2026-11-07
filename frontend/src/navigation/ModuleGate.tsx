@@ -21,7 +21,7 @@ function ModuleOff() {
   return (
     <View style={styles.screen}>
       <View style={styles.card}>
-        <Ionicons name="lock-closed-outline" size={26} color="#B5A5FF" />
+        <Ionicons name="lock-closed-outline" size={26} color="#5B9BFF" />
         <Text style={styles.title}>This module isn't available</Text>
         <Text style={styles.text}>It isn't switched on for your studio. Your data is safe — contact the platform administrator if you need it.</Text>
         <Pressable style={styles.button} onPress={() => navigation.navigate("Home")} accessibilityRole="button">
@@ -33,13 +33,13 @@ function ModuleOff() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#292C36", alignItems: "center", justifyContent: "center", padding: 24 },
+  screen: { flex: 1, backgroundColor: "#111E3F", alignItems: "center", justifyContent: "center", padding: 24 },
   card: {
     maxWidth: 420, alignItems: "center", gap: 10, padding: 28, borderRadius: 14,
-    borderWidth: 1, borderColor: "#343746", backgroundColor: "#292C36",
+    borderWidth: 1, borderColor: "#1E2D57", backgroundColor: "#111E3F",
   },
-  title: { color: "#E6E7EC", fontSize: 17, fontWeight: "700", textAlign: "center" },
-  text: { color: "#A1A5B3", fontSize: 13, lineHeight: 19, textAlign: "center" },
-  button: { marginTop: 6, backgroundColor: "#B5A5FF", borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
-  buttonText: { color: "#292C36", fontWeight: "700", fontSize: 13 },
+  title: { color: "#F2F5FF", fontSize: 17, fontWeight: "700", textAlign: "center" },
+  text: { color: "#A4AFCF", fontSize: 13, lineHeight: 19, textAlign: "center" },
+  button: { marginTop: 6, backgroundColor: "#5B9BFF", borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
+  buttonText: { color: "#111E3F", fontWeight: "700", fontSize: 13 },
 });

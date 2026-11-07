@@ -12,10 +12,10 @@ export function Checkbox({ checked, onToggle, label }: { checked: boolean; onTog
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   box: {
-    width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: "#4B4F63",
-    alignItems: "center", justifyContent: "center", backgroundColor: "#191B22",
+    width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: "#2E4377",
+    alignItems: "center", justifyContent: "center", backgroundColor: "#070F24",
   },
-  boxChecked: { backgroundColor: "#B5A5FF", borderColor: "#B5A5FF" },
-  check: { color: "#191B22", fontSize: 12, fontWeight: "700", lineHeight: 14 },
-  label: { color: "#A1A5B3", fontSize: 13 },
+  boxChecked: { backgroundColor: "#5B9BFF", borderColor: "#5B9BFF" },
+  check: { color: "#070F24", fontSize: 12, fontWeight: "700", lineHeight: 14 },
+  label: { color: "#A4AFCF", fontSize: 13 },
 });

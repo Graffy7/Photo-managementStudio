@@ -12,6 +12,8 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { extractErrorMessage } from "../../api/errorMessage";
 import { RowAction } from "../../ui/RowAction";
 import { DataList, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
@@ -44,9 +46,15 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
   });
   useRefetchOnFocus(refetch);
 
+  // Making a customer active or inactive asks first (Yes / No).
+  const [pendingToggle, setPendingToggle] = useState<Customer | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["customers"] });
-  const activate = useMutation({ mutationFn: customersApi.activate, onSuccess: invalidate });
-  const deactivate = useMutation({ mutationFn: customersApi.deactivate, onSuccess: invalidate });
+  const done = () => { setPendingToggle(null); setToggleError(null); invalidate(); };
+  const failed = (err: unknown) => setToggleError(extractErrorMessage(err, "Couldn't change this customer. Please try again."));
+  const activate = useMutation({ mutationFn: customersApi.activate, onSuccess: done, onError: failed });
+  const deactivate = useMutation({ mutationFn: customersApi.deactivate, onSuccess: done, onError: failed });
+  const deactivating = !!pendingToggle?.isActive;
 
   const actions = (c: Customer) => (
     <View style={styles.actionRow}>
@@ -58,7 +66,7 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
         icon={c.isActive ? "pause-circle-outline" : "play-circle-outline"}
         label={c.isActive ? "Deactivate" : "Activate"}
         kind={c.isActive ? "neutral" : "primary"}
-        onPress={() => (c.isActive ? deactivate.mutate(c.customerId) : activate.mutate(c.customerId))}
+        onPress={() => { setPendingToggle(c); setToggleError(null); }}
         accessibilityLabel={`${c.isActive ? "Deactivate" : "Activate"} ${c.fullName}`}
       />
     </View>
@@ -126,6 +134,21 @@ export function CustomerListScreen({ onCreate, onEdit, onView }: { onCreate: () 
             <View style={styles.cardActions}>{actions(c)}</View>
           </>
         )}
+      />
+      <ConfirmDialog
+        visible={!!pendingToggle}
+        tone={deactivating ? "danger" : "primary"}
+        icon={deactivating ? "pause-circle-outline" : "play-circle-outline"}
+        title={deactivating ? "Make this customer inactive?" : "Make this customer active?"}
+        message={deactivating
+          ? `${pendingToggle?.fullName ?? "This customer"} will be marked inactive. Their events, quotations and payments stay as they are.`
+          : `${pendingToggle?.fullName ?? "This customer"} will be marked active again.`}
+        confirmLabel="Yes"
+        cancelLabel="No"
+        busy={activate.isPending || deactivate.isPending}
+        error={toggleError}
+        onCancel={() => { setPendingToggle(null); setToggleError(null); }}
+        onConfirm={() => pendingToggle && (pendingToggle.isActive ? deactivate.mutate(pendingToggle.customerId) : activate.mutate(pendingToggle.customerId))}
       />
     </Screen>
   );

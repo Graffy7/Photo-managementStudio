@@ -15,7 +15,7 @@ function parts(iso: string) {
 function shade(count: number, max: number): string {
   if (count <= 0) return "rgba(161,165,179,0.1)";
   const t = max <= 1 ? 1 : (count - 1) / (max - 1);
-  return `rgba(181,165,255,${(0.32 + 0.68 * t).toFixed(2)})`;
+  return `rgba(91,155,255,${(0.32 + 0.68 * t).toFixed(2)})`;
 }
 
 // Busy days: a square per day, brighter the more events it has. Up to ~6 weeks it is a calendar
@@ -126,10 +126,10 @@ const styles = StyleSheet.create({
   weekday: { flex: 1, textAlign: "center", ...type.caption, color: colors.textMuted },
   dayBig: { flex: 1, aspectRatio: 1.6, maxHeight: 34, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   daySmall: { flex: 1, aspectRatio: 1, borderRadius: 2 },
-  dayActive: { borderWidth: 1.5, borderColor: "#B5A5FF" },
+  dayActive: { borderWidth: 1.5, borderColor: "#5B9BFF" },
   dayText: { ...type.caption, color: colors.textFaint },
   dayTextBusy: { color: colors.text, fontWeight: "700" },
-  dayTextBright: { color: "#191B22" },
+  dayTextBright: { color: "#070F24" },
   monthRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   monthLabel: { width: 48, ...type.caption, fontSize: 10, color: colors.textMuted },
   legend: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-end" },

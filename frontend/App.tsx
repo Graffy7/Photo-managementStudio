@@ -6,6 +6,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/auth/authStore";
 import { CameraCursor } from "./src/cameraCursor/CameraCursor";
 import { installWebScrollbars } from "./src/ui/webScrollbars";
+import { installWebHover } from "./src/ui/webHover";
 import { installWebFont } from "./src/ui/webFont";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
 import { ShutterProvider } from "./src/shutter";
@@ -27,6 +28,7 @@ function photoSelectionToken(): string | null {
 }
 
 installWebScrollbars();
+installWebHover();
 installWebFont();
 
 export default function App() {

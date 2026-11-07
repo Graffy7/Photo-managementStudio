@@ -45,7 +45,8 @@ public class EventRepository(AppDbContext context) : IEventRepository
             .Include(e => e.DeliveryItems)
             .FirstOrDefaultAsync(e => e.StudioId == studioId && e.EventId == eventId, ct);
 
-    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null, ListSort? sort = null)
+    public async Task<(List<Event> Items, int TotalCount)> SearchAsync(int studioId, string? search, string? eventStatus, int? customerId, DateTime? eventDate, int page, int pageSize, CancellationToken ct = default, DateTime? upcomingFrom = null, ListSort? sort = null,
+        DateTime? dateFrom = null, DateTime? dateTo = null, IReadOnlyCollection<int>? eventTypeIds = null, bool includeUntyped = false)
     {
         // Filters only; the page's events are loaded with their details below.
         var query = context.Events
@@ -73,6 +74,27 @@ public class EventRepository(AppDbContext context) : IEventRepository
         {
             var day = eventDate.Value.Date;
             query = query.Where(e => e.EventDate == day);
+        }
+
+        // A range of days, both ends included (e.g. one month, from the Calendar's tiles).
+        if (dateFrom is not null)
+        {
+            var from = dateFrom.Value.Date;
+            query = query.Where(e => e.EventDate >= from);
+        }
+
+        if (dateTo is not null)
+        {
+            var to = dateTo.Value.Date;
+            query = query.Where(e => e.EventDate <= to);
+        }
+
+        // Only these event types (and, with includeUntyped, events without a type) - the app groups
+        // types into Wedding / Reception / ... and sends the ids of one group.
+        if (eventTypeIds is not null)
+        {
+            var ids = eventTypeIds.ToList();
+            query = query.Where(e => (e.EventTypeId != null && ids.Contains(e.EventTypeId.Value)) || (includeUntyped && e.EventTypeId == null));
         }
 
         // The dashboard's "Upcoming Events": still to happen (Upcoming, Ongoing, or an older

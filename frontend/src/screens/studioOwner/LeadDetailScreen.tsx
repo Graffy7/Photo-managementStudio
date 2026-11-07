@@ -1,6 +1,7 @@
 import { Text, StyleSheet } from "react-native";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
-import type { Lead } from "../../types/lead";
+import { LEAD_OUTCOME_LABELS, type Lead } from "../../types/lead";
+import { OUTCOME_TONES } from "./LeadListScreen";
 import { StatusPill } from "../../components/StatusPill";
 import { DetailScreen, InfoCard, InfoGrid, InfoItem } from "../../ui/Detail";
 import { Button } from "../../ui/Button";
@@ -29,7 +30,7 @@ export function LeadDetailScreen({ lead, onBack, onEdit }: { lead: Lead; onBack:
       meta={[lead.mobileNumber, lead.email].filter(Boolean).join("  ·  ")}
       badges={
         <>
-          {lead.convertedCustomerId ? <StatusPill label="Converted to customer" tone="good" /> : lead.leadStatusName ? <StatusPill label={lead.leadStatusName} tone="info" /> : null}
+          <StatusPill label={LEAD_OUTCOME_LABELS[lead.outcome]} tone={OUTCOME_TONES[lead.outcome]} />
           {lead.leadSourceName && <StatusPill label={`Via ${lead.leadSourceName}`} tone="neutral" />}
         </>
       }

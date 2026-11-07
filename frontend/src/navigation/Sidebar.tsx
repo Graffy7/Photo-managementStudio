@@ -10,7 +10,7 @@ import { settingsApi } from "../api/settingsApi";
 import { API_BASE_URL } from "../constants/config";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { NAV_GROUPS } from "./navItems";
-import { colors, radius, space, type, transition, hoverMotion } from "../ui/theme";
+import { colors, radius, space, type, transition, hoverMotion, shadow, webShadow } from "../ui/theme";
 
 interface SidebarProps {
   navigationRef: NavigationContainerRefWithCurrent<any>;
@@ -39,7 +39,7 @@ export function StudioMark({ size = 36 }: { size?: number }) {
       {logoUrl ? (
         <Image source={{ uri: logoUrl }} style={styles.markLogo} resizeMode="cover" />
       ) : (
-        <Ionicons name="camera" size={size * 0.55} color={colors.onPrimary} />
+        <Ionicons name="camera" size={size * 0.55} color={colors.onPrimaryFill} />
       )}
     </View>
   );
@@ -128,11 +128,12 @@ export function NavList({ activeRoute, onNavigate, large }: { activeRoute: strin
                   accessibilityState={{ selected: active }}
                 >
                   {(state) => {
-                    const lit = active || !!(state as { hovered?: boolean }).hovered;
+                    const hovered = !active && !!(state as { hovered?: boolean }).hovered;
+                    const tint = active ? colors.onPrimaryFill : hovered ? colors.primary : colors.textMuted;
                     return (
                       <>
-                        <Ionicons name={item.icon} size={large ? 22 : 18} color={lit ? colors.primary : colors.textMuted} />
-                        <Text style={[styles.label, large && styles.labelLarge, lit && styles.labelActive]} numberOfLines={1}>{item.label}</Text>
+                        <Ionicons name={item.icon} size={large ? 22 : 18} color={tint} />
+                        <Text style={[styles.label, large && styles.labelLarge, { color: tint }]} numberOfLines={1}>{item.label}</Text>
                         {badge > 0 && (
                           <View style={styles.badge}><Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text></View>
                         )}
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
     paddingTop: space.lg, paddingHorizontal: space.md,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.xs, marginBottom: space.lg },
-  mark: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  mark: { backgroundColor: colors.primaryFill, alignItems: "center", justifyContent: "center", overflow: "hidden", ...webShadow(shadow.button) },
   markLogo: { width: "100%", height: "100%" },
   brandName: { ...type.body, fontWeight: "700", color: colors.text },
   brandSub: { ...type.caption, color: colors.textFaint },
@@ -215,17 +216,16 @@ const styles = StyleSheet.create({
   itemLarge: { minHeight: 48 },
   // Hover: a soft surface fades in and the item slides 2px right.
   itemHover: { backgroundColor: colors.hover, ...hoverMotion([{ translateX: 2 }]) },
-  // Active page: soft lavender fill with a thin lavender marker.
-  itemActive: { backgroundColor: colors.primarySoft, borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: space.md - 3 },
-  itemPressed: { backgroundColor: "#303441" },
+  // Active page: a solid blue pill with white text and a soft blue glow.
+  itemActive: { backgroundColor: colors.primaryFill, ...webShadow(shadow.button) },
+  itemPressed: { backgroundColor: colors.hover },
   label: { ...type.small, fontWeight: "600", color: colors.textMuted, flex: 1 },
   labelLarge: { fontSize: 16 },
-  labelActive: { color: colors.primary },
   badge: {
     backgroundColor: colors.danger, borderRadius: radius.pill, minWidth: 20, height: 20, paddingHorizontal: 5,
     alignItems: "center", justifyContent: "center",
   },
-  badgeText: { color: colors.onPrimary, fontSize: 11, fontWeight: "700" },
+  badgeText: { color: colors.onPrimaryFill, fontSize: 11, fontWeight: "700" },
   extras: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.xs },
   signOut: {
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.md,

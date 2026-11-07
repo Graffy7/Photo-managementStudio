@@ -3,61 +3,67 @@ import { Platform } from "react-native";
 // Studio OS design tokens - the one place colours, spacing, sizes and type live. Screens import
 // these instead of repeating hex values, so the whole app stays consistent and can be tuned here.
 //
-// Premium Dark Photography theme: soft charcoal surfaces (never pure black), a muted lavender
-// accent, calm status colours and quiet 1px outlines - comfortable for long working hours.
+// Midnight Blue theme: deep navy surfaces, an electric-blue accent, bright status colours and
+// quiet blue-tinted 1px outlines. The Dashboard adds gradients and glows on top of these.
 
 export const colors = {
   // Surfaces
-  page: "#191B22",
-  bar: "#20232B", // sidebar, top/bottom bars
-  card: "#22252E",
-  cardRaised: "#292C36", // secondary surface: inputs, raised areas
-  hover: "#303441",
-  border: "#343746",
-  borderStrong: "#4B4F63", // hover / emphasis border
-  divider: "#30333D",
+  page: "#070F24",
+  bar: "#0A1530", // sidebar, top/bottom bars
+  card: "#0C1733",
+  cardRaised: "#111E3F", // secondary surface: inputs, raised areas
+  hover: "#162650",
+  border: "#1E2D57",
+  borderStrong: "#2E4377", // hover / emphasis border
+  divider: "#1A2850",
 
   // Text
-  text: "#E6E7EC",
-  textMuted: "#A1A5B3",
-  textFaint: "#7D8292",
-  textDisabled: "#656A78",
+  text: "#F2F5FF",
+  textMuted: "#A4AFCF",
+  textFaint: "#6F7BA0",
+  textDisabled: "#56618A",
 
-  // Primary accent: lavender. Text on a lavender fill is charcoal for contrast.
-  primary: "#B5A5FF",
-  primaryHover: "#9C89F5",
-  onPrimary: "#191B22",
-  primarySoft: "rgba(181,165,255,0.12)",
+  // Primary accent: light electric blue - readable as text, icons and outlines on navy. Text on a
+  // primary fill is navy for contrast.
+  primary: "#5B9BFF",
+  primaryHover: "#3F86F5",
+  onPrimary: "#070F24",
+  primarySoft: "rgba(91,155,255,0.12)",
 
-  // Same lavender, for the small "you are here" markers.
-  accent: "#B5A5FF",
-  accentSoft: "rgba(181,165,255,0.12)",
+  // Strong blue for solid fills that carry white text: primary buttons, the active menu item.
+  primaryFill: "#2B6FEB",
+  primaryFillHover: "#2F7BFF",
+  onPrimaryFill: "#FFFFFF",
+
+  // Same blue, for the small "you are here" markers.
+  accent: "#5B9BFF",
+  accentSoft: "rgba(91,155,255,0.12)",
 
   // Links and secondary highlights
-  link: "#B5A5FF",
+  link: "#5B9BFF",
 
-  // Status - muted
-  success: "#78C9A4",
-  successSoft: "rgba(120,201,164,0.14)",
-  warning: "#E5B86B",
-  warningSoft: "rgba(229,184,107,0.14)",
-  danger: "#E58B91",
-  dangerSoft: "rgba(229,139,145,0.14)",
-  dangerBorder: "rgba(229,139,145,0.4)",
-  info: "#85B9E8",
-  infoSoft: "rgba(133,185,232,0.14)",
+  // Status
+  success: "#22C58B",
+  successSoft: "rgba(34,197,139,0.14)",
+  warning: "#FFA53D",
+  warningSoft: "rgba(255,165,61,0.14)",
+  danger: "#FF5C75",
+  dangerSoft: "rgba(255,92,117,0.14)",
+  dangerBorder: "rgba(255,92,117,0.4)",
+  info: "#5BB4FF",
+  infoSoft: "rgba(91,180,255,0.14)",
 
   // Photo selection sizes (customer page) - two clearly different colours
-  normal: "#85B9E8",
-  big: "#E5B86B",
+  normal: "#5BB4FF",
+  big: "#FFA53D",
 } as const;
 
 // Soft shadows (web). Native relies on the 1px borders.
 export const shadow = {
-  card: "0 1px 2px rgba(8,9,13,0.35)",
-  cardHover: "0 6px 18px rgba(8,9,13,0.45)",
-  button: "0 6px 16px rgba(156,137,245,0.25)",
-  menu: "0 14px 36px rgba(8,9,13,0.6)",
+  card: "0 1px 2px rgba(2,6,20,0.35)",
+  cardHover: "0 6px 18px rgba(2,6,20,0.45)",
+  button: "0 6px 18px rgba(47,123,255,0.4)",
+  menu: "0 14px 36px rgba(2,6,20,0.6)",
 } as const;
 
 // One timing for every hover/focus change (180-250ms, no bounce).
@@ -76,8 +82,9 @@ export const transition = (Platform.OS === "web" && !reduceMotion
   ? { transitionProperty: "background-color, border-color, color, box-shadow, transform, opacity", ...motion }
   : {}) as object;
 
-// Hover movement (lift / slide / zoom) - none at all when reduced motion is on.
-export const hoverMotion = (transform: object[]) => (reduceMotion ? {} : { transform }) as object;
+// Hover movement (lift / slide / zoom). These are a couple of pixels, so they stay on with reduced
+// motion too - they just switch instantly then, because `transition` above is off.
+export const hoverMotion = (transform: object[]) => ({ transform }) as object;
 
 // Web-only box shadow (native has none; the 1px borders carry the separation there).
 export const webShadow = (value: string) => (Platform.OS === "web" ? ({ boxShadow: value } as object) : {});

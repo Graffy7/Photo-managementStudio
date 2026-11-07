@@ -15,7 +15,8 @@ public class LeadRepository(AppDbContext context) : ILeadRepository
             .FirstOrDefaultAsync(l => l.StudioId == studioId && l.LeadId == leadId, ct);
 
     public async Task<(List<Lead> Items, int TotalCount)> SearchAsync(
-        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
+        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null,
+        LeadOutcome? outcome = null, DateTime? today = null)
     {
         var query = context.Leads
             .AsNoTracking()
@@ -33,6 +34,17 @@ public class LeadRepository(AppDbContext context) : ILeadRepository
         if (leadStatusId is not null)
         {
             query = query.Where(l => l.LeadStatusId == leadStatusId);
+        }
+
+        if (outcome is not null)
+        {
+            var day = (today ?? DateTime.Today).Date;
+            query = outcome switch
+            {
+                LeadOutcome.Converted => query.Where(l => l.ConvertedCustomerId != null),
+                LeadOutcome.EventOver => query.Where(l => l.ConvertedCustomerId == null && l.ExpectedEventDate != null && l.ExpectedEventDate < day),
+                _ => query.Where(l => l.ConvertedCustomerId == null && (l.ExpectedEventDate == null || l.ExpectedEventDate >= day)),
+            };
         }
 
         if (createdFrom is not null)

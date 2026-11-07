@@ -15,7 +15,8 @@ import { EventExpenses } from "../../components/EventExpenses";
 import { useModules } from "../../hooks/useModules";
 import { eventsApi } from "../../api/eventsApi";
 import { quotationsApi } from "../../api/quotationsApi";
-import { downloadAndSharePdf, quotationPdfName } from "../../utils/downloadPdf";
+import { quotationPdfName } from "../../utils/downloadPdf";
+import { PdfPreviewModal } from "../../ui/PdfPreviewModal";
 import { extractErrorMessage } from "../../api/errorMessage";
 
 function formatDate(value: string): string {
@@ -39,11 +40,13 @@ function quotationTone(status: string): Tone {
 }
 
 export function EventDetailScreen({
-  event, onBack, onEdit,
+  event, onBack, onEdit, backLabel = "Events",
 }: {
   event: StudioEvent;
   onBack: () => void;
   onEdit: () => void;
+  // Where Back goes, e.g. "Calendar" when opened from the Calendar.
+  backLabel?: string;
 }) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,14 +62,18 @@ export function EventDetailScreen({
 
   const current = history?.event ?? event;
 
-  const downloadPdf = async (quotation: EventHistoryQuotation) => {
+  // PDF opens a preview pop-up (Download is inside it); the file is fetched once per click.
+  const [preview, setPreview] = useState<{ quotation: EventHistoryQuotation; bytes: ArrayBuffer | null; error: string | null } | null>(null);
+  const openPdf = async (quotation: EventHistoryQuotation) => {
     setDownloadingId(quotation.quotationId);
     setError(null);
+    setPreview({ quotation, bytes: null, error: null });
     try {
       const bytes = await quotationsApi.downloadPdf(quotation.quotationId);
-      await downloadAndSharePdf(bytes, quotationPdfName(current.customerName, quotation.quotationNumber));
+      setPreview((p) => (p?.quotation.quotationId === quotation.quotationId ? { ...p, bytes } : p));
     } catch (err) {
-      setError(extractErrorMessage(err, "Couldn't download the PDF."));
+      const message = extractErrorMessage(err, "Couldn't load the PDF.");
+      setPreview((p) => (p?.quotation.quotationId === quotation.quotationId ? { ...p, error: message } : p));
     } finally {
       setDownloadingId(null);
     }
@@ -96,8 +103,9 @@ export function EventDetailScreen({
   const historyLoading = <View style={{ gap: space.sm }}><Skeleton height={56} /><Skeleton height={56} /></View>;
 
   return (
+    <>
     <DetailScreen
-      backLabel="Events"
+      backLabel={backLabel}
       onBack={onBack}
       title={current.customerName}
       meta={[current.eventTypeName ?? "Event", when, current.venue].filter(Boolean).join("  ·  ")}
@@ -185,7 +193,7 @@ export function EventDetailScreen({
                     quotation={q}
                     approved={history.approvedQuotation?.quotationId === q.quotationId}
                     downloading={downloadingId === q.quotationId}
-                    onDownload={downloadPdf}
+                    onDownload={openPdf}
                   />
                 ))}
                 <Text style={styles.hint}>Every version stays here permanently, including rejected or replaced ones.</Text>
@@ -224,6 +232,16 @@ export function EventDetailScreen({
         </>
       }
     />
+    <PdfPreviewModal
+      visible={!!preview}
+      title={preview ? `${preview.quotation.version} · ${preview.quotation.quotationNumber}` : ""}
+      filename={preview ? quotationPdfName(current.customerName, preview.quotation.quotationNumber) : "quotation.pdf"}
+      bytes={preview?.bytes ?? null}
+      loading={!!preview && !preview.bytes && !preview.error}
+      error={preview?.error}
+      onClose={() => setPreview(null)}
+    />
+    </>
   );
 }
 

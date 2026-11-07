@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { extractErrorMessage } from "../api/errorMessage";
 import type { CreateLookupRequest, Lookup } from "../types/lookup";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 interface LookupApi {
   getAll: () => Promise<Lookup[]>;
@@ -112,19 +113,16 @@ export function LookupTypeField({
       </View>
 
       {deleteMode && !pendingDelete && <Text style={styles.deleteHint}>Tap a type to delete it.</Text>}
-      {deleteMode && pendingDelete && (
-        <View style={styles.confirmRow}>
-          <Text style={styles.confirmText}>Delete "{pendingDelete.name}"?</Text>
-          <View style={styles.confirmActions}>
-            <Pressable onPress={() => { setPendingDelete(null); setError(null); }} disabled={remove.isPending}>
-              <Text style={styles.cancelInline}>Cancel</Text>
-            </Pressable>
-            <Pressable style={styles.confirmButton} onPress={() => remove.mutate(pendingDelete.id)} disabled={remove.isPending}>
-              {remove.isPending ? <ActivityIndicator color="#E58B91" size="small" /> : <Text style={styles.confirmButtonText}>Confirm Delete</Text>}
-            </Pressable>
-          </View>
-        </View>
-      )}
+      <ConfirmDialog
+        visible={deleteMode && !!pendingDelete}
+        title={`Delete “${pendingDelete?.name ?? ""}”?`}
+        message="It will no longer be offered as a choice. Records already using it keep it."
+        confirmLabel="Delete"
+        busy={remove.isPending}
+        error={pendingDelete ? error : null}
+        onCancel={() => { setPendingDelete(null); setError(null); }}
+        onConfirm={() => pendingDelete && remove.mutate(pendingDelete.id)}
+      />
 
       {adding && (
         <View style={styles.addRow}>
@@ -133,12 +131,12 @@ export function LookupTypeField({
             value={newName}
             onChangeText={setNewName}
             placeholder={`${noun[0].toUpperCase()}${noun.slice(1)} name`}
-            placeholderTextColor="#A1A5B3"
+            placeholderTextColor="#A4AFCF"
             autoFocus
             onSubmitEditing={confirmNew}
           />
           <Pressable style={styles.okButton} onPress={confirmNew} disabled={create.isPending}>
-            {create.isPending ? <ActivityIndicator color="#191B22" /> : <Text style={styles.okText}>OK</Text>}
+            {create.isPending ? <ActivityIndicator color="#070F24" /> : <Text style={styles.okText}>OK</Text>}
           </Pressable>
         </View>
       )}
@@ -150,34 +148,34 @@ export function LookupTypeField({
 
 const styles = StyleSheet.create({
   labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, marginBottom: 6 },
-  label: { fontSize: 13, color: "#A1A5B3" },
-  deleteLink: { color: "#E58B91", fontSize: 12, fontWeight: "600" },
-  doneLink: { color: "#B5A5FF", fontSize: 12, fontWeight: "700" },
+  label: { fontSize: 13, color: "#A4AFCF" },
+  deleteLink: { color: "#FF5C75", fontSize: 12, fontWeight: "600" },
+  doneLink: { color: "#5B9BFF", fontSize: 12, fontWeight: "700" },
 
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#292C36" },
-  chipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
-  chipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#B5A5FF" },
-  addChipText: { color: "#B5A5FF", fontSize: 12, fontWeight: "700" },
-  chipDelete: { borderColor: "#5a3a3d", backgroundColor: "rgba(229,139,145,0.06)" },
-  chipDeletePending: { borderColor: "#E58B91", backgroundColor: "rgba(229,139,145,0.18)" },
-  chipDeleteText: { color: "#E58B91", fontSize: 12, fontWeight: "600" },
+  chip: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#111E3F" },
+  chipSelected: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.14)" },
+  chipText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  chipTextSelected: { color: "#5B9BFF" },
+  addChipText: { color: "#5B9BFF", fontSize: 12, fontWeight: "700" },
+  chipDelete: { borderColor: "rgba(255,92,117,0.4)", backgroundColor: "rgba(255,92,117,0.06)" },
+  chipDeletePending: { borderColor: "#FF5C75", backgroundColor: "rgba(255,92,117,0.18)" },
+  chipDeleteText: { color: "#FF5C75", fontSize: 12, fontWeight: "600" },
 
-  deleteHint: { color: "#A1A5B3", fontSize: 13, marginTop: 8 },
+  deleteHint: { color: "#A4AFCF", fontSize: 13, marginTop: 8 },
   confirmRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 10 },
-  confirmText: { color: "#E58B91", fontSize: 13, fontWeight: "600", flexShrink: 1 },
+  confirmText: { color: "#FF5C75", fontSize: 13, fontWeight: "600", flexShrink: 1 },
   confirmActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  cancelInline: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  confirmButton: { borderWidth: 1, borderColor: "#E58B91", backgroundColor: "rgba(229,139,145,0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
-  confirmButtonText: { color: "#E58B91", fontSize: 12, fontWeight: "700" },
+  cancelInline: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  confirmButton: { borderWidth: 1, borderColor: "#FF5C75", backgroundColor: "rgba(255,92,117,0.14)", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
+  confirmButtonText: { color: "#FF5C75", fontSize: 12, fontWeight: "700" },
 
   addRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   input: {
-    flex: 1, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#E6E7EC", backgroundColor: "#292C36",
+    flex: 1, borderWidth: 1, borderColor: "#2E4377", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#F2F5FF", backgroundColor: "#111E3F",
   },
-  okButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
-  okText: { color: "#191B22", fontWeight: "700", fontSize: 14 },
-  error: { color: "#E58B91", marginTop: 8, fontSize: 13 },
+  okButton: { backgroundColor: "#5B9BFF", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
+  okText: { color: "#070F24", fontWeight: "700", fontSize: 14 },
+  error: { color: "#FF5C75", marginTop: 8, fontSize: 13 },
 });

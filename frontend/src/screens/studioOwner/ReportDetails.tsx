@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import type { AnalyticsBucket, AnalyticsReport } from "../../types/analytics";
 import { useBreakpoint } from "../../ui/useBreakpoint";
 import { colors, radius, space, type } from "../../ui/theme";
+import { hoverGlow } from "../../ui/webHover";
 
 const rupees = (v: number) => `${v < 0 ? "−" : ""}₹${Math.abs(Math.round(v)).toLocaleString("en-IN")}`;
 const count = (n: number) => n.toLocaleString("en-IN");
@@ -41,7 +42,7 @@ export function ReportDetails({ data }: { data: AnalyticsReport }) {
     <View style={{ gap: space.lg }}>
       <Text style={styles.note}>Bookings count by booking date, events by event date, money by payment date.</Text>
 
-      <View style={styles.card}>
+      <View {...hoverGlow} style={styles.card}>
         <Text style={styles.title}>By {data.grouping === "Day" ? "day" : "month"}</Text>
         <Table
           minWidth={760}
@@ -54,7 +55,7 @@ export function ReportDetails({ data }: { data: AnalyticsReport }) {
         />
       </View>
 
-      <View style={styles.card}>
+      <View {...hoverGlow} style={styles.card}>
         <Text style={styles.title}>Event types</Text>
         <Table
           minWidth={isPhone ? 560 : 0}
@@ -63,7 +64,7 @@ export function ReportDetails({ data }: { data: AnalyticsReport }) {
         />
       </View>
 
-      <View style={styles.card}>
+      <View {...hoverGlow} style={styles.card}>
         <Text style={styles.title}>Events</Text>
         {p.events.length === 0 ? (
           <Text style={styles.note}>No events dated in this period.</Text>
@@ -78,7 +79,7 @@ export function ReportDetails({ data }: { data: AnalyticsReport }) {
       </View>
 
       {p.expensesByCategory.length > 0 && (
-        <View style={styles.card}>
+        <View {...hoverGlow} style={styles.card}>
           <Text style={styles.title}>Expenses by category</Text>
           <Table
             minWidth={0}

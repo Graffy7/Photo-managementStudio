@@ -16,6 +16,7 @@ export interface DayBoardEvent {
   customerId: number;
   customerName: string;
   customerMobileNumber: string;
+  eventTypeId: number | null;
   eventTypeName: string | null;
   eventStatus: string;
   budget: number | null;

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { RowAction } from "../../ui/RowAction";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { SubscriptionLock } from "../../components/SubscriptionLock";
 import { leadsApi } from "../../api/leadsApi";
-import { lookupApis } from "../../api/lookupsApi";
-import type { Lead } from "../../types/lead";
+
+import { LEAD_OUTCOMES, LEAD_OUTCOME_LABELS, type Lead, type LeadOutcome } from "../../types/lead";
 import { StatusPill, type Tone } from "../../components/StatusPill";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
@@ -17,6 +18,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { DataList, CellSub, CellTitle, type Column, type SortState } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
 
@@ -35,16 +37,12 @@ function planLine(l: Lead): string | null {
   return parts.length ? parts.join(" · ") : null;
 }
 
-// Enquiry statuses are each studio's own list, so the colour follows the usual meaning of the name.
-function statusTone(name: string): Tone {
-  const n = name.toLowerCase();
-  if (n.includes("won") || n.includes("book") || n.includes("confirm")) return "good";
-  if (n.includes("lost") || n.includes("cancel") || n.includes("reject")) return "bad";
-  if (n.includes("quot") || n.includes("follow")) return "warn";
-  if (n.includes("contact") || n.includes("call")) return "blue";
-  if (n.includes("new")) return "info";
-  return "neutral";
-}
+// Status is the enquiry's outcome, worked out by the server (see LeadOutcome).
+export const OUTCOME_TONES: Record<LeadOutcome, Tone> = {
+  Converted: "good",
+  NotConverted: "warn",
+  EventOver: "bad",
+};
 
 // react-native-web's Alert.alert() is a no-op stub, so confirmations are rendered inline
 // in the row itself rather than via Alert (which never shows on the web target).
@@ -53,7 +51,7 @@ type PendingAction = { leadId: number; kind: "delete" | "convert" } | null;
 export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => void; onEdit: (lead: Lead) => void; onView: (lead: Lead) => void }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [leadStatusId, setLeadStatusId] = useState<number | null>(null);
+  const [outcome, setOutcome] = useState<LeadOutcome | null>(null);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [period, setPeriod] = useState<Period>("all");
@@ -62,14 +60,13 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   const [pending, setPending] = useState<PendingAction>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { data: leadStatuses } = useQuery({ queryKey: ["lookups", "leadStatuses"], queryFn: lookupApis.leadStatuses.getAll });
 
   const { data, isPending, isError, isPlaceholderData, refetch } = useQuery({
-    queryKey: ["leads", search, leadStatusId, createdFrom, createdTo, page, sort?.by, sort?.desc],
+    queryKey: ["leads", search, outcome, createdFrom, createdTo, page, sort?.by, sort?.desc],
     queryFn: () =>
       leadsApi.search({
         search: search || undefined,
-        leadStatusId: leadStatusId ?? undefined,
+        outcome: outcome ?? undefined,
         createdFrom: createdFrom || undefined,
         createdTo: createdTo || undefined,
         page,
@@ -86,27 +83,26 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   const convert = useMutation({ mutationFn: leadsApi.convert, onSuccess: done, onError: (err) => setActionError(extractErrorMessage(err)) });
   const remove = useMutation({ mutationFn: leadsApi.remove, onSuccess: done, onError: (err) => setActionError(extractErrorMessage(err)) });
 
+  const pendingLead = pending ? data?.items.find((l) => l.leadId === pending.leadId) : undefined;
+  const pendingIsDelete = pending?.kind === "delete";
+  const confirmDialog = (
+    <ConfirmDialog
+      visible={!!pending}
+      tone={pendingIsDelete ? "danger" : "primary"}
+      icon={pendingIsDelete ? "trash-outline" : "person-add-outline"}
+      title={pendingIsDelete ? "Delete enquiry?" : "Make this enquiry a customer?"}
+      message={pendingIsDelete
+        ? `The enquiry from ${pendingLead?.fullName ?? "this person"} will be removed. This can't be undone.`
+        : `${pendingLead?.fullName ?? "This person"} will be added to your customers.`}
+      confirmLabel={pendingIsDelete ? "Delete" : "Convert"}
+      busy={convert.isPending || remove.isPending}
+      error={actionError}
+      onCancel={() => { setPending(null); setActionError(null); }}
+      onConfirm={() => pending && (pendingIsDelete ? remove.mutate(pending.leadId) : convert.mutate(pending.leadId))}
+    />
+  );
+
   const actions = (l: Lead) => {
-    const confirming = pending?.leadId === l.leadId;
-    const busy = (convert.isPending && convert.variables === l.leadId) || (remove.isPending && remove.variables === l.leadId);
-    if (confirming) {
-      const isDelete = pending!.kind === "delete";
-      return (
-        <View style={styles.confirm}>
-          <Text style={[styles.confirmText, !isDelete && { color: colors.text }]}>{isDelete ? "Delete this enquiry?" : "Make this enquiry a customer?"}</Text>
-          {!!actionError && <Text style={styles.error}>{actionError}</Text>}
-          <View style={styles.actionRow}>
-            <Button label="Cancel" variant="link" onPress={() => { setPending(null); setActionError(null); }} disabled={busy} />
-            <Button
-              label={isDelete ? "Delete" : "Convert"}
-              variant={isDelete ? "danger" : "primary"}
-              loading={busy}
-              onPress={() => (isDelete ? remove.mutate(l.leadId) : convert.mutate(l.leadId))}
-            />
-          </View>
-        </View>
-      );
-    }
     return (
       <View style={styles.actionRow}>
         <SubscriptionLock compact>
@@ -124,7 +120,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
 
   const statusPills = (l: Lead) => (
     <View style={styles.pills}>
-      {l.convertedCustomerId ? <StatusPill label="Converted" tone="good" /> : l.leadStatusName ? <StatusPill label={l.leadStatusName} tone={statusTone(l.leadStatusName)} /> : null}
+      <StatusPill label={LEAD_OUTCOME_LABELS[l.outcome]} tone={OUTCOME_TONES[l.outcome]} />
       {!!l.leadSourceName && <StatusPill label={l.leadSourceName} tone="neutral" />}
     </View>
   );
@@ -138,7 +134,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
   ];
 
   const setFilter = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1); };
-  const filtered = !!search || leadStatusId !== null || !!createdFrom || !!createdTo;
+  const filtered = !!search || outcome !== null || !!createdFrom || !!createdTo;
 
   const choosePeriod = (p: Period) => {
     setPeriod(p);
@@ -150,7 +146,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
     }
     setPage(1);
   };
-  const clearAll = () => { setSearch(""); setLeadStatusId(null); setCreatedFrom(""); setCreatedTo(""); setPeriod("all"); setPage(1); };
+  const clearAll = () => { setSearch(""); setOutcome(null); setCreatedFrom(""); setCreatedTo(""); setPeriod("all"); setPage(1); };
 
   return (
     <Screen>
@@ -161,20 +157,24 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
       />
       <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={setFilter(setSearch)} placeholder="Search by name or mobile number" />
       <View style={styles.filters}>
-        {leadStatuses && leadStatuses.length > 0 && (
-          <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Status</Text>
-            <View style={styles.filterChips}>
-              <FilterChips
-                options={[{ value: null, label: "All" }, ...leadStatuses.map((s) => ({ value: s.id, label: s.name }))] as { value: number | null; label: string }[]}
-                value={leadStatusId}
-                onChange={setFilter(setLeadStatusId)}
-              />
-            </View>
-          </View>
-        )}
         <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Received</Text>
+          <View style={styles.filterLabelRow}>
+            <Ionicons name="funnel-outline" size={14} color={colors.primary} />
+            <Text style={styles.filterLabel}>Status</Text>
+          </View>
+          <View style={styles.filterChips}>
+            <FilterChips
+              options={[{ value: null, label: "All" }, ...LEAD_OUTCOMES.map((o) => ({ value: o, label: LEAD_OUTCOME_LABELS[o] }))] as { value: LeadOutcome | null; label: string }[]}
+              value={outcome}
+              onChange={setFilter(setOutcome)}
+            />
+          </View>
+        </View>
+        <View style={styles.filterRow}>
+          <View style={styles.filterLabelRow}>
+            <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+            <Text style={styles.filterLabel}>Received</Text>
+          </View>
           <View style={styles.filterChips}>
             <FilterChips<Period> options={PERIODS} value={period} onChange={choosePeriod} />
           </View>
@@ -226,6 +226,7 @@ export function LeadListScreen({ onCreate, onEdit, onView }: { onCreate: () => v
           </>
         )}
       />
+      {confirmDialog}
     </Screen>
   );
 }
@@ -234,12 +235,13 @@ const styles = StyleSheet.create({
   dates: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
-  filters: { gap: space.sm, marginBottom: space.lg },
-  filterRow: { flexDirection: "row", alignItems: "center", gap: space.md },
-  filterLabel: { width: 64, ...type.caption, fontWeight: "700", color: colors.textFaint, textTransform: "uppercase", letterSpacing: 0.6 },
-  filterChips: { flex: 1, minWidth: 0 },
-  confirm: { alignItems: "flex-end", gap: 2 },
-  confirmText: { ...type.small, fontWeight: "600", color: colors.danger },
+  // Status and Received side by side on one line; they wrap under each other on narrow screens.
+  filters: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.lg, rowGap: space.sm, marginBottom: space.lg },
+  filterRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexShrink: 1, minWidth: 0, maxWidth: "100%" },
+  filterLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  // Bright blue and bold so the filter names stand apart from the table text below.
+  filterLabel: { ...type.small, fontWeight: "800", color: colors.primary },
+  filterChips: { flexShrink: 1, minWidth: 0 },
   error: { ...type.caption, color: colors.danger },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardDate: { ...type.small, fontWeight: "600", color: colors.link },

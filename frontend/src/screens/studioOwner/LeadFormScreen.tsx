@@ -10,28 +10,12 @@ import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { emailError, mobileError, nameError } from "../../utils/customerValidation";
 import { FormScreen, FormSection, FieldRow, Field, TextField } from "../../ui/Form";
 import { colors, radius, space, type } from "../../ui/theme";
+import { SelectField } from "../../ui/SelectField";
 
 interface Props {
   lead?: Lead;
   onDone: () => void;
   onCancel: () => void;
-}
-
-// One choice from a studio's own list (event types, sources, statuses), or none.
-function LookupChips({ options, selectedId, onSelect }: { options: Lookup[]; selectedId: number | null; onSelect: (id: number | null) => void }) {
-  const all: { id: number | null; name: string }[] = [{ id: null, name: "None" }, ...options];
-  return (
-    <View style={styles.chips} accessibilityRole="radiogroup">
-      {all.map((o) => {
-        const on = selectedId === o.id;
-        return (
-          <Pressable key={String(o.id)} style={[styles.chip, on && styles.chipOn]} onPress={() => onSelect(o.id)} accessibilityRole="radio" accessibilityState={{ selected: on }}>
-            <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.name}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
 }
 
 export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
@@ -43,7 +27,8 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
   const [email, setEmail] = useState(lead?.email ?? "");
   const [eventTypeId, setEventTypeId] = useState<number | null>(lead?.eventTypeId ?? null);
   const [leadSourceId, setLeadSourceId] = useState<number | null>(lead?.leadSourceId ?? null);
-  const [leadStatusId, setLeadStatusId] = useState<number | null>(lead?.leadStatusId ?? null);
+  // Status is worked out automatically now (see LeadOutcome); an older manual status is kept as it was.
+  const leadStatusId = lead?.leadStatusId ?? null;
   const [expectedEventDate, setExpectedEventDate] = useState(lead?.expectedEventDate?.slice(0, 10) ?? "");
   const [expectedBudget, setExpectedBudget] = useState(lead?.expectedBudget ? String(lead.expectedBudget) : "");
   const [location, setLocation] = useState(lead?.location ?? "");
@@ -54,7 +39,6 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
 
   const { data: eventTypes } = useQuery({ queryKey: ["lookups", "eventTypes"], queryFn: lookupApis.eventTypes.getAll });
   const { data: leadSources } = useQuery({ queryKey: ["lookups", "leadSources"], queryFn: lookupApis.leadSources.getAll });
-  const { data: leadStatuses } = useQuery({ queryKey: ["lookups", "leadStatuses"], queryFn: lookupApis.leadStatuses.getAll });
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -124,38 +108,45 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
       </FormSection>
 
       <FormSection title="What they're looking for">
-        {(eventTypes ?? []).length > 0 && (
-          <Field label="Event type">
-            <LookupChips options={eventTypes ?? []} selectedId={eventTypeId} onSelect={setEventTypeId} />
-          </Field>
-        )}
         <FieldRow>
+          <Field label="Event type" flex>
+            <SelectField<number | null>
+              options={[{ value: null, label: "None" }, ...(eventTypes ?? []).map((t) => ({ value: t.id, label: t.name }))]}
+              value={eventTypeId}
+              onChange={setEventTypeId}
+              placeholder="Choose event type"
+              accessibilityLabel="Event type"
+            />
+          </Field>
           <Field label="Expected event date" flex>
             <MiniDatePicker variant="form" clearable value={expectedEventDate} onChange={setExpectedEventDate} placeholder="Select date" />
           </Field>
+        </FieldRow>
+        <FieldRow>
           <Field label="Expected budget" flex>
             <TextField value={expectedBudget} onChangeText={(v) => setExpectedBudget(v.replace(/[^0-9.]/g, ""))} placeholder="75000" keyboardType="numeric" />
           </Field>
+          <Field label="Location" flex>
+            <TextField value={location} onChangeText={setLocation} placeholder="Coimbatore" />
+          </Field>
         </FieldRow>
-        <Field label="Location">
-          <TextField value={location} onChangeText={setLocation} placeholder="Coimbatore" />
-        </Field>
       </FormSection>
 
       <FormSection title="Follow-up">
-        {(leadStatuses ?? []).length > 0 && (
-          <Field label="Status">
-            <LookupChips options={leadStatuses ?? []} selectedId={leadStatusId} onSelect={setLeadStatusId} />
+        <FieldRow>
+          <Field label="How they found you" flex>
+            <SelectField<number | null>
+              options={[{ value: null, label: "None" }, ...(leadSources ?? []).map((s) => ({ value: s.id, label: s.name }))]}
+              value={leadSourceId}
+              onChange={setLeadSourceId}
+              placeholder="Choose a source"
+              accessibilityLabel="How they found you"
+            />
           </Field>
-        )}
-        {(leadSources ?? []).length > 0 && (
-          <Field label="How they found you">
-            <LookupChips options={leadSources ?? []} selectedId={leadSourceId} onSelect={setLeadSourceId} />
+          <Field label="Follow-up date" hint="When to call them back." flex>
+            <MiniDatePicker variant="form" clearable value={followUpDate} onChange={setFollowUpDate} placeholder="Select date" />
           </Field>
-        )}
-        <Field label="Follow-up date" hint="When to call them back.">
-          <MiniDatePicker variant="form" clearable value={followUpDate} onChange={setFollowUpDate} placeholder="Select date" />
-        </Field>
+        </FieldRow>
         <Field label="Notes">
           <TextField value={notes} onChangeText={setNotes} placeholder="Wants a quote for wedding + reception" multiline numberOfLines={3} />
         </Field>

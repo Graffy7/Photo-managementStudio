@@ -20,12 +20,13 @@ public class LeadService(
     private const string Module = "Enquiry";
 
     public async Task<PagedResult<LeadDto>> SearchAsync(
-        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null)
+        int studioId, string? search, int? leadStatusId, DateTime? createdFrom, DateTime? createdTo, int page, int pageSize, CancellationToken ct = default, ListSort? sort = null,
+        LeadOutcome? outcome = null)
     {
         page = Math.Clamp(page, 1, 100_000); // upper bound keeps (page - 1) * pageSize from overflowing
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var (items, totalCount) = await leadRepository.SearchAsync(studioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct, sort);
+        var (items, totalCount) = await leadRepository.SearchAsync(studioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct, sort, outcome, BusinessClock.Today);
         return new PagedResult<LeadDto>
         {
             Items = items.Select(MapToDto).ToList(),
@@ -210,9 +211,17 @@ public class LeadService(
         Notes = lead.Notes,
         FollowUpDate = lead.FollowUpDate,
         ConvertedCustomerId = lead.ConvertedCustomerId,
+        Outcome = OutcomeOf(lead, BusinessClock.Today),
         CreatedAt = lead.CreatedAt,
         UpdatedAt = lead.UpdatedAt
     };
+
+    // Same rule as the repository's outcome filter: converted wins; otherwise the event is over once
+    // its expected date is before today.
+    private static string OutcomeOf(Lead lead, DateTime today) =>
+        (lead.ConvertedCustomerId is not null ? LeadOutcome.Converted
+        : lead.ExpectedEventDate is { } date && date.Date < today ? LeadOutcome.EventOver
+        : LeadOutcome.NotConverted).ToString();
 
     private sealed record ConversionOutcome(LeadConversionResult Result, Customer? Matched, Lead? Lead);
 }

@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Text, Pressable, StyleSheet, ActivityIndicator, Platform, Linking } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Platform, Linking } from "react-native";
 import { quotationsApi } from "../api/quotationsApi";
 import { extractErrorMessage } from "../api/errorMessage";
 import { useAuthStore } from "../auth/authStore";
 import { downloadAndSharePdf, quotationPdfName } from "../utils/downloadPdf";
 import type { Quotation } from "../types/quotation";
+import { RowAction } from "../ui/RowAction";
 
 // "98765 43210" -> "919876543210". A 10-digit number is taken as Indian; numbers that already
 // carry a country code are kept. Null when there is no usable number (WhatsApp then asks whom to send to).
@@ -82,22 +82,7 @@ export function QuotationWhatsAppButton({ quotation, onError, onNotice }: {
   };
 
   return (
-    <Pressable style={styles.button} onPress={share} disabled={busy}
-      accessibilityRole="button" accessibilityLabel={`Share ${quotation.quotationNumber} on WhatsApp`}>
-      {busy ? <ActivityIndicator color="#25D366" size="small" /> : (
-        <>
-          <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
-          <Text style={styles.buttonText}>WhatsApp</Text>
-        </>
-      )}
-    </Pressable>
+    <RowAction iconOnly icon="logo-whatsapp" label="WhatsApp" color="#25D366" busy={busy} onPress={share}
+      accessibilityLabel={`Share ${quotation.quotationNumber} on WhatsApp`} />
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#4B4F63",
-    borderRadius: 8, paddingHorizontal: 12, minHeight: 40, minWidth: 64,
-  },
-  buttonText: { color: "#B5A5FF", fontSize: 14, fontWeight: "600" },
-});

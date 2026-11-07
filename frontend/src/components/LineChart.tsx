@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { View, Text, StyleSheet, AccessibilityInfo, type LayoutChangeEvent } from "react-native";
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from "react-native-svg";
 
@@ -29,7 +29,37 @@ interface LineChartProps {
   accentColor?: string;
   // Leave out the first/last labels under the line (the caller draws its own axis).
   hideLabels?: boolean;
+  // Value labels down the left edge (0 to the peak), one per grid line.
+  showYAxis?: boolean;
+  // A small dot on every data point, not only the peak and the latest one.
+  showDots?: boolean;
+  // Surface colours, for charts drawn on a background other than the default card.
+  palette?: Partial<ChartPalette>;
 }
+
+export interface ChartPalette {
+  grid: string;
+  surface: string; // fill behind point markers (the card the chart sits on)
+  text: string;
+  textMuted: string;
+  tooltipBg: string;
+  tooltipBorder: string;
+  badgeBg: string;
+  badgeBorder: string;
+}
+
+const DEFAULT_PALETTE: ChartPalette = {
+  grid: "#1E2D57",
+  surface: "#111E3F",
+  text: "#F2F5FF",
+  textMuted: "#A4AFCF",
+  tooltipBg: "rgba(17,30,63,0.96)",
+  tooltipBorder: "rgba(76,147,255,0.4)",
+  badgeBg: "rgba(30,45,87,0.7)",
+  badgeBorder: "rgba(76,147,255,0.35)",
+};
+
+const Y_AXIS_WIDTH = 40;
 
 const DRAW_MS = 1400;
 
@@ -83,10 +113,17 @@ export function LineChart({
   points,
   height = 220,
   formatValue = (v) => String(v),
-  color = "#8C7FA6",
-  accentColor = "#B5A5FF",
+  color = "#2F7BFF",
+  accentColor = "#5B9BFF",
   hideLabels = false,
+  showYAxis = false,
+  showDots = false,
+  palette,
 }: LineChartProps) {
+  const pal = { ...DEFAULT_PALETTE, ...palette };
+  // Gradient ids are page-wide on the web; a chart on a screen kept alive in the background must not
+  // own the id the visible one points at (a gradient inside a hidden screen paints nothing).
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   // Drawn at its real pixel width so circles stay round and the line keeps an even thickness.
   const [width, setWidth] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -133,7 +170,7 @@ export function LineChart({
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
 
-  const paddingLeft = 12;
+  const paddingLeft = showYAxis ? Y_AXIS_WIDTH + 8 : 12;
   const paddingRight = 12;
   const paddingBottom = 18;
   const paddingTop = 34;
@@ -183,16 +220,16 @@ export function LineChart({
         <Svg width={width} height={height}>
           <Defs>
             {/* userSpaceOnUse so a perfectly flat line (a zero-height box) still renders */}
-            <LinearGradient id="lineStroke" gradientUnits="userSpaceOnUse" x1={paddingLeft} y1={0} x2={width - paddingRight} y2={0}>
+            <LinearGradient id={`lineStroke${uid}`} gradientUnits="userSpaceOnUse" x1={paddingLeft} y1={0} x2={width - paddingRight} y2={0}>
               <Stop offset="0" stopColor={accentColor} />
               <Stop offset="1" stopColor={color} />
             </LinearGradient>
-            <LinearGradient id="areaFill" gradientUnits="userSpaceOnUse" x1={0} y1={paddingTop} x2={0} y2={baseline}>
+            <LinearGradient id={`areaFill${uid}`} gradientUnits="userSpaceOnUse" x1={0} y1={paddingTop} x2={0} y2={baseline}>
               <Stop offset="0" stopColor={color} stopOpacity={0.42} />
               <Stop offset="0.55" stopColor={color} stopOpacity={0.12} />
               <Stop offset="1" stopColor={color} stopOpacity={0} />
             </LinearGradient>
-            <LinearGradient id="peakBeam" gradientUnits="userSpaceOnUse" x1={0} y1={peak.y} x2={0} y2={baseline}>
+            <LinearGradient id={`peakBeam${uid}`} gradientUnits="userSpaceOnUse" x1={0} y1={peak.y} x2={0} y2={baseline}>
               <Stop offset="0" stopColor={color} stopOpacity={0.55} />
               <Stop offset="1" stopColor={color} stopOpacity={0} />
             </LinearGradient>
@@ -201,31 +238,37 @@ export function LineChart({
           {gridLines.map((g) => {
             const y = paddingTop + plotHeight * (1 - g);
             return (
-              <Line key={g} x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#343746" strokeWidth={1} strokeDasharray="2 6" />
+              <Line key={g} x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke={pal.grid} strokeWidth={1} strokeDasharray="2 6" />
             );
           })}
+          {showYAxis && (
+            <Line x1={paddingLeft} y1={baseline} x2={width - paddingRight} y2={baseline} stroke={pal.grid} strokeWidth={1} />
+          )}
 
           {/* The fill fades in behind the line as it draws. */}
-          <Path d={areaPath} fill="url(#areaFill)" stroke="none" opacity={progress} />
+          <Path d={areaPath} fill={`url(#areaFill${uid})`} stroke="none" opacity={progress} />
 
           {/* Glow: the same curve drawn wider and fainter underneath the line. */}
-          <Path d={linePath} fill="none" stroke="url(#lineStroke)" strokeWidth={14} strokeOpacity={0.07}
+          <Path d={linePath} fill="none" stroke={`url(#lineStroke${uid})`} strokeWidth={14} strokeOpacity={0.07}
             strokeLinecap="round" strokeDasharray={dash} strokeDashoffset={dashOffset} />
-          <Path d={linePath} fill="none" stroke="url(#lineStroke)" strokeWidth={7} strokeOpacity={0.14}
+          <Path d={linePath} fill="none" stroke={`url(#lineStroke${uid})`} strokeWidth={7} strokeOpacity={0.14}
             strokeLinecap="round" strokeDasharray={dash} strokeDashoffset={dashOffset} />
-          <Path d={linePath} fill="none" stroke="url(#lineStroke)" strokeWidth={2.75}
+          <Path d={linePath} fill="none" stroke={`url(#lineStroke${uid})`} strokeWidth={2.75}
             strokeLinejoin="round" strokeLinecap="round" strokeDasharray={dash} strokeDashoffset={dashOffset} />
 
           {progress >= 1 && (
             <>
+              {showDots && coords.map((c, i) => (
+                <Circle key={i} cx={c.x} cy={c.y} r={3.5} fill={accentColor} stroke={pal.surface} strokeWidth={1.5} />
+              ))}
               {/* A soft beam from the best point down to the baseline. */}
-              <Line x1={peak.x} y1={peak.y} x2={peak.x} y2={baseline} stroke="url(#peakBeam)" strokeWidth={1.5} strokeDasharray="3 4" />
+              <Line x1={peak.x} y1={peak.y} x2={peak.x} y2={baseline} stroke={`url(#peakBeam${uid})`} strokeWidth={1.5} strokeDasharray="3 4" />
               <Circle cx={peak.x} cy={peak.y} r={11} fill={color} opacity={0.14} />
-              <Circle cx={peak.x} cy={peak.y} r={5} fill={color} stroke="#292C36" strokeWidth={2} />
+              <Circle cx={peak.x} cy={peak.y} r={5} fill={color} stroke={pal.surface} strokeWidth={2} />
               {last !== peak && (
                 <>
                   <Circle cx={last.x} cy={last.y} r={8} fill={accentColor} opacity={0.12} />
-                  <Circle cx={last.x} cy={last.y} r={3.5} fill="#292C36" stroke={color} strokeWidth={2} />
+                  <Circle cx={last.x} cy={last.y} r={3.5} fill={pal.surface} stroke={color} strokeWidth={2} />
                 </>
               )}
             </>
@@ -236,11 +279,18 @@ export function LineChart({
             <>
               <Line x1={active.x} y1={paddingTop - 6} x2={active.x} y2={baseline} stroke={color} strokeOpacity={0.45} strokeWidth={1} strokeDasharray="3 3" />
               <Circle cx={active.x} cy={active.y} r={13} fill={color} opacity={0.18} />
-              <Circle cx={active.x} cy={active.y} r={5.5} fill="#E6E7EC" stroke={color} strokeWidth={2.5} />
+              <Circle cx={active.x} cy={active.y} r={5.5} fill={pal.text} stroke={color} strokeWidth={2.5} />
             </>
           )}
         </Svg>
       )}
+
+      {width > 0 && showYAxis && gridLines.concat(0).map((g) => (
+        <Text key={g} pointerEvents="none" numberOfLines={1}
+          style={[styles.yLabel, { color: pal.textMuted, width: Y_AXIS_WIDTH, top: paddingTop + plotHeight * (1 - g) - 8 }]}>
+          {formatValue(Math.round(maxValue * g))}
+        </Text>
+      ))}
 
       {width > 0 && (
         // Catches the pointer across the whole chart: mouse hover on the web, touch-and-drag on phones.
@@ -260,7 +310,7 @@ export function LineChart({
           pointerEvents="none"
           style={[
             styles.tooltip,
-            { left: tooltipLeft, width: TOOLTIP_WIDTH },
+            { left: tooltipLeft, width: TOOLTIP_WIDTH, backgroundColor: pal.tooltipBg, borderColor: pal.tooltipBorder },
             tooltipAbove ? { bottom: height - active.y + 18 } : { top: active.y + 18 },
           ]}
         >
@@ -287,17 +337,17 @@ export function LineChart({
         </View>
       )}
 
-      {!hideLabels && <View style={styles.labelRow}>
+      {!hideLabels && <View style={[styles.labelRow, showYAxis && { paddingLeft: paddingLeft - 4 }]}>
         {points.map((p, i) => (
-          <Text key={p.label} style={[styles.label, i === 0 || i === points.length - 1 ? undefined : styles.labelFaded]} numberOfLines={1}>
+          <Text key={p.label} style={[styles.label, { color: pal.textMuted }, i === 0 || i === points.length - 1 ? undefined : styles.labelFaded]} numberOfLines={1}>
             {p.label}
           </Text>
         ))}
       </View>}
 
-      <View style={styles.peakBadge}>
+      <View style={[styles.peakBadge, { backgroundColor: pal.badgeBg, borderColor: pal.badgeBorder }]}>
         <View style={[styles.peakDot, { backgroundColor: color }]} />
-        <Text style={styles.peakText}>Peak {formatValue(peak.value)}</Text>
+        <Text style={[styles.peakText, { color: pal.text }]}>Peak {formatValue(peak.value)}</Text>
       </View>
     </View>
   );
@@ -305,32 +355,33 @@ export function LineChart({
 
 const styles = StyleSheet.create({
   empty: { alignItems: "center", justifyContent: "center" },
-  emptyText: { color: "#A1A5B3", fontSize: 13 },
+  emptyText: { color: "#A4AFCF", fontSize: 13 },
   labelRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8, marginTop: 4 },
-  label: { color: "#A1A5B3", fontSize: 12 },
+  label: { color: "#A4AFCF", fontSize: 12 },
   labelFaded: { opacity: 0 },
   peakBadge: {
     position: "absolute", top: 0, right: 12, flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "rgba(52,55,70,0.7)", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: "rgba(140,127,166,0.35)",
+    backgroundColor: "rgba(30,45,87,0.7)", borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: "rgba(76,147,255,0.35)",
   },
   peakDot: { width: 6, height: 6, borderRadius: 3 },
-  peakText: { color: "#E6E7EC", fontSize: 12, fontWeight: "600" },
+  peakText: { color: "#F2F5FF", fontSize: 12, fontWeight: "600" },
 
+  yLabel: { position: "absolute", left: 0, fontSize: 12, textAlign: "right", fontVariant: ["tabular-nums"] },
   hitArea: { position: "absolute", top: 0, left: 0 },
   tooltip: {
     position: "absolute", zIndex: 10,
-    backgroundColor: "rgba(41,44,54,0.96)", borderRadius: 10, padding: 12, gap: 2,
-    borderWidth: 1, borderColor: "rgba(140,127,166,0.4)",
-    boxShadow: "0 8px 28px rgba(8,9,13,0.19)",
+    backgroundColor: "rgba(17,30,63,0.96)", borderRadius: 10, padding: 12, gap: 2,
+    borderWidth: 1, borderColor: "rgba(76,147,255,0.4)",
+    boxShadow: "0 8px 28px rgba(2,6,20,0.19)",
   },
-  tooltipDate: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  tooltipTotal: { color: "#E6E7EC", fontSize: 18, fontWeight: "800", marginBottom: 2 },
-  tooltipItems: { borderTopWidth: 1, borderTopColor: "#343746", marginTop: 6, paddingTop: 8, gap: 7 },
+  tooltipDate: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  tooltipTotal: { color: "#F2F5FF", fontSize: 18, fontWeight: "800", marginBottom: 2 },
+  tooltipItems: { borderTopWidth: 1, borderTopColor: "#1E2D57", marginTop: 6, paddingTop: 8, gap: 7 },
   tooltipRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   tooltipBullet: { width: 7, height: 7, borderRadius: 4 },
-  tooltipName: { color: "#E6E7EC", fontSize: 12, fontWeight: "600" },
-  tooltipSub: { color: "#A1A5B3", fontSize: 12 },
-  tooltipValue: { color: "#78C9A4", fontSize: 12, fontWeight: "700" },
-  tooltipMore: { color: "#A1A5B3", fontSize: 12, marginTop: 2 },
+  tooltipName: { color: "#F2F5FF", fontSize: 12, fontWeight: "600" },
+  tooltipSub: { color: "#A4AFCF", fontSize: 12 },
+  tooltipValue: { color: "#22C58B", fontSize: 12, fontWeight: "700" },
+  tooltipMore: { color: "#A4AFCF", fontSize: 12, marginTop: 2 },
 });

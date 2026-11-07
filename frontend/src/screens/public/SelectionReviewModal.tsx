@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   footer: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.bar, padding: space.lg },
   footerInner: { width: "100%", maxWidth: 480, alignSelf: "center" },
   dialogOverlay: {
-    position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(8,9,13,0.5)",
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(2,6,20,0.5)",
     alignItems: "center", justifyContent: "center", padding: space.xl,
   },
   dialog: { backgroundColor: colors.card, borderRadius: 14, padding: space.xl, width: "100%", maxWidth: 420, borderWidth: 1, borderColor: colors.border },

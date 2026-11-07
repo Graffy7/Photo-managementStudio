@@ -1,3 +1,15 @@
+// Worked out by the server: converted into a customer; otherwise "event over" once the expected
+// event date has passed, else still "not converted".
+export type LeadOutcome = "Converted" | "NotConverted" | "EventOver";
+
+export const LEAD_OUTCOMES: LeadOutcome[] = ["Converted", "NotConverted", "EventOver"];
+
+export const LEAD_OUTCOME_LABELS: Record<LeadOutcome, string> = {
+  Converted: "Converted",
+  NotConverted: "Not converted",
+  EventOver: "Event over",
+};
+
 export interface Lead {
   leadId: number;
   fullName: string;
@@ -15,6 +27,7 @@ export interface Lead {
   notes: string | null;
   followUpDate: string | null;
   convertedCustomerId: number | null;
+  outcome: LeadOutcome;
   createdAt: string;
   updatedAt: string;
 }

@@ -96,13 +96,13 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
       <Text style={styles.title}>{isEdit ? "Edit studio" : "New studio"}</Text>
 
       <Text style={styles.label}>Studio name</Text>
-      <TextInput style={styles.input} value={studioName} onChangeText={setStudioName} placeholder="Aperture Weddings" placeholderTextColor="#7D8292" />
+      <TextInput style={styles.input} value={studioName} onChangeText={setStudioName} placeholder="Aperture Weddings" placeholderTextColor="#6F7BA0" />
 
       <Text style={styles.label}>Phone</Text>
-      <TextInput style={styles.input} value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Optional" placeholderTextColor="#7D8292" />
+      <TextInput style={styles.input} value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Optional" placeholderTextColor="#6F7BA0" />
 
       <Text style={styles.label}>Address</Text>
-      <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Optional" placeholderTextColor="#7D8292" />
+      <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Optional" placeholderTextColor="#6F7BA0" />
 
       {!isEdit && (
         <>
@@ -110,7 +110,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
           <Text style={styles.sectionLabel}>Studio owner account</Text>
 
           <Text style={styles.label}>Owner full name</Text>
-          <TextInput style={styles.input} value={ownerFullName} onChangeText={setOwnerFullName} placeholder="Priya Shah" placeholderTextColor="#7D8292" />
+          <TextInput style={styles.input} value={ownerFullName} onChangeText={setOwnerFullName} placeholder="Priya Shah" placeholderTextColor="#6F7BA0" />
 
           <Text style={styles.label}>Owner email (login)</Text>
           <TextInput
@@ -120,7 +120,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
             autoCapitalize="none"
             keyboardType="email-address"
             placeholder="owner@studio.com"
-            placeholderTextColor="#7D8292"
+            placeholderTextColor="#6F7BA0"
           />
 
           <Text style={styles.label}>Temporary password</Text>
@@ -130,7 +130,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
             onChangeText={setOwnerPassword}
             secureTextEntry
             placeholder="At least 8 characters"
-            placeholderTextColor="#7D8292"
+            placeholderTextColor="#6F7BA0"
           />
 
           <Text style={styles.label}>Access</Text>
@@ -172,7 +172,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
                 <Text style={styles.trialError}>{trialError}</Text>
               ) : (
                 <Text style={styles.trialSummary}>
-                  Free for <Text style={{ fontWeight: "800", color: "#E6E7EC" }}>{trialDays} days</Text> — {niceDate(trialFrom)} to {niceDate(trialTo)} (both included).
+                  Free for <Text style={{ fontWeight: "800", color: "#F2F5FF" }}>{trialDays} days</Text> — {niceDate(trialFrom)} to {niceDate(trialTo)} (both included).
                   {trialFrom > today ? " Until the start date the studio can sign in and look around, but not add or change anything." : ""}
                   {" "}After it ends the studio becomes read-only until they pay; nothing is deleted.
                 </Text>
@@ -212,7 +212,7 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
           onPress={() => mutation.mutate()}
           disabled={mutation.isPending || (!isEdit && (access === "plan" ? subscriptionPlanId === null : !!trialError))}
         >
-          {mutation.isPending ? <ActivityIndicator color="#292C36" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create studio"}</Text>}
+          {mutation.isPending ? <ActivityIndicator color="#111E3F" /> : <Text style={styles.saveText}>{isEdit ? "Save changes" : "Create studio"}</Text>}
         </Pressable>
       </View>
     </ScrollView>
@@ -220,39 +220,39 @@ export function StudioFormScreen({ studio, onDone, onCancel }: Props) {
 }
 
 const styles = StyleSheet.create({
-  trialBox: { borderWidth: 1, borderColor: "#343746", borderRadius: 10, padding: 14, marginTop: 10, backgroundColor: "rgba(34,37,46,0.5)" },
+  trialBox: { borderWidth: 1, borderColor: "#1E2D57", borderRadius: 10, padding: 14, marginTop: 10, backgroundColor: "rgba(34,37,46,0.5)" },
   trialDates: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  quickChip: { borderWidth: 1, borderColor: "#343746", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
-  quickChipOn: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.12)" },
-  quickText: { color: "#A1A5B3", fontSize: 12.5, fontWeight: "600" },
-  quickTextOn: { color: "#B5A5FF" },
-  trialSummary: { color: "#A1A5B3", fontSize: 12.5, lineHeight: 18, marginTop: 12 },
-  trialError: { color: "#E58B91", fontSize: 12.5, marginTop: 12 },
-  screen: { flex: 1, backgroundColor: "#292C36" },
+  quickChip: { borderWidth: 1, borderColor: "#1E2D57", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
+  quickChipOn: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.12)" },
+  quickText: { color: "#A4AFCF", fontSize: 12.5, fontWeight: "600" },
+  quickTextOn: { color: "#5B9BFF" },
+  trialSummary: { color: "#A4AFCF", fontSize: 12.5, lineHeight: 18, marginTop: 12 },
+  trialError: { color: "#FF5C75", fontSize: 12.5, marginTop: 12 },
+  screen: { flex: 1, backgroundColor: "#111E3F" },
   content: { padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" },
-  title: { fontSize: 22, fontWeight: "700", color: "#E6E7EC", marginBottom: 20 },
-  sectionLabel: { fontSize: 13, color: "#B5A5FF", fontWeight: "600", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 },
-  divider: { height: 1, backgroundColor: "#343746", marginVertical: 18 },
-  label: { fontSize: 13, color: "#A1A5B3", marginBottom: 6, marginTop: 14 },
+  title: { fontSize: 22, fontWeight: "700", color: "#F2F5FF", marginBottom: 20 },
+  sectionLabel: { fontSize: 13, color: "#5B9BFF", fontWeight: "600", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 },
+  divider: { height: 1, backgroundColor: "#1E2D57", marginVertical: 18 },
+  label: { fontSize: 13, color: "#A4AFCF", marginBottom: 6, marginTop: 14 },
   input: {
-    borderWidth: 1, borderColor: "#343746", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: "#E6E7EC", backgroundColor: "#22252E",
+    borderWidth: 1, borderColor: "#1E2D57", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 15, color: "#F2F5FF", backgroundColor: "#0C1733",
   },
-  error: { color: "#E58B91", marginTop: 16, fontSize: 13 },
+  error: { color: "#FF5C75", marginTop: 16, fontSize: 13 },
   planRow: { flexDirection: "row", gap: 10 },
   planChip: {
-    flex: 1, borderWidth: 1, borderColor: "#343746", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12,
-    backgroundColor: "#22252E",
+    flex: 1, borderWidth: 1, borderColor: "#1E2D57", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: "#0C1733",
   },
-  planChipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.12)" },
-  planChipName: { color: "#E6E7EC", fontWeight: "700", fontSize: 14 },
-  planChipNameSelected: { color: "#B5A5FF" },
-  planChipPrice: { color: "#7D8292", fontSize: 12, marginTop: 2 },
-  planChipPriceSelected: { color: "#9C89F5" },
+  planChipSelected: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.12)" },
+  planChipName: { color: "#F2F5FF", fontWeight: "700", fontSize: 14 },
+  planChipNameSelected: { color: "#5B9BFF" },
+  planChipPrice: { color: "#6F7BA0", fontSize: 12, marginTop: 2 },
+  planChipPriceSelected: { color: "#3F86F5" },
   buttonRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#343746", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#A1A5B3", fontWeight: "600" },
-  saveButton: { flex: 2, backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  saveText: { color: "#292C36", fontWeight: "700" },
+  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#1E2D57", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  cancelText: { color: "#A4AFCF", fontWeight: "600" },
+  saveButton: { flex: 2, backgroundColor: "#5B9BFF", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  saveText: { color: "#111E3F", fontWeight: "700" },
 });

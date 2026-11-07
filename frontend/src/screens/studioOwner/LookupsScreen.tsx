@@ -67,16 +67,16 @@ export function LookupsScreen() {
           value={newName}
           onChangeText={setNewName}
           placeholder={`Add a new ${TABS.find((t) => t.key === tab)!.label.toLowerCase().replace(/s$/, "")}`}
-          placeholderTextColor="#A1A5B3"
+          placeholderTextColor="#A4AFCF"
         />
         <Pressable style={styles.addButton} onPress={() => newName.trim() && create.mutate()} disabled={create.isPending}>
-          {create.isPending ? <ActivityIndicator color="#191B22" /> : <Text style={styles.addButtonText}>Add</Text>}
+          {create.isPending ? <ActivityIndicator color="#070F24" /> : <Text style={styles.addButtonText}>Add</Text>}
         </Pressable>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {isPending ? (
-        <ActivityIndicator color="#B5A5FF" style={{ marginTop: 30 }} />
+        <ActivityIndicator color="#5B9BFF" style={{ marginTop: 30 }} />
       ) : (
         <View style={styles.list}>
           {(data ?? []).map((item) => (
@@ -98,35 +98,35 @@ export function LookupsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#191B22" },
+  screen: { flex: 1, backgroundColor: "#070F24" },
   content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
-  backText: { color: "#B5A5FF", fontWeight: "600", fontSize: 13 },
-  title: { fontSize: 24, fontWeight: "700", color: "#E6E7EC" },
-  subtitle: { fontSize: 13, color: "#A1A5B3", marginTop: 4, marginBottom: 20 },
+  backText: { color: "#5B9BFF", fontWeight: "600", fontSize: 13 },
+  title: { fontSize: 24, fontWeight: "700", color: "#F2F5FF" },
+  subtitle: { fontSize: 13, color: "#A4AFCF", marginTop: 4, marginBottom: 20 },
   tabRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
-  tab: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#292C36" },
-  tabActive: { backgroundColor: "rgba(181,165,255,0.14)", borderColor: "#B5A5FF" },
-  tabText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  tabTextActive: { color: "#B5A5FF" },
+  tab: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#111E3F" },
+  tabActive: { backgroundColor: "rgba(91,155,255,0.14)", borderColor: "#5B9BFF" },
+  tabText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  tabTextActive: { color: "#5B9BFF" },
   addRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
   input: {
-    flex: 1, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: "#E6E7EC", backgroundColor: "#292C36",
+    flex: 1, borderWidth: 1, borderColor: "#2E4377", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 14, color: "#F2F5FF", backgroundColor: "#111E3F",
   },
-  addButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center" },
-  addButtonText: { color: "#191B22", fontWeight: "700", fontSize: 13 },
-  error: { color: "#E58B91", fontSize: 12, marginTop: 8 },
+  addButton: { backgroundColor: "#5B9BFF", borderRadius: 8, paddingHorizontal: 20, justifyContent: "center" },
+  addButtonText: { color: "#070F24", fontWeight: "700", fontSize: 13 },
+  error: { color: "#FF5C75", fontSize: 12, marginTop: 8 },
   list: {
-    marginTop: 20, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 10, backgroundColor: "#292C36", overflow: "hidden",
+    marginTop: 20, borderWidth: 1, borderColor: "#2E4377", borderRadius: 10, backgroundColor: "#111E3F", overflow: "hidden",
   },
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#343746",
+    paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1E2D57",
   },
-  rowName: { color: "#E6E7EC", fontSize: 14, fontWeight: "600" },
+  rowName: { color: "#F2F5FF", fontSize: 14, fontWeight: "600" },
   rowRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  toggleButton: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 10 },
-  toggleButtonText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  empty: { color: "#A1A5B3", fontSize: 13, textAlign: "center", padding: 20 },
+  toggleButton: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 6, paddingVertical: 5, paddingHorizontal: 10 },
+  toggleButtonText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  empty: { color: "#A4AFCF", fontSize: 13, textAlign: "center", padding: 20 },
 });

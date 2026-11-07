@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { EventListScreen } from "../screens/studioOwner/EventListScreen";
+import { EventListScreen, type EventListPreset } from "../screens/studioOwner/EventListScreen";
 import { EventFormScreen } from "../screens/studioOwner/EventFormScreen";
 import { EventDetailScreen } from "../screens/studioOwner/EventDetailScreen";
 import { eventsApi } from "../api/eventsApi";
@@ -19,8 +19,12 @@ interface CreateParams {
   create?: boolean;
   date?: string;
   returnTo?: string;
+  // Handed back to the returnTo page, e.g. the Calendar day that was open.
+  returnParams?: object;
   // Opens one event's history straight away - the Customer page's "View" uses this.
   eventId?: number;
+  // Opens the list already filtered, e.g. by the Calendar's "Weddings" tile.
+  preset?: EventListPreset;
 }
 
 export function EventsHome() {
@@ -29,6 +33,8 @@ export function EventsHome() {
   const [view, setView] = useState<View>({ name: "list" });
   const [createDate, setCreateDate] = useState<string | undefined>();
   const [returnTo, setReturnTo] = useState<string | null>(null);
+  const [preset, setPreset] = useState<EventListPreset | null>(null);
+  const [returnParams, setReturnParams] = useState<object | undefined>();
 
   const params = route.params as CreateParams | undefined;
   useEffect(() => {
@@ -39,7 +45,16 @@ export function EventsHome() {
     navigation.setParams({ create: undefined, date: undefined, returnTo: undefined });
   }, [params?.create, params?.date, params?.returnTo, navigation]);
 
-  // Arriving with an eventId (from a customer's event history) opens that event's record.
+  // Arriving with a preset (the Calendar's tiles) shows the list filtered to it.
+  useEffect(() => {
+    if (!params?.preset) return;
+    setPreset(params.preset);
+    setView({ name: "list" });
+    navigation.setParams({ preset: undefined });
+  }, [params?.preset, navigation]);
+
+  // Arriving with an eventId (from a customer's event history, or the Calendar's "View event")
+  // opens that event's record; with returnTo, its Back goes back to that page.
   useEffect(() => {
     const eventId = params?.eventId;
     if (!eventId) return;
@@ -47,9 +62,21 @@ export function EventsHome() {
     // effect, and its cleanup would cancel the very fetch that is still in flight.
     eventsApi.getById(eventId).then((event) => {
       setView({ name: "view", event });
-      navigation.setParams({ eventId: undefined });
-    }).catch(() => navigation.setParams({ eventId: undefined }));
+      setReturnTo(params?.returnTo ?? null);
+      setReturnParams(params?.returnParams);
+      navigation.setParams({ eventId: undefined, returnTo: undefined, returnParams: undefined });
+    }).catch(() => navigation.setParams({ eventId: undefined, returnTo: undefined, returnParams: undefined }));
   }, [params?.eventId, navigation]);
+
+  const leaveView = () => {
+    setView({ name: "list" });
+    if (returnTo) {
+      const destination = returnTo;
+      setReturnTo(null);
+      setReturnParams(undefined);
+      navigation.navigate(destination, returnParams);
+    }
+  };
 
   const finishCreate = () => {
     setView({ name: "list" });
@@ -79,8 +106,9 @@ export function EventsHome() {
     return (
       <EventDetailScreen
         event={view.event}
-        onBack={() => setView({ name: "list" })}
-        onEdit={() => setView({ name: "edit", event: view.event })}
+        onBack={leaveView}
+        backLabel={returnTo ?? "Events"}
+        onEdit={() => { setReturnTo(null); setReturnParams(undefined); setView({ name: "edit", event: view.event }); }}
       />
     );
   }
@@ -90,6 +118,8 @@ export function EventsHome() {
       onCreate={() => setView({ name: "create" })}
       onEdit={(event) => setView({ name: "edit", event })}
       onView={(event) => setView({ name: "view", event })}
+      preset={preset}
+      onClearPreset={() => setPreset(null)}
     />
   );
 }

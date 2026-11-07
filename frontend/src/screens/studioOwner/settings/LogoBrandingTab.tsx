@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { settingsApi } from "../../../api/settingsApi";
 import { extractErrorMessage } from "../../../api/errorMessage";
 import { API_BASE_URL } from "../../../constants/config";
+import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
@@ -69,7 +70,7 @@ export function LogoBrandingTab() {
   };
 
   if (isPending) {
-    return <ActivityIndicator color="#B5A5FF" style={{ marginTop: 40 }} />;
+    return <ActivityIndicator color="#5B9BFF" style={{ marginTop: 40 }} />;
   }
 
   const logoUrl = data?.logoUrl ? `${API_BASE_URL}${data.logoUrl}` : null;
@@ -93,58 +94,46 @@ export function LogoBrandingTab() {
       <View style={styles.actions}>
         <Pressable style={styles.primaryButton} onPress={pickImage} disabled={uploadMutation.isPending}>
           {uploadMutation.isPending ? (
-            <ActivityIndicator color="#191B22" />
+            <ActivityIndicator color="#070F24" />
           ) : (
             <Text style={styles.primaryButtonText}>{logoUrl ? "Replace logo" : "Upload logo"}</Text>
           )}
         </Pressable>
 
-        {logoUrl && !confirmingRemove && (
+        {logoUrl && (
           <Pressable style={styles.dangerButton} onPress={() => setConfirmingRemove(true)}>
             <Text style={styles.dangerButtonText}>Remove logo</Text>
           </Pressable>
         )}
       </View>
 
-      {confirmingRemove && (
-        <View style={styles.confirmRow}>
-          <Text style={styles.confirmText}>Remove this logo?</Text>
-          <Pressable onPress={() => setConfirmingRemove(false)}>
-            <Text style={styles.cancelLink}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={() => removeMutation.mutate()} disabled={removeMutation.isPending}>
-            {removeMutation.isPending ? (
-              <ActivityIndicator color="#E58B91" size="small" />
-            ) : (
-              <Text style={styles.confirmRemoveLink}>Yes, remove</Text>
-            )}
-          </Pressable>
-        </View>
-      )}
+      <ConfirmDialog
+        visible={confirmingRemove}
+        icon="image-outline"
+        title="Remove logo?"
+        message="Your logo will no longer appear on quotations, the sidebar or the customer photo page. You can upload a new one any time."
+        confirmLabel="Remove"
+        busy={removeMutation.isPending}
+        onCancel={() => setConfirmingRemove(false)}
+        onConfirm={() => removeMutation.mutate()}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hint: { color: "#A1A5B3", fontSize: 12, marginBottom: 16 },
+  hint: { color: "#A4AFCF", fontSize: 12, marginBottom: 16 },
   previewCard: {
-    width: 140, height: 140, borderRadius: 12, borderWidth: 1, borderColor: "#4B4F63", backgroundColor: "#292C36",
+    width: 140, height: 140, borderRadius: 12, borderWidth: 1, borderColor: "#2E4377", backgroundColor: "#111E3F",
     alignItems: "center", justifyContent: "center", overflow: "hidden", marginBottom: 16,
   },
   preview: { width: "100%", height: "100%" },
   placeholder: { alignItems: "center", justifyContent: "center" },
-  placeholderText: { color: "#A1A5B3", fontSize: 12 },
-  error: { color: "#E58B91", fontSize: 13, marginBottom: 8 },
+  placeholderText: { color: "#A4AFCF", fontSize: 12 },
+  error: { color: "#FF5C75", fontSize: 13, marginBottom: 8 },
   actions: { flexDirection: "row", gap: 12 },
-  primaryButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
-  primaryButtonText: { color: "#191B22", fontWeight: "700", fontSize: 13 },
-  dangerButton: { borderWidth: 1, borderColor: "#E58B91", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
-  dangerButtonText: { color: "#E58B91", fontWeight: "700", fontSize: 13 },
-  confirmRow: {
-    flexDirection: "row", alignItems: "center", gap: 16, marginTop: 14, padding: 12,
-    borderWidth: 1, borderColor: "#4B4F63", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#22252E",
-  },
-  confirmText: { color: "#E6E7EC", fontSize: 13, flex: 1 },
-  cancelLink: { color: "#A1A5B3", fontSize: 13, fontWeight: "600" },
-  confirmRemoveLink: { color: "#E58B91", fontSize: 13, fontWeight: "700" },
+  primaryButton: { backgroundColor: "#5B9BFF", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
+  primaryButtonText: { color: "#070F24", fontWeight: "700", fontSize: 13 },
+  dangerButton: { borderWidth: 1, borderColor: "#FF5C75", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20 },
+  dangerButtonText: { color: "#FF5C75", fontWeight: "700", fontSize: 13 },
 });

@@ -6,6 +6,7 @@ import { formConfigApi } from "../../api/formConfigApi";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { Toggle } from "../../components/Toggle";
 import { FIELD_TYPES, type FormField } from "../../types/formField";
+import { hoverGlow } from "../../ui/webHover";
 
 const FORM_CODE = "LEAD_FORM";
 
@@ -18,7 +19,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
   const dirty = label !== field.label || isRequired !== field.isRequired || isVisible !== field.isVisible || isEnabled !== field.isEnabled;
 
   return (
-    <View style={styles.card}>
+    <View {...hoverGlow} style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.fieldKey}>{field.fieldKey}</Text>
         <View style={styles.typeBadge}>
@@ -26,7 +27,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
         </View>
       </View>
 
-      <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Field label" placeholderTextColor="#A1A5B3" />
+      <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Field label" placeholderTextColor="#A4AFCF" />
 
       {field.options.length > 0 && (
         <Text style={styles.optionsPreview}>Options: {field.options.map((o) => o.optionLabel).join(", ")}</Text>
@@ -53,7 +54,7 @@ function FieldRow({ field, onSave, saving }: { field: FormField; onSave: (draft:
           onPress={() => onSave({ ...field, label, isRequired, isVisible, isEnabled })}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#191B22" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
+          {saving ? <ActivityIndicator color="#070F24" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
         </Pressable>
       )}
     </View>
@@ -119,7 +120,7 @@ export function LeadFormConfigScreen() {
       <Text style={styles.subtitle}>Control what shows on the enquiry form — hide fields, make them required, or add your own.</Text>
 
       {isPending ? (
-        <ActivityIndicator color="#B5A5FF" style={{ marginTop: 30 }} />
+        <ActivityIndicator color="#5B9BFF" style={{ marginTop: 30 }} />
       ) : (
         (fields ?? [])
           .slice()
@@ -130,14 +131,14 @@ export function LeadFormConfigScreen() {
       )}
 
       {showAddField ? (
-        <View style={styles.card}>
+        <View {...hoverGlow} style={styles.card}>
           <Text style={styles.addTitle}>New custom field</Text>
 
           <Text style={styles.smallLabel}>Field key (no spaces)</Text>
-          <TextInput style={styles.labelInput} value={fieldKey} onChangeText={setFieldKey} placeholder="InstagramId" placeholderTextColor="#A1A5B3" autoCapitalize="none" />
+          <TextInput style={styles.labelInput} value={fieldKey} onChangeText={setFieldKey} placeholder="InstagramId" placeholderTextColor="#A4AFCF" autoCapitalize="none" />
 
           <Text style={styles.smallLabel}>Label</Text>
-          <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Instagram ID" placeholderTextColor="#A1A5B3" />
+          <TextInput style={styles.labelInput} value={label} onChangeText={setLabel} placeholder="Instagram ID" placeholderTextColor="#A4AFCF" />
 
           <Text style={styles.smallLabel}>Field type</Text>
           <View style={styles.typeChipRow}>
@@ -156,7 +157,7 @@ export function LeadFormConfigScreen() {
                 value={optionsText}
                 onChangeText={setOptionsText}
                 placeholder="Friend, Instagram Ad, Google Search"
-                placeholderTextColor="#A1A5B3"
+                placeholderTextColor="#A4AFCF"
               />
             </>
           )}
@@ -172,7 +173,7 @@ export function LeadFormConfigScreen() {
               onPress={() => fieldKey.trim() && label.trim() && addField.mutate()}
               disabled={addField.isPending}
             >
-              {addField.isPending ? <ActivityIndicator color="#191B22" size="small" /> : <Text style={styles.saveButtonText}>Add field</Text>}
+              {addField.isPending ? <ActivityIndicator color="#070F24" size="small" /> : <Text style={styles.saveButtonText}>Add field</Text>}
             </Pressable>
           </View>
         </View>
@@ -186,41 +187,41 @@ export function LeadFormConfigScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#191B22" },
+  screen: { flex: 1, backgroundColor: "#070F24" },
   content: { padding: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
   backButton: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center", marginBottom: 8 },
-  backText: { color: "#B5A5FF", fontWeight: "600", fontSize: 13 },
-  title: { fontSize: 24, fontWeight: "700", color: "#E6E7EC" },
-  subtitle: { fontSize: 13, color: "#A1A5B3", marginTop: 4, marginBottom: 20 },
+  backText: { color: "#5B9BFF", fontWeight: "600", fontSize: 13 },
+  title: { fontSize: 24, fontWeight: "700", color: "#F2F5FF" },
+  subtitle: { fontSize: 13, color: "#A4AFCF", marginTop: 4, marginBottom: 20 },
   card: {
-    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 10, backgroundColor: "#292C36",
+    borderWidth: 1, borderColor: "#2E4377", borderRadius: 10, backgroundColor: "#111E3F",
     padding: 16, marginBottom: 12,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  fieldKey: { color: "#A1A5B3", fontSize: 12, fontFamily: "monospace" },
-  typeBadge: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
-  typeBadgeText: { color: "#B5A5FF", fontSize: 12, fontWeight: "700" },
+  fieldKey: { color: "#A4AFCF", fontSize: 12, fontFamily: "monospace" },
+  typeBadge: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 2, paddingHorizontal: 8 },
+  typeBadgeText: { color: "#5B9BFF", fontSize: 12, fontWeight: "700" },
   labelInput: {
-    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
-    fontSize: 14, color: "#E6E7EC", backgroundColor: "#191B22", marginBottom: 8,
+    borderWidth: 1, borderColor: "#2E4377", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+    fontSize: 14, color: "#F2F5FF", backgroundColor: "#070F24", marginBottom: 8,
   },
-  optionsPreview: { color: "#A1A5B3", fontSize: 12, marginBottom: 8 },
+  optionsPreview: { color: "#A4AFCF", fontSize: 12, marginBottom: 8 },
   switchRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   switchItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  switchLabel: { color: "#A1A5B3", fontSize: 12 },
-  saveButton: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 12 },
-  saveButtonText: { color: "#191B22", fontWeight: "700", fontSize: 13 },
-  addFieldTrigger: { borderWidth: 1, borderColor: "#4B4F63", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
-  addFieldTriggerText: { color: "#B5A5FF", fontWeight: "600", fontSize: 13 },
-  addTitle: { color: "#E6E7EC", fontWeight: "700", fontSize: 15, marginBottom: 12 },
-  smallLabel: { color: "#A1A5B3", fontSize: 12, marginBottom: 6, marginTop: 4 },
+  switchLabel: { color: "#A4AFCF", fontSize: 12 },
+  saveButton: { backgroundColor: "#5B9BFF", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 12 },
+  saveButtonText: { color: "#070F24", fontWeight: "700", fontSize: 13 },
+  addFieldTrigger: { borderWidth: 1, borderColor: "#2E4377", borderStyle: "dashed", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
+  addFieldTriggerText: { color: "#5B9BFF", fontWeight: "600", fontSize: 13 },
+  addTitle: { color: "#F2F5FF", fontWeight: "700", fontSize: 15, marginBottom: 12 },
+  smallLabel: { color: "#A4AFCF", fontSize: 12, marginBottom: 6, marginTop: 4 },
   typeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  typeChip: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
-  typeChipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.12)" },
-  typeChipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  typeChipTextSelected: { color: "#B5A5FF" },
-  error: { color: "#E58B91", fontSize: 12, marginTop: 4 },
+  typeChip: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10 },
+  typeChipSelected: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.12)" },
+  typeChipText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  typeChipTextSelected: { color: "#5B9BFF" },
+  error: { color: "#FF5C75", fontSize: 12, marginTop: 4 },
   addFieldButtonRow: { flexDirection: "row", gap: 10, marginTop: 4 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingVertical: 9, alignItems: "center" },
-  cancelButtonText: { color: "#A1A5B3", fontWeight: "600", fontSize: 13 },
+  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#2E4377", borderRadius: 8, paddingVertical: 9, alignItems: "center" },
+  cancelButtonText: { color: "#A4AFCF", fontWeight: "600", fontSize: 13 },
 });

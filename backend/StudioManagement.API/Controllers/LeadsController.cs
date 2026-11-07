@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using StudioManagement.Business.Leads;
 using StudioManagement.Business.Tenant;
 using StudioManagement.Data.Common;
+using StudioManagement.Data.Repositories;
 
 namespace StudioManagement.API.Controllers;
 
@@ -24,6 +25,7 @@ public class LeadsController(
     public async Task<IActionResult> Search(
         [FromQuery] string? search,
         [FromQuery] int? leadStatusId,
+        [FromQuery] LeadOutcome? outcome,
         [FromQuery] DateTime? createdFrom,
         [FromQuery] DateTime? createdTo,
         [FromQuery] int page = 1,
@@ -31,7 +33,7 @@ public class LeadsController(
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDesc = false,
         CancellationToken ct = default) =>
-        Ok(await leadService.SearchAsync(StudioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct, new ListSort(sortBy, sortDesc)));
+        Ok(await leadService.SearchAsync(StudioId, search, leadStatusId, createdFrom, createdTo, page, pageSize, ct, new ListSort(sortBy, sortDesc), outcome));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

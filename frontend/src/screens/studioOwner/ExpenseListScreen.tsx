@@ -14,6 +14,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { FilterChips } from "../../ui/FilterChips";
 import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { RowAction } from "../../ui/RowAction";
 import { DataList, CellMoney, CellSub, CellTitle, type Column } from "../../ui/DataList";
 import { colors, space, type } from "../../ui/theme";
@@ -70,38 +71,35 @@ export function ExpenseListScreen({
     onError: (err) => setActionError(extractErrorMessage(err, "Couldn't delete this expense. Please try again.")),
   });
 
-  // Delete asks once more in place: "Cancel / Delete" replaces the button until answered.
-  const actions = (e: Expense) => {
-    const confirming = pendingDeleteId === e.expenseId;
-    const busy = remove.isPending && remove.variables === e.expenseId;
-    return (
-      <View style={styles.actionRow}>
-        {confirming ? (
-          <>
-            <Button label="Cancel" variant="link" onPress={() => { setPendingDeleteId(null); setActionError(null); }} disabled={busy} />
-            <Button label="Delete" variant="danger" loading={busy} onPress={() => remove.mutate(e.expenseId)} accessibilityLabel="Confirm delete expense" />
-          </>
-        ) : (
-          <>
-            <SubscriptionLock compact>
-              <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(e)} accessibilityLabel="Edit expense" />
-            </SubscriptionLock>
-            <RowAction iconOnly icon="trash-outline" label="Delete" kind="danger" onPress={() => { setPendingDeleteId(e.expenseId); setActionError(null); }} accessibilityLabel="Delete expense" />
-          </>
-        )}
-      </View>
-    );
-  };
+  const pendingExpense = pendingDeleteId !== null ? data?.items.find((e) => e.expenseId === pendingDeleteId) : undefined;
+  const confirmDialog = (
+    <ConfirmDialog
+      visible={pendingDeleteId !== null}
+      title="Delete expense?"
+      message={`${pendingExpense?.description ? `"${pendingExpense.description}"` : "This expense"} will be removed. This can't be undone.`}
+      confirmLabel="Delete"
+      busy={remove.isPending}
+      error={actionError}
+      onCancel={() => { setPendingDeleteId(null); setActionError(null); }}
+      onConfirm={() => pendingDeleteId !== null && remove.mutate(pendingDeleteId)}
+    />
+  );
 
-  const rowError = (e: Expense) =>
-    pendingDeleteId === e.expenseId && actionError ? <Text style={styles.rowError}>{actionError}</Text> : null;
+  const actions = (e: Expense) => (
+    <View style={styles.actionRow}>
+      <SubscriptionLock compact>
+        <RowAction iconOnly icon="create-outline" label="Edit" onPress={() => onEdit(e)} accessibilityLabel="Edit expense" />
+      </SubscriptionLock>
+      <RowAction iconOnly icon="trash-outline" label="Delete" kind="danger" onPress={() => { setPendingDeleteId(e.expenseId); setActionError(null); }} accessibilityLabel="Delete expense" />
+    </View>
+  );
 
   const columns: Column<Expense>[] = [
     { key: "date", label: "Date", width: 130, render: (e) => <CellSub>{formatDate(e.expenseDate)}</CellSub> },
     { key: "category", label: "Category", flex: 1, render: (e) => <CellTitle>{e.expenseCategoryName}</CellTitle> },
     {
       key: "description", label: "Description", flex: 2,
-      render: (e) => (<><CellTitle>{e.description || "—"}</CellTitle>{details(e) ? <CellSub>{details(e)}</CellSub> : null}{rowError(e)}</>),
+      render: (e) => (<><CellTitle>{e.description || "—"}</CellTitle>{details(e) ? <CellSub>{details(e)}</CellSub> : null}</>),
     },
     { key: "status", label: "Status", width: 110, render: (e) => <StatusPill label={e.paymentStatus} tone={e.paymentStatus === "Paid" ? "good" : "warn"} /> },
     { key: "amount", label: "Amount", width: 130, align: "right", render: (e) => <CellMoney>{formatCurrency(e.amount)}</CellMoney> },
@@ -162,18 +160,17 @@ export function ExpenseListScreen({
             </View>
             <Text style={styles.cardSub} numberOfLines={1}>{formatDate(e.expenseDate)} · {e.expenseCategoryName} · {e.paymentStatus === "Paid" ? "Paid" : "Payment pending"}</Text>
             {details(e) ? <Text style={styles.cardMeta} numberOfLines={1}>{details(e)}</Text> : null}
-            {rowError(e)}
             <View style={styles.cardActions}>{actions(e)}</View>
           </>
         )}
       />
+      {confirmDialog}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: space.xs },
-  rowError: { ...type.caption, color: colors.danger, marginTop: 2 },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
   cardAmount: { ...type.heading, color: colors.text, fontVariant: ["tabular-nums"] },

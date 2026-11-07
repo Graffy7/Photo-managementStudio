@@ -16,6 +16,7 @@ import { EmptyState } from "../../ui/EmptyState";
 import { Button } from "../../ui/Button";
 import { Skeleton } from "../../ui/Skeleton";
 import { colors, radius, space, touch, type } from "../../ui/theme";
+import { hoverLift } from "../../ui/webHover";
 
 // Today on the studio's calendar (the device's own day, not UTC's).
 function todayLocal(): string {
@@ -89,7 +90,7 @@ function EventCard({ event }: { event: DayBoardEvent }) {
   const place = [event.venue, event.venueAddress].filter(Boolean).join(" · ");
 
   return (
-    <View style={styles.card}>
+    <View {...hoverLift} style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.timeRow}>
           <Ionicons name="time-outline" size={18} color={colors.primary} />

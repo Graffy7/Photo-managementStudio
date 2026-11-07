@@ -9,6 +9,7 @@ import { Toggle } from "../../../components/Toggle";
 import { API_BASE_URL } from "../../../constants/config";
 import { downloadAndSharePdf } from "../../../utils/downloadPdf";
 import type { PdfHeaderStyle, PdfLogoPlacement, PdfSettings, PdfTemplate } from "../../../types/settings";
+import { hoverGlow } from "../../../ui/webHover";
 
 const TEMPLATES: { key: PdfTemplate; name: string; text: string; header: PdfHeaderStyle; swatch: string }[] = [
   { key: "Classic", name: "Classic", text: "Your current design — blue header row, faint logo watermark.", header: "Standard", swatch: "#1976D2" },
@@ -86,7 +87,7 @@ export function PdfSettingsTab() {
     if (!result.canceled && result.assets[0]) signature.mutate(result.assets[0]);
   };
 
-  if (isPending || !form) return <ActivityIndicator color="#B5A5FF" style={{ marginTop: 30 }} />;
+  if (isPending || !form) return <ActivityIndicator color="#5B9BFF" style={{ marginTop: 30 }} />;
 
   return (
     <View style={{ gap: 18 }}>
@@ -106,7 +107,7 @@ export function PdfSettingsTab() {
                   <View style={[styles.swatch, { backgroundColor: t.swatch }]} />
                   <Text style={styles.templateName}>{t.name}</Text>
                   {t.key === "Classic" && <Text style={styles.defaultTag}>Default</Text>}
-                  {on && <Ionicons name="checkmark-circle" size={16} color="#B5A5FF" style={{ marginLeft: "auto" }} />}
+                  {on && <Ionicons name="checkmark-circle" size={16} color="#5B9BFF" style={{ marginLeft: "auto" }} />}
                 </View>
                 <Text style={styles.small}>{t.text}</Text>
               </Pressable>
@@ -199,11 +200,11 @@ export function PdfSettingsTab() {
 
       <View style={styles.actions}>
         <Pressable style={[styles.secondary, (!colorsValid || preview.isPending) && styles.disabled]} disabled={!colorsValid || preview.isPending} onPress={() => preview.mutate()}>
-          {preview.isPending ? <ActivityIndicator size="small" color="#B5A5FF" /> : <Ionicons name="eye-outline" size={15} color="#B5A5FF" />}
+          {preview.isPending ? <ActivityIndicator size="small" color="#5B9BFF" /> : <Ionicons name="eye-outline" size={15} color="#5B9BFF" />}
           <Text style={styles.secondaryText}>Preview sample PDF</Text>
         </Pressable>
         <Pressable style={[styles.save, (!colorsValid || save.isPending) && styles.disabled]} disabled={!colorsValid || save.isPending} onPress={() => save.mutate()}>
-          {save.isPending ? <ActivityIndicator color="#191B22" /> : <Text style={styles.saveText}>Save PDF style</Text>}
+          {save.isPending ? <ActivityIndicator color="#070F24" /> : <Text style={styles.saveText}>Save PDF style</Text>}
         </Pressable>
         <Pressable onPress={() => data && setForm(data)}><Text style={styles.reset}>Discard changes</Text></Pressable>
       </View>
@@ -214,7 +215,7 @@ export function PdfSettingsTab() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={styles.section}>
+    <View {...hoverGlow} style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
@@ -229,7 +230,7 @@ function Field({ label, value, onChange, placeholder, max }: { label: string; va
   return (
     <View style={styles.field}>
       <Label>{label}</Label>
-      <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#A1A5B3" maxLength={max} />
+      <TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#A4AFCF" maxLength={max} />
     </View>
   );
 }
@@ -270,52 +271,52 @@ function ColorField({ label, value, onChange, hint }: { label: string; value: st
         <TextInput style={[styles.input, styles.hexInput, invalid && styles.inputBad]} value={value} placeholder="#1976D2" placeholderTextColor="#8a9cb6"
           onChangeText={(v) => onChange(v.trim().slice(0, 7))} autoCapitalize="characters" />
       </View>
-      <Text style={[styles.small, invalid && { color: "#E58B91" }]}>{invalid ? "Use a colour like #1976D2." : hint}</Text>
+      <Text style={[styles.small, invalid && { color: "#FF5C75" }]}>{invalid ? "Use a colour like #1976D2." : hint}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  intro: { color: "#A1A5B3", fontSize: 13, lineHeight: 19 },
-  section: { borderWidth: 1, borderColor: "#343746", borderRadius: 12, padding: 16, gap: 10, backgroundColor: "#22252E" },
-  sectionTitle: { color: "#E6E7EC", fontSize: 15, fontWeight: "700" },
+  intro: { color: "#A4AFCF", fontSize: 13, lineHeight: 19 },
+  section: { borderWidth: 1, borderColor: "#1E2D57", borderRadius: 12, padding: 16, gap: 10, backgroundColor: "#0C1733" },
+  sectionTitle: { color: "#F2F5FF", fontSize: 15, fontWeight: "700" },
   templates: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  template: { flexGrow: 1, flexBasis: 200, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 10, padding: 12, gap: 6, backgroundColor: "#292C36" },
-  templateOn: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.08)" },
+  template: { flexGrow: 1, flexBasis: 200, borderWidth: 1, borderColor: "#2E4377", borderRadius: 10, padding: 12, gap: 6, backgroundColor: "#111E3F" },
+  templateOn: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.08)" },
   templateTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   swatch: { width: 14, height: 14, borderRadius: 4 },
-  templateName: { color: "#E6E7EC", fontSize: 14, fontWeight: "700" },
-  defaultTag: { color: "#B5A5FF", fontSize: 12, fontWeight: "700", borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingHorizontal: 6 },
-  small: { color: "#A1A5B3", fontSize: 12 },
-  label: { fontSize: 13, color: "#A1A5B3", marginTop: 2 },
+  templateName: { color: "#F2F5FF", fontSize: 14, fontWeight: "700" },
+  defaultTag: { color: "#5B9BFF", fontSize: 12, fontWeight: "700", borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingHorizontal: 6 },
+  small: { color: "#A4AFCF", fontSize: 12 },
+  label: { fontSize: 13, color: "#A4AFCF", marginTop: 2 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   field: { flexGrow: 1, flexBasis: 200, gap: 6 },
-  input: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: "#E6E7EC", backgroundColor: "#292C36" },
-  inputBad: { borderColor: "#E58B91" },
+  input: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: "#F2F5FF", backgroundColor: "#111E3F" },
+  inputBad: { borderColor: "#FF5C75" },
   hexInput: { width: 110 },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, paddingVertical: 4 },
-  switchLabel: { color: "#E6E7EC", fontSize: 14, fontWeight: "600", flexShrink: 1 },
+  switchLabel: { color: "#F2F5FF", fontSize: 14, fontWeight: "600", flexShrink: 1 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#292C36" },
-  chipOn: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
-  chipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  chipTextOn: { color: "#B5A5FF" },
+  chip: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: "#111E3F" },
+  chipOn: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.14)" },
+  chipText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  chipTextOn: { color: "#5B9BFF" },
   colors: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
   colorDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "transparent" },
-  colorAuto: { width: 44, backgroundColor: "#292C36", borderColor: "#4B4F63", alignItems: "center", justifyContent: "center" },
-  autoText: { color: "#A1A5B3", fontSize: 12, fontWeight: "700" },
-  colorOn: { borderColor: "#E6E7EC" },
+  colorAuto: { width: 44, backgroundColor: "#111E3F", borderColor: "#2E4377", alignItems: "center", justifyContent: "center" },
+  autoText: { color: "#A4AFCF", fontSize: 12, fontWeight: "700" },
+  colorOn: { borderColor: "#F2F5FF" },
   sigRow: { flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" },
   sigImage: { width: 200, height: 70, borderRadius: 8, backgroundColor: "#ffffff" },
-  sigEmpty: { backgroundColor: "#292C36", borderWidth: 1, borderColor: "#4B4F63", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
-  secondary: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#4B4F63", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#292C36" },
-  secondaryText: { color: "#B5A5FF", fontWeight: "700", fontSize: 13 },
-  remove: { color: "#E58B91", fontSize: 13, fontWeight: "600" },
+  sigEmpty: { backgroundColor: "#111E3F", borderWidth: 1, borderColor: "#2E4377", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  secondary: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#2E4377", borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#111E3F" },
+  secondaryText: { color: "#5B9BFF", fontWeight: "700", fontSize: 13 },
+  remove: { color: "#FF5C75", fontSize: 13, fontWeight: "600" },
   actions: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  save: { backgroundColor: "#B5A5FF", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 24, alignItems: "center" },
-  saveText: { color: "#191B22", fontWeight: "700" },
-  reset: { color: "#A1A5B3", fontSize: 13, fontWeight: "600" },
+  save: { backgroundColor: "#5B9BFF", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 24, alignItems: "center" },
+  saveText: { color: "#070F24", fontWeight: "700" },
+  reset: { color: "#A4AFCF", fontSize: 13, fontWeight: "600" },
   disabled: { opacity: 0.5 },
-  error: { color: "#E58B91", fontSize: 13 },
-  success: { color: "#78C9A4", fontSize: 13, fontWeight: "600" },
+  error: { color: "#FF5C75", fontSize: 13 },
+  success: { color: "#22C58B", fontSize: 13, fontWeight: "600" },
 });

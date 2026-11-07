@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { View, Text, Pressable, StyleSheet, AccessibilityInfo } from "react-native";
 import Svg, { Circle, Defs, G, LinearGradient, Stop } from "react-native-svg";
 
@@ -16,15 +16,20 @@ interface DonutChartProps {
   centerValue: string | number;
   // false: counts only, no percentages (the reports show exact figures).
   showShare?: boolean;
+  // The empty ring and legend bars behind the slices (match the card the chart sits on).
+  trackColor?: string;
 }
 
 const SWEEP_MS = 1200;
 // Visible space between two statuses on the ring, in pixels.
 const GAP_PX = 5;
 
-export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel, centerValue, showShare = true }: DonutChartProps) {
+export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel, centerValue, showShare = true, trackColor = "#1E2D57" }: DonutChartProps) {
   const [progress, setProgress] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
+  // Gradient ids are page-wide on the web: a screen kept alive in the background would otherwise
+  // own "seg0", and a gradient inside a hidden screen paints nothing.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   const dataKey = segments.map((s) => `${s.label}:${s.value}`).join("|");
@@ -115,7 +120,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: [{ rotate: "-90deg" }] }}>
           <Defs>
             {segments.map((s, i) => (
-              <LinearGradient key={s.label} id={`seg${i}`} x1="0" y1="0" x2="1" y2="1">
+              <LinearGradient key={s.label} id={`seg${uid}${i}`} x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0" stopColor={s.color} stopOpacity={1} />
                 <Stop offset="1" stopColor={s.color} stopOpacity={0.72} />
               </LinearGradient>
@@ -123,7 +128,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
           </Defs>
 
           {/* The empty track the slices sweep around. */}
-          <Circle cx={center} cy={center} r={radius} stroke="#343746" strokeWidth={strokeWidth} fill="none" opacity={0.7} />
+          <Circle cx={center} cy={center} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" opacity={0.7} />
 
           {arcs.map((a) => {
             const dim = hover !== null && hover !== a.index;
@@ -141,7 +146,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
               <G key={a.label}>
                 {/* Glow: the same slice drawn wider and faint underneath. */}
                 <Circle {...common} stroke={a.color} strokeWidth={strokeWidth + (lit ? 16 : 11)} opacity={dim ? 0.03 : lit ? 0.2 : 0.1} />
-                <Circle {...common} stroke={`url(#seg${a.index})`} strokeWidth={lit ? strokeWidth + 3 : strokeWidth} opacity={dim ? 0.3 : 1} />
+                <Circle {...common} stroke={`url(#seg${uid}${a.index})`} strokeWidth={lit ? strokeWidth + 3 : strokeWidth} opacity={dim ? 0.3 : 1} />
               </G>
             );
           })}
@@ -181,7 +186,7 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
                 <Text style={styles.legendValue}>{s.value}</Text>
                 {showShare && <Text style={styles.legendShare}>{Math.round(share * 100)}%</Text>}
               </View>
-              <View style={styles.bar}>
+              <View style={[styles.bar, { backgroundColor: trackColor }]}>
                 <View style={[styles.barFill, { width: `${share * 100 * progress}%`, backgroundColor: s.color }]} />
               </View>
             </Pressable>
@@ -195,19 +200,19 @@ export function DonutChart({ segments, size = 160, strokeWidth = 14, centerLabel
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 18 },
   center: { position: "absolute", top: 0, left: 0, alignItems: "center", justifyContent: "center" },
-  centerValue: { fontSize: 30, fontWeight: "800", color: "#E6E7EC" },
-  centerLabel: { fontSize: 12, color: "#A1A5B3", marginTop: 2 },
+  centerValue: { fontSize: 30, fontWeight: "800", color: "#F2F5FF" },
+  centerLabel: { fontSize: 12, color: "#A4AFCF", marginTop: 2 },
   hitArea: { position: "absolute", top: 0, left: 0 },
 
   legend: { gap: 4, flex: 1 },
   legendItem: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, gap: 6, borderWidth: 1, borderColor: "transparent" },
-  legendItemActive: { backgroundColor: "rgba(181,165,255,0.06)", borderColor: "#343746" },
+  legendItemActive: { backgroundColor: "rgba(91,155,255,0.06)", borderColor: "#1E2D57" },
   legendDim: { opacity: 0.45 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   dot: { width: 9, height: 9, borderRadius: 5 },
-  legendLabel: { color: "#A1A5B3", fontSize: 13, flex: 1 },
-  legendValue: { color: "#E6E7EC", fontSize: 13, fontWeight: "700" },
-  legendShare: { color: "#A1A5B3", fontSize: 12, width: 34, textAlign: "right" },
-  bar: { height: 3, borderRadius: 2, backgroundColor: "#343746", overflow: "hidden" },
+  legendLabel: { color: "#A4AFCF", fontSize: 13, flex: 1 },
+  legendValue: { color: "#F2F5FF", fontSize: 13, fontWeight: "700" },
+  legendShare: { color: "#A4AFCF", fontSize: 12, width: 34, textAlign: "right" },
+  bar: { height: 3, borderRadius: 2, backgroundColor: "#1E2D57", overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 2 },
 });

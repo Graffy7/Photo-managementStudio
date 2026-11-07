@@ -73,17 +73,17 @@ export function EventQuoteModal({
               <Text style={styles.subtitle} numberOfLines={1}>{eventLabel}</Text>
             </View>
             <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={20} color="#A1A5B3" />
+              <Ionicons name="close" size={20} color="#A4AFCF" />
             </Pressable>
           </View>
 
           {isPending ? (
-            <ActivityIndicator color="#B5A5FF" style={{ marginVertical: 30 }} />
+            <ActivityIndicator color="#5B9BFF" style={{ marginVertical: 30 }} />
           ) : isError ? (
             <Text style={styles.empty}>Couldn't load the quotation.</Text>
           ) : !quote ? (
             <View style={styles.emptyBox}>
-              <Ionicons name="document-text-outline" size={26} color="#4B4F63" />
+              <Ionicons name="document-text-outline" size={26} color="#2E4377" />
               <Text style={styles.empty}>No quotation for {customerName} yet.</Text>
               <Text style={styles.emptyHint}>Create one from Quotations to see the agreed services here.</Text>
             </View>
@@ -149,41 +149,41 @@ function TotalLine({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(8,9,13,0.5)", alignItems: "center", justifyContent: "center", padding: 16 },
-  card: { width: "100%", maxWidth: 380, backgroundColor: "#292C36", borderRadius: 14, borderWidth: 1, borderColor: "#4B4F63", padding: 16 },
+  overlay: { flex: 1, backgroundColor: "rgba(2,6,20,0.5)", alignItems: "center", justifyContent: "center", padding: 16 },
+  card: { width: "100%", maxWidth: 380, backgroundColor: "#111E3F", borderRadius: 14, borderWidth: 1, borderColor: "#2E4377", padding: 16 },
   header: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 12 },
-  title: { color: "#E6E7EC", fontSize: 15, fontWeight: "700" },
-  subtitle: { color: "#A1A5B3", fontSize: 13, marginTop: 2 },
+  title: { color: "#F2F5FF", fontSize: 15, fontWeight: "700" },
+  subtitle: { color: "#A4AFCF", fontSize: 13, marginTop: 2 },
 
   chipScroll: { marginBottom: 10, flexGrow: 0 },
   chipRow: { gap: 6 },
-  chip: { borderWidth: 1, borderColor: "#4B4F63", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10, backgroundColor: "#22252E" },
-  chipSelected: { borderColor: "#B5A5FF", backgroundColor: "rgba(181,165,255,0.14)" },
-  chipText: { color: "#A1A5B3", fontSize: 12, fontWeight: "600" },
-  chipTextSelected: { color: "#B5A5FF" },
+  chip: { borderWidth: 1, borderColor: "#2E4377", borderRadius: 100, paddingVertical: 5, paddingHorizontal: 10, backgroundColor: "#0C1733" },
+  chipSelected: { borderColor: "#5B9BFF", backgroundColor: "rgba(91,155,255,0.14)" },
+  chipText: { color: "#A4AFCF", fontSize: 12, fontWeight: "600" },
+  chipTextSelected: { color: "#5B9BFF" },
 
   quoteHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  quoteMeta: { color: "#A1A5B3", fontSize: 13 },
-  notLinked: { color: "#E5B86B", fontSize: 12, marginBottom: 8 },
+  quoteMeta: { color: "#A4AFCF", fontSize: 13 },
+  notLinked: { color: "#FFA53D", fontSize: 12, marginBottom: 8 },
 
-  items: { maxHeight: 230, backgroundColor: "#22252E", borderRadius: 10, paddingHorizontal: 12 },
-  noItems: { color: "#A1A5B3", fontSize: 12, paddingVertical: 14, textAlign: "center" },
-  itemRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#343746" },
-  itemName: { color: "#E6E7EC", fontSize: 13, fontWeight: "600" },
-  itemNotes: { color: "#A1A5B3", fontSize: 12, marginTop: 2 },
-  itemQty: { color: "#A1A5B3", fontSize: 12 },
-  itemTotal: { color: "#E6E7EC", fontSize: 13, fontWeight: "700", minWidth: 64, textAlign: "right" },
+  items: { maxHeight: 230, backgroundColor: "#0C1733", borderRadius: 10, paddingHorizontal: 12 },
+  noItems: { color: "#A4AFCF", fontSize: 12, paddingVertical: 14, textAlign: "center" },
+  itemRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#1E2D57" },
+  itemName: { color: "#F2F5FF", fontSize: 13, fontWeight: "600" },
+  itemNotes: { color: "#A4AFCF", fontSize: 12, marginTop: 2 },
+  itemQty: { color: "#A4AFCF", fontSize: 12 },
+  itemTotal: { color: "#F2F5FF", fontSize: 13, fontWeight: "700", minWidth: 64, textAlign: "right" },
 
   totals: { marginTop: 10, gap: 4 },
   totalLine: { flexDirection: "row", justifyContent: "space-between" },
-  totalLabel: { color: "#A1A5B3", fontSize: 12 },
-  totalValue: { color: "#A1A5B3", fontSize: 12 },
-  grandRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#343746" },
-  grandLabel: { color: "#E6E7EC", fontSize: 13, fontWeight: "700" },
-  grandValue: { color: "#B5A5FF", fontSize: 16, fontWeight: "800" },
-  terms: { color: "#A1A5B3", fontSize: 12, marginTop: 10 },
+  totalLabel: { color: "#A4AFCF", fontSize: 12 },
+  totalValue: { color: "#A4AFCF", fontSize: 12 },
+  grandRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1E2D57" },
+  grandLabel: { color: "#F2F5FF", fontSize: 13, fontWeight: "700" },
+  grandValue: { color: "#5B9BFF", fontSize: 16, fontWeight: "800" },
+  terms: { color: "#A4AFCF", fontSize: 12, marginTop: 10 },
 
   emptyBox: { alignItems: "center", gap: 6, paddingVertical: 22 },
-  empty: { color: "#A1A5B3", fontSize: 13, textAlign: "center" },
-  emptyHint: { color: "#A1A5B3", fontSize: 13, textAlign: "center" },
+  empty: { color: "#A4AFCF", fontSize: 13, textAlign: "center" },
+  emptyHint: { color: "#A4AFCF", fontSize: 13, textAlign: "center" },
 });

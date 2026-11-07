@@ -6,6 +6,7 @@ import { Pagination } from "./Pagination";
 import { Skeleton } from "./Skeleton";
 import { useBreakpoint } from "./useBreakpoint";
 import { colors, radius, space, type, shadow, transition, webShadow } from "./theme";
+import { hoverLift } from "./webHover";
 
 export interface Column<T> {
   key: string;
@@ -141,7 +142,7 @@ export function DataList<T>(props: Props<T>) {
             key={keyOf(item)}
             onPress={onRowPress ? () => onRowPress(item) : undefined}
             disabled={!onRowPress}
-            style={({ pressed }) => [styles.card, pressed && onRowPress && styles.pressed]}
+            {...hoverLift} style={({ pressed }) => [styles.card, pressed && onRowPress && styles.pressed]}
           >
             {renderCard(item)}
           </Pressable>
@@ -218,7 +219,7 @@ export function CellMoney({ children, tone }: { children: ReactNode; tone?: stri
 
 const styles = StyleSheet.create({
   table: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", ...webShadow(shadow.card) },
-  headRow: { flexDirection: "row", alignItems: "center", minHeight: 44, paddingHorizontal: space.sm, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: "#262932" },
+  headRow: { flexDirection: "row", alignItems: "center", minHeight: 44, paddingHorizontal: space.sm, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.cardRaised },
   headPress: { alignSelf: "stretch" },
   headInner: { flexDirection: "row", alignItems: "center", gap: 4 },
   headText: { ...type.caption, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.4 },
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: space.sm, paddingVertical: space.sm,
     borderBottomWidth: 1, borderBottomColor: colors.border, position: "relative", ...transition,
   },
-  rowHover: { backgroundColor: "#303441" },
+  rowHover: { backgroundColor: "#162650" },
   rowMarker: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, backgroundColor: colors.primary },
   tableScroll: { overflowX: "auto", overflowY: "hidden" } as object,
   cards: { gap: space.md },

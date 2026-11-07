@@ -12,6 +12,7 @@ public class DayBoardEventDto
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = null!;
     public string CustomerMobileNumber { get; set; } = null!;
+    public int? EventTypeId { get; set; }
     public string? EventTypeName { get; set; }
     public string EventStatus { get; set; } = null!;
     public decimal? Budget { get; set; }

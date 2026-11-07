@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   // Accent border plus a soft ring when typing.
   wrapperFocused: {
     borderColor: colors.primary,
-    ...(Platform.OS === "web" ? ({ boxShadow: "0 0 0 3px rgba(181,165,255,0.12)" } as object) : {}),
+    ...(Platform.OS === "web" ? ({ boxShadow: "0 0 0 3px rgba(91,155,255,0.12)" } as object) : {}),
   },
   icon: { marginLeft: space.md },
   input: {

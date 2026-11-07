@@ -162,9 +162,9 @@ const styles = StyleSheet.create({
   signOutText: { color: T.bad, fontWeight: "700", fontSize: 13 },
   banner: {
     flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap", paddingHorizontal: 16, paddingVertical: 9,
-    backgroundColor: "rgba(229,184,107,0.1)", borderBottomWidth: 1, borderBottomColor: "rgba(229,184,107,0.35)",
+    backgroundColor: "rgba(255,165,61,0.1)", borderBottomWidth: 1, borderBottomColor: "rgba(255,165,61,0.35)",
   },
-  bannerRed: { backgroundColor: "rgba(229,139,145,0.1)", borderBottomColor: "rgba(229,139,145,0.4)" },
+  bannerRed: { backgroundColor: "rgba(255,92,117,0.1)", borderBottomColor: "rgba(255,92,117,0.4)" },
   bannerText: { color: T.text, fontSize: 13, flexShrink: 1 },
   bannerLink: { color: T.warn, fontSize: 13, fontWeight: "700" },
 });

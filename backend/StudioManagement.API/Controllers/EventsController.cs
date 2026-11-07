@@ -35,8 +35,19 @@ public class EventsController(
         [FromQuery] DateTime? upcomingFrom = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDesc = false,
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        // Comma-separated, e.g. "3,7,12".
+        [FromQuery] string? eventTypeIds = null,
+        [FromQuery] bool includeUntyped = false,
         CancellationToken ct = default) =>
-        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom, new ListSort(sortBy, sortDesc)));
+        Ok(await eventService.SearchAsync(StudioId, search, eventStatus, customerId, eventDate, page, pageSize, ct, upcomingFrom, new ListSort(sortBy, sortDesc),
+            dateFrom, dateTo, ParseIds(eventTypeIds), includeUntyped));
+
+    // "3,7,12" -> [3, 7, 12]; null when the filter isn't used. An empty string means "no types".
+    private static List<int>? ParseIds(string? csv) =>
+        csv is null ? null : csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => int.TryParse(s, out var id) ? id : (int?)null).OfType<int>().ToList();
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)

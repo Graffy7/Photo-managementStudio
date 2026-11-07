@@ -3,7 +3,7 @@ import { Pressable, Text, View, ActivityIndicator, StyleSheet, type StyleProp, t
 import { Ionicons } from "@expo/vector-icons";
 import { colors, radius, touch, shadow, transition, webShadow, hoverMotion } from "./theme";
 
-type Variant = "primary" | "secondary" | "link" | "danger";
+type Variant = "primary" | "secondary" | "link" | "danger" | "destructive";
 
 interface Props {
   label: string;
@@ -20,7 +20,8 @@ interface Props {
 }
 
 // The app's one button. Primary = the main action on a screen (use one), secondary = everything
-// else, link = light inline actions (View), danger = destructive (Delete).
+// else, link = light inline actions (View), danger = destructive (Delete) in a row of buttons,
+// destructive = the solid red final "Delete" in a confirmation dialog.
 export function Button({ label, onPress, variant = "secondary", icon, disabled, loading, full, style, accessibilityLabel }: Props) {
   const v = VARIANTS[variant];
   const inactive = disabled || loading;
@@ -61,10 +62,10 @@ export function Button({ label, onPress, variant = "secondary", icon, disabled, 
 const lift = hoverMotion([{ translateY: -1 }]);
 const VARIANTS: Record<Variant, { box: ViewStyle; hover: ViewStyle; pressed: ViewStyle; text: { color: string } }> = {
   primary: {
-    box: { backgroundColor: colors.primary },
-    hover: { backgroundColor: colors.primaryHover, ...lift, ...webShadow(shadow.button) },
-    pressed: { backgroundColor: colors.primaryHover },
-    text: { color: colors.onPrimary },
+    box: { backgroundColor: colors.primaryFill },
+    hover: { backgroundColor: colors.primaryFillHover, ...lift, ...webShadow(shadow.button) },
+    pressed: { backgroundColor: colors.primaryFillHover },
+    text: { color: colors.onPrimaryFill },
   },
   secondary: {
     box: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
@@ -73,6 +74,12 @@ const VARIANTS: Record<Variant, { box: ViewStyle; hover: ViewStyle; pressed: Vie
     text: { color: colors.text },
   },
   link: { box: { paddingHorizontal: 10 }, hover: { backgroundColor: colors.primarySoft }, pressed: { opacity: 0.7 }, text: { color: colors.link } },
+  destructive: {
+    box: { backgroundColor: "#D92D4A" }, // deeper than colors.danger so white text stays readable
+    hover: { backgroundColor: "#E5405B", ...lift, ...webShadow("0 6px 18px rgba(255,92,117,0.35)") },
+    pressed: { backgroundColor: "#E5405B" },
+    text: { color: colors.onPrimaryFill },
+  },
   danger: {
     box: { borderWidth: 1, borderColor: colors.dangerBorder, backgroundColor: colors.card },
     hover: { backgroundColor: colors.dangerSoft, ...lift },

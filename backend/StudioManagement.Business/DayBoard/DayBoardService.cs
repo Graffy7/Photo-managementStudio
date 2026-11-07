@@ -56,6 +56,7 @@ public class DayBoardService(IEventRepository eventRepository) : IDayBoardServic
             CustomerId = @event.CustomerId,
             CustomerName = @event.Customer.FullName,
             CustomerMobileNumber = @event.Customer.MobileNumber,
+            EventTypeId = @event.EventTypeId,
             EventTypeName = @event.EventType?.Name,
             EventStatus = @event.EventStatus,
             Budget = @event.Budget,

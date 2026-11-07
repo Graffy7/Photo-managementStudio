@@ -1,9 +1,9 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "../types/studio";
-import type { CreateLeadRequest, Lead, UpdateLeadRequest } from "../types/lead";
+import type { CreateLeadRequest, Lead, LeadOutcome, UpdateLeadRequest } from "../types/lead";
 
 export const leadsApi = {
-  search: (params: { search?: string; leadStatusId?: number; createdFrom?: string; createdTo?: string; page?: number; pageSize?: number; sortBy?: string; sortDesc?: boolean }) =>
+  search: (params: { search?: string; leadStatusId?: number; outcome?: LeadOutcome; createdFrom?: string; createdTo?: string; page?: number; pageSize?: number; sortBy?: string; sortDesc?: boolean }) =>
     apiClient.get<PagedResult<Lead>>("/api/leads", { params }).then((res) => res.data),
 
   getById: (id: number) => apiClient.get<Lead>(`/api/leads/${id}`).then((res) => res.data),

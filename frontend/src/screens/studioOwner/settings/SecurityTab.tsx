@@ -6,6 +6,8 @@ import { authApi } from "../../../api/authApi";
 import { useAuthStore } from "../../../auth/authStore";
 import { extractErrorMessage } from "../../../api/errorMessage";
 import { StatusPill } from "../../../components/StatusPill";
+import { hoverGlow } from "../../../ui/webHover";
+import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "This is your first login";
@@ -38,7 +40,7 @@ export function SecurityTab() {
 
   return (
     <View>
-      <View style={styles.card}>
+      <View {...hoverGlow} style={styles.card}>
         <Row label="Last login" value={formatDateTime(user?.lastLoginAt ?? null)} />
         <Row
           label="Account status"
@@ -52,51 +54,45 @@ export function SecurityTab() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {confirming ? (
-        <View style={styles.confirmRow}>
-          <Text style={styles.confirmText}>Sign out of every device where you're logged in?</Text>
-          <Pressable onPress={() => setConfirming(false)}>
-            <Text style={styles.cancelLink}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={() => logoutEverywhereMutation.mutate()} disabled={logoutEverywhereMutation.isPending}>
-            {logoutEverywhereMutation.isPending ? (
-              <ActivityIndicator color="#E58B91" size="small" />
-            ) : (
-              <Text style={styles.confirmLink}>Yes, sign out everywhere</Text>
-            )}
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable style={styles.dangerButton} onPress={() => setConfirming(true)}>
-          <Text style={styles.dangerButtonText}>Sign out of all devices</Text>
-        </Pressable>
-      )}
+      <Pressable style={styles.dangerButton} onPress={() => setConfirming(true)}>
+        <Text style={styles.dangerButtonText}>Sign out of all devices</Text>
+      </Pressable>
+      <ConfirmDialog
+        visible={confirming}
+        icon="log-out-outline"
+        title="Sign out everywhere?"
+        message="You'll be signed out on every device where you're logged in, including this one."
+        confirmLabel="Sign out"
+        busy={logoutEverywhereMutation.isPending}
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => logoutEverywhereMutation.mutate()}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1, borderColor: "#4B4F63", borderRadius: 10, backgroundColor: "#292C36", overflow: "hidden", marginBottom: 16,
+    borderWidth: 1, borderColor: "#2E4377", borderRadius: 10, backgroundColor: "#111E3F", overflow: "hidden", marginBottom: 16,
   },
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#343746",
+    paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#1E2D57",
   },
   linkRow: {},
-  rowLabel: { color: "#E6E7EC", fontSize: 14, fontWeight: "600" },
-  rowValue: { color: "#A1A5B3", fontSize: 13 },
-  chevron: { color: "#A1A5B3", fontSize: 18 },
-  error: { color: "#E58B91", fontSize: 13, marginBottom: 8 },
+  rowLabel: { color: "#F2F5FF", fontSize: 14, fontWeight: "600" },
+  rowValue: { color: "#A4AFCF", fontSize: 13 },
+  chevron: { color: "#A4AFCF", fontSize: 18 },
+  error: { color: "#FF5C75", fontSize: 13, marginBottom: 8 },
   dangerButton: {
-    borderWidth: 1, borderColor: "#E58B91", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",
+    borderWidth: 1, borderColor: "#FF5C75", borderRadius: 8, paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",
   },
-  dangerButtonText: { color: "#E58B91", fontWeight: "700", fontSize: 13 },
+  dangerButtonText: { color: "#FF5C75", fontWeight: "700", fontSize: 13 },
   confirmRow: {
     flexDirection: "row", alignItems: "center", gap: 16, padding: 12,
-    borderWidth: 1, borderColor: "#4B4F63", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#22252E",
+    borderWidth: 1, borderColor: "#2E4377", borderStyle: "dashed", borderRadius: 8, backgroundColor: "#0C1733",
   },
-  confirmText: { color: "#E6E7EC", fontSize: 13, flex: 1 },
-  cancelLink: { color: "#A1A5B3", fontSize: 13, fontWeight: "600" },
-  confirmLink: { color: "#E58B91", fontSize: 13, fontWeight: "700" },
+  confirmText: { color: "#F2F5FF", fontSize: 13, flex: 1 },
+  cancelLink: { color: "#A4AFCF", fontSize: 13, fontWeight: "600" },
+  confirmLink: { color: "#FF5C75", fontSize: 13, fontWeight: "700" },
 });

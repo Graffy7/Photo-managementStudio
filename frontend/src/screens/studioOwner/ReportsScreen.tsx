@@ -23,6 +23,7 @@ import { Skeleton } from "../../ui/Skeleton";
 import { useBreakpoint } from "../../ui/useBreakpoint";
 import { colors, radius, space, type } from "../../ui/theme";
 import { ReportDetails } from "./ReportDetails";
+import { hoverGlow, hoverLift } from "../../ui/webHover";
 
 const PRESETS: { value: ReportPreset; label: string }[] = [
   { value: "Last7Days", label: "7 Days" },
@@ -34,8 +35,8 @@ const PRESETS: { value: ReportPreset; label: string }[] = [
 ];
 
 // One colour per meaning across the page: blue bookings, green money, orange still to pay, red cancelled.
-const C = { blue: "#5B7A99", green: "#78C9A4", orange: "#E5B86B", red: "#E58B91", sky: "#B5A5FF" };
-const TYPE_COLORS = ["#5B7A99", "#8C7FA6", "#78C9A4", "#E5B86B", "#E58B91", "#5ad8e6", "#f58ac8", "#A1A5B3"];
+const C = { blue: "#2F7BFF", green: "#22C58B", orange: "#FFA53D", red: "#FF5C75", sky: "#5B9BFF" };
+const TYPE_COLORS = ["#8B6CFF", "#2F7BFF", "#22C58B", "#FFA53D", "#FF5C75", "#5ad8e6", "#f58ac8", "#A4AFCF"];
 
 const rupees = (v: number) => `₹${Math.round(v).toLocaleString("en-IN")}`;
 const count = (n: number) => n.toLocaleString("en-IN");
@@ -60,7 +61,7 @@ function SummaryCard({ icon, label, value, rule, color, compact }: {
   icon: keyof typeof Ionicons.glyphMap; label: string; value: string; rule: string; color: string; compact?: boolean;
 }) {
   return (
-    <View style={[styles.card, compact && styles.cardCompact, compact && { borderLeftWidth: 3, borderLeftColor: color }]}>
+    <View {...hoverLift} style={[styles.card, compact && styles.cardCompact, compact && { borderLeftWidth: 3, borderLeftColor: color }]}>
       {!compact && (
         <View style={[styles.cardIcon, { backgroundColor: `${color}22` }]}>
           <Ionicons name={icon} size={22} color={color} />
@@ -77,7 +78,7 @@ function SummaryCard({ icon, label, value, rule, color, compact }: {
 
 function Panel({ title, total, children }: { title: string; total?: string; children: React.ReactNode }) {
   return (
-    <View style={styles.panel}>
+    <View {...hoverGlow} style={styles.panel}>
       <View style={styles.panelHead}>
         <Text style={styles.panelTitle}>{title}</Text>
         {total ? <Text style={styles.panelTotal}>{total}</Text> : null}
@@ -324,7 +325,7 @@ export function ReportsScreen() {
   );
 }
 
-const glow = Platform.OS === "web" ? ({ boxShadow: "0 0 0 1px rgba(181,165,255,0.1), 0 10px 30px rgba(181,165,255,0.08)" } as object) : {};
+const glow = Platform.OS === "web" ? ({ boxShadow: "0 0 0 1px rgba(91,155,255,0.1), 0 10px 30px rgba(91,155,255,0.08)" } as object) : {};
 const webGrid = (min: number) =>
   (Platform.OS === "web"
     ? { display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: space.md }
@@ -347,7 +348,7 @@ const styles = StyleSheet.create({
   exportText: { ...type.small, fontWeight: "700", color: colors.text },
   exportMenu: {
     position: "absolute", top: 42, right: 0, width: 210, backgroundColor: colors.cardRaised, borderRadius: radius.control,
-    paddingVertical: 4, zIndex: 20, ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 32px rgba(8,9,13,0.19)" } as object) : {}),
+    paddingVertical: 4, zIndex: 20, ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 32px rgba(2,6,20,0.19)" } as object) : {}),
   },
   exportItem: { paddingVertical: 8, paddingHorizontal: space.md },
   exportItemTitle: { ...type.small, fontWeight: "700", color: colors.text },

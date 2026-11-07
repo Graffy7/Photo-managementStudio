@@ -69,7 +69,7 @@ export function AdminDashboardScreen({ onOpenStudio, onViewStudios }: {
                 <LineChart
                   height={190}
                   color={C.accent}
-                  accentColor="#9d8cf2"
+                  accentColor="#5B9BFF"
                   formatValue={money}
                   points={data.revenueByMonth.map((m) => ({ label: monthLabel(m.month), value: m.value }))}
                 />
