@@ -22,7 +22,9 @@ $BakFile = (Resolve-Path $BakFile).Path
 $folder = Split-Path $BakFile
 
 # The SQL Server service reads the file itself, so it needs permission on the folder.
-icacls $folder /grant "$(Get-SqlServiceAccount $Server):(OI)(CI)M" 2>$null | Out-Null
+# Not fatal: some installs can't resolve the service account name, and the folder may already be readable.
+try { icacls $folder /grant "$(Get-SqlServiceAccount $Server):(OI)(CI)M" 2>$null | Out-Null }
+catch { Write-Host "Couldn't grant the SQL Server service folder permission ($($_.Exception.Message.Trim())) - continuing." }
 
 sqlcmd -S $Server -E -C -b -Q "RESTORE VERIFYONLY FROM DISK = N'$BakFile' WITH CHECKSUM"
 if ($LASTEXITCODE -ne 0) { throw "The backup file is damaged or unreadable - nothing was changed." }

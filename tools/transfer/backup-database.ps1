@@ -18,7 +18,9 @@ function Get-SqlServiceAccount([string]$Server) {
 
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = (Resolve-Path $OutDir).Path
-icacls $OutDir /grant "$(Get-SqlServiceAccount $Server):(OI)(CI)M" | Out-Null
+# Not fatal: some installs can't resolve the service account name, and the folder may already be writable.
+try { icacls $OutDir /grant "$(Get-SqlServiceAccount $Server):(OI)(CI)M" 2>$null | Out-Null }
+catch { Write-Host "Couldn't grant the SQL Server service folder permission ($($_.Exception.Message.Trim())) - continuing." }
 
 $stamp = Get-Date -Format "yyyy-MM-dd_HHmm"
 $bak = Join-Path $OutDir "${Database}_$stamp.bak"
