@@ -5,9 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { photoSelectionApi } from "../api/photoSelectionApi";
 import { extractErrorMessage } from "../api/errorMessage";
 
-// Picks a folder inside the studio's own photo folder on the server, so the owner points at where
-// the original photos live instead of typing a path. The server never lists anything outside that
-// folder. Only folder names are listed — the photos themselves are never read until Import.
+// Picks a folder on the server so the owner points at where the original photos live instead of
+// typing a path. If the studio has a configured photo root, browsing is confined to it; otherwise
+// it opens like a normal folder picker (This PC, drives, any folder). Only folder names are listed
+// — the photos themselves are never read until Import.
 export function FolderBrowserModal({
   visible,
   onClose,
@@ -31,12 +32,16 @@ export function FolderBrowserModal({
     retry: false,
   });
 
-  // At the studio's photo folder itself there's nowhere further up to go.
+  // At the studio's photo folder itself (or, when unrestricted, the top-level list) there's
+  // nowhere further up to go.
   const atRoot = !data?.parentPath;
   const folders = data?.folders ?? [];
   const shownPath = data?.currentPath ?? currentPath;
-  const relative = shownPath && data?.rootPath && shownPath.length > data.rootPath.length
-    ? shownPath.slice(data.rootPath.length).replace(/^[\\/]/, "")
+  // A studio with a configured photo root is confined to it (breadcrumb shows "Studio photos");
+  // otherwise browsing is unrestricted and the real path is shown, like a normal folder picker.
+  const isRestricted = !!data?.rootPath;
+  const relative = shownPath && isRestricted && shownPath.length > data!.rootPath!.length
+    ? shownPath.slice(data!.rootPath!.length).replace(/^[\\/]/, "")
     : null;
 
   return (
@@ -57,9 +62,11 @@ export function FolderBrowserModal({
                 <Text style={styles.upButtonText}>Up</Text>
               </Pressable>
             )}
-            <Ionicons name="lock-closed-outline" size={12} color="#A1A5B3" />
+            {isRestricted && <Ionicons name="lock-closed-outline" size={12} color="#A1A5B3" />}
             <Text style={styles.pathText} numberOfLines={1}>
-              {relative ? `Studio photos › ${relative.split(/[\\/]/).join(" › ")}` : "Studio photos"}
+              {isRestricted
+                ? (relative ? `Studio photos › ${relative.split(/[\\/]/).join(" › ")}` : "Studio photos")
+                : (shownPath ?? "This PC")}
             </Text>
           </View>
 

@@ -11,6 +11,7 @@ import { StudioBrandHeader } from "../../components/StudioBrandHeader";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { SelectionReviewModal } from "./SelectionReviewModal";
 import { useSelectionSaver } from "./useSelectionSaver";
+import { CameraModeToggle, useCapture } from "../../shutter";
 import { Button } from "../../ui/Button";
 import { Skeleton } from "../../ui/Skeleton";
 import { useBreakpoint } from "../../ui/useBreakpoint";
@@ -121,7 +122,9 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
       if (submittedRef.current) setChangedSinceSubmit(true);
     },
   });
-  const { counts, effective, setSelection, error, dismissError } = saver;
+  const { counts, effective, error, dismissError } = saver;
+  // Choosing a photo is this page's capture action: with Camera Mode on, a rapid double tap counts once.
+  const setSelection = useCapture(saver.setSelection, (photo, next) => `${photo.photoId}:${next}`);
 
   const { data: folders = [], isPending: foldersPending } = useQuery({
     queryKey: ["public-folders", token, counts.selected],
@@ -249,6 +252,10 @@ function Gallery({ token, gallery }: { token: string; gallery: PublicGallery }) 
                 <Step n={3} text="Review and send to the studio" />
               </View>
             )}
+
+            <View style={{ marginTop: space.lg }}>
+              <CameraModeToggle />
+            </View>
 
             <Text style={styles.sectionTitle}>Your photos</Text>
             {foldersPending ? (

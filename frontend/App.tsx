@@ -8,6 +8,7 @@ import { CameraCursor } from "./src/cameraCursor/CameraCursor";
 import { installWebScrollbars } from "./src/ui/webScrollbars";
 import { installWebFont } from "./src/ui/webFont";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
+import { ShutterProvider } from "./src/shutter";
 
 // Data counts as fresh for 30 seconds, so moving between screens re-uses it instead of re-asking.
 // Window-focus refetching is off: it would reload every screen still mounted in the navigation
@@ -30,7 +31,7 @@ installWebFont();
 
 export default function App() {
   const [token] = useState(photoSelectionToken);
-  return token ? <PublicPhotoSelection token={token} /> : <AuthenticatedApp />;
+  return <ShutterProvider>{token ? <PublicPhotoSelection token={token} /> : <AuthenticatedApp />}</ShutterProvider>;
 }
 
 const publicQueryClient = new QueryClient({ defaultOptions: { queries: { retry: 1 } } });

@@ -28,7 +28,7 @@ public class NotificationSettingsDto
 // appears on another's PDFs.
 public class PdfSettingsDto
 {
-    public string Template { get; set; } = "Classic";          // Classic / Modern / Minimal / Elegant
+    public string Template { get; set; } = "Classic";          // Classic / Modern / Minimal / Elegant / Traditional
     public string HeaderStyle { get; set; } = "Standard";      // Standard / Banner / Centered
     public string PrimaryColor { get; set; } = "";             // #RRGGBB; empty = the template's own
     public string AccentColor { get; set; } = "";              // #RRGGBB; empty = primary

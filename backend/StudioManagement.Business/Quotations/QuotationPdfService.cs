@@ -24,6 +24,22 @@ public class QuotationPdfService(
     IStudioSettingsService studioSettingsService,
     IFileStorage fileStorage) : IQuotationPdfService
 {
+    // Traditional's fonts. Quicksand (SIL Open Font License) ships inside this assembly. The bold
+    // serif is not bundled - Times New Roman and Georgia can't be redistributed - so it is taken
+    // from the machine, falling back through the list.
+    private const string Rounded = "Quicksand";
+    private static readonly string[] Serif = ["Times New Roman", "Georgia", "Liberation Serif", "DejaVu Serif"];
+
+    static QuotationPdfService()
+    {
+        var assembly = typeof(QuotationPdfService).Assembly;
+        foreach (var resource in assembly.GetManifestResourceNames().Where(n => n.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)))
+        {
+            using var stream = assembly.GetManifestResourceStream(resource)!;
+            QuestPDF.Drawing.FontManager.RegisterFont(stream);
+        }
+    }
+
     public async Task<byte[]> GenerateAsync(int studioId, QuotationDto quotation, CancellationToken ct = default)
     {
         var pdf = await studioSettingsService.GetPdfSettingsAsync(studioId, ct);
@@ -41,6 +57,7 @@ public class QuotationPdfService(
             CustomerName = "Sample Customer",
             CustomerMobileNumber = "98765 43210",
             EventVenue = "Sample Venue, City",
+            EventTypeName = "Wedding",
             QuotationDate = today,
             ValidUntil = today.AddDays(15),
             Status = "Draft",
@@ -101,7 +118,14 @@ public class QuotationPdfService(
                     page.Background().AlignCenter().AlignMiddle().Width(320).Image(watermarkBytes).FitWidth();
                 }
 
-                page.Header().Element(h => Header(h, s, pdf, studio, settings, quotation, name, headerLogoBytes));
+                var traditional = pdf.Template == "Traditional";
+
+                page.Header().Element(h =>
+                {
+                    if (traditional) TraditionalHeader(h, studio, settings, pdf, headerLogoBytes, name);
+                    else Header(h, s, pdf, studio, settings, quotation, name, headerLogoBytes);
+                });
+
                 page.Content().PaddingTop(20).Column(col =>
                 {
                     col.Spacing(16);
@@ -110,6 +134,44 @@ public class QuotationPdfService(
                     {
                         col.Item().Background(Colors.Yellow.Lighten4).Padding(6).AlignCenter()
                             .Text("SAMPLE PREVIEW — not a real quotation").FontSize(9).Bold().FontColor(Colors.Orange.Darken3);
+                    }
+
+                    if (traditional)
+                    {
+                        col.Item().Element(c => TraditionalEventInfo(c, quotation));
+
+                        if (quotation.PriceDisplay == Data.Common.QuotationPriceDisplays.TotalOnly)
+                        {
+                            col.Item().Element(c => TraditionalServicesOnly(c, quotation));
+                        }
+                        else
+                        {
+                            col.Item().Element(c => TraditionalItems(c, quotation));
+                        }
+                        col.Item().Element(c => TraditionalTotal(c, quotation));
+
+                        if (terms is not null)
+                        {
+                            col.Item().Column(t =>
+                            {
+                                t.Item().AlignCenter().Text("OUTPUT").FontSize(13).Bold().FontFamily(Rounded).FontColor(Colors.Black);
+                                t.Item().AlignCenter().Text(terms).FontSize(11).FontFamily(Rounded).FontColor(Colors.Black);
+                            });
+                        }
+
+                        var tPayment = pdf.ShowPaymentDetails && HasPaymentDetails(pdf);
+                        var tSignature = pdf.ShowSignature && (signatureBytes is not null || !string.IsNullOrWhiteSpace(pdf.SignatoryName));
+                        if (tPayment || tSignature)
+                        {
+                            col.Item().PaddingTop(6).Row(row =>
+                            {
+                                if (tPayment) row.RelativeItem().Element(c => PaymentDetails(c, s, pdf));
+                                else row.RelativeItem();
+                                if (tSignature) row.ConstantItem(190).Element(c => Signature(c, s, pdf, signatureBytes, name));
+                            });
+                        }
+
+                        return;
                     }
 
                     col.Item().Column(bill =>
@@ -262,6 +324,120 @@ public class QuotationPdfService(
                 break;
         }
     }
+
+    // "Traditional": a plain black-and-white receipt look, modelled on the hand-written-style
+    // quotes many studios already use — big bold stacked line items ("Service = Amount"), no
+    // table grid or colour, the studio's phone number emphasised, and an "OUTPUT" notes block
+    // instead of "Terms & Conditions". Ignores HeaderStyle/colour settings; it always looks
+    // like this, the same way Classic always looks like the original design.
+    private static void TraditionalHeader(IContainer c, Studio? studio, QuotationSettingsDto settings, PdfSettingsDto pdf, byte[]? logo, string name)
+    {
+        c.DefaultTextStyle(t => t.FontFamily(Rounded).FontColor(Colors.Black)).Row(row =>
+        {
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().Text(name).FontSize(24).Bold();
+                if (settings.ShowAddress && !string.IsNullOrWhiteSpace(studio?.Address))
+                {
+                    var address = string.Join(", ", new[] { studio!.Address, studio.City, studio.State, studio.Pincode }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                    col.Item().PaddingTop(2).Text(address).FontSize(11);
+                }
+                if (settings.ShowContact && !string.IsNullOrWhiteSpace(studio?.PhoneNumber))
+                {
+                    col.Item().PaddingTop(4).Text(studio!.PhoneNumber).FontSize(17).Bold();
+                }
+                if (settings.ShowContact && !string.IsNullOrWhiteSpace(studio?.Email))
+                {
+                    col.Item().Text($"email. {studio!.Email}").FontSize(11);
+                }
+                if (pdf.ShowWebsite && !string.IsNullOrWhiteSpace(studio?.Website))
+                {
+                    col.Item().Text(studio!.Website).FontSize(11);
+                }
+                if (settings.ShowGst && !string.IsNullOrWhiteSpace(studio?.GstNumber))
+                {
+                    col.Item().PaddingTop(2).Text($"GSTIN: {studio!.GstNumber}").FontSize(9).FontColor(Colors.Grey.Darken1);
+                }
+            });
+            if (logo is not null)
+            {
+                row.ConstantItem(90).AlignRight().Height(85).Image(logo).FitArea();
+            }
+        });
+    }
+
+    private static void TraditionalEventInfo(IContainer c, QuotationDto q)
+    {
+        c.DefaultTextStyle(t => t.FontFamily(Serif).FontColor(Colors.Black)).AlignCenter().Column(col =>
+        {
+            col.Spacing(2);
+            col.Item().AlignCenter().Text(q.CustomerName).FontSize(13).Bold();
+            col.Item().AlignCenter().Text($"{q.QuotationDate:dd.MM.yyyy}").FontSize(13).Bold();
+            if (!string.IsNullOrWhiteSpace(q.EventTypeName))
+            {
+                col.Item().AlignCenter().Text(q.EventTypeName).FontSize(15).Bold();
+            }
+            if (!string.IsNullOrWhiteSpace(q.EventVenue))
+            {
+                col.Item().AlignCenter().Text(q.EventVenue).FontSize(13).Bold();
+            }
+        });
+    }
+
+    private static void TraditionalItems(IContainer c, QuotationDto q)
+    {
+        c.DefaultTextStyle(t => t.FontFamily(Serif).FontColor(Colors.Black)).PaddingTop(10).Column(col =>
+        {
+            col.Spacing(10);
+            foreach (var item in q.Items)
+            {
+                col.Item().Row(row =>
+                {
+                    var label = item.Quantity == 1 ? item.ServiceName : $"{item.ServiceName} x {item.Quantity:0.##}";
+                    row.RelativeItem().Text(label).FontSize(19).Bold();
+                    row.ConstantItem(140).AlignRight().Text($"= {FormatPlain(item.Total)}").FontSize(19).Bold();
+                });
+                if (!string.IsNullOrWhiteSpace(item.Notes))
+                {
+                    col.Item().PaddingLeft(8).Text(item.Notes).FontSize(11).FontFamily(Rounded);
+                }
+            }
+        });
+    }
+
+    private static void TraditionalServicesOnly(IContainer c, QuotationDto q)
+    {
+        c.DefaultTextStyle(t => t.FontFamily(Serif).FontColor(Colors.Black)).PaddingTop(10).Column(col =>
+        {
+            col.Spacing(10);
+            foreach (var item in q.Items)
+            {
+                var label = item.Quantity == 1 ? item.ServiceName : $"{item.ServiceName} x {item.Quantity:0.##}";
+                col.Item().Text(label).FontSize(19).Bold();
+                if (!string.IsNullOrWhiteSpace(item.Notes))
+                {
+                    col.Item().PaddingLeft(8).Text(item.Notes).FontSize(11).FontFamily(Rounded);
+                }
+            }
+        });
+    }
+
+    private static void TraditionalTotal(IContainer c, QuotationDto q)
+    {
+        c.DefaultTextStyle(t => t.FontFamily(Serif).FontColor(Colors.Black)).PaddingTop(6).AlignRight().Width(260).Column(col =>
+        {
+            col.Item().LineHorizontal(1.5f).LineColor(Colors.Black);
+            col.Item().PaddingVertical(4).Row(row =>
+            {
+                row.RelativeItem().Text("TOTAL").FontSize(22).Bold();
+                row.ConstantItem(140).AlignRight().Text(FormatPlain(q.GrandTotal)).FontSize(22).Bold();
+            });
+            col.Item().LineHorizontal(1.5f).LineColor(Colors.Black);
+        });
+    }
+
+    // Plain comma-grouped number, no currency prefix — matches the reference receipt style.
+    private static string FormatPlain(decimal value) => value.ToString("N0");
 
     private static List<string> StudioLines(Studio? studio, QuotationSettingsDto settings, PdfSettingsDto pdf)
     {
@@ -487,6 +663,7 @@ public class QuotationPdfService(
                 "Modern" => ("#1F3A5F", "Filled", true, true),
                 "Minimal" => ("#263238", "Line", false, false),
                 "Elegant" => ("#6D4C41", "Tint", false, false),
+                "Traditional" => ("#1A1A1A", "Line", false, false),
                 _ => ((string?)null, "Filled", false, false)  // Classic
             };
 

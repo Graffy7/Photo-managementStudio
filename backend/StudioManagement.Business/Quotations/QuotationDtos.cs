@@ -22,6 +22,7 @@ public class QuotationDto
     public string CustomerMobileNumber { get; set; } = null!;
     public int? EventId { get; set; }
     public string? EventVenue { get; set; }
+    public string? EventTypeName { get; set; }
     public DateTime QuotationDate { get; set; }
     public DateTime? ValidUntil { get; set; }
     public decimal Subtotal { get; set; }

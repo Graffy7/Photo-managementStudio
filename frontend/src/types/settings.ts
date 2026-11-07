@@ -61,7 +61,7 @@ export interface NotificationSettings {
   whatsAppNotification: boolean;
 }
 
-export type PdfTemplate = "Classic" | "Modern" | "Minimal" | "Elegant";
+export type PdfTemplate = "Classic" | "Modern" | "Minimal" | "Elegant" | "Traditional";
 export type PdfHeaderStyle = "Standard" | "Banner" | "Centered";
 export type PdfLogoPlacement = "Watermark" | "Header" | "Both" | "None";
 

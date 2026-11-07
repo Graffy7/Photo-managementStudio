@@ -18,7 +18,7 @@ public class BusinessSettingsValidator : AbstractValidator<BusinessSettingsDto>
 
 public class PdfSettingsValidator : AbstractValidator<PdfSettingsDto>
 {
-    private static readonly string[] Templates = ["Classic", "Modern", "Minimal", "Elegant"];
+    private static readonly string[] Templates = ["Classic", "Modern", "Minimal", "Elegant", "Traditional"];
     private static readonly string[] Headers = ["Standard", "Banner", "Centered"];
     private static readonly string[] LogoPlacements = ["Watermark", "Header", "Both", "None"];
 

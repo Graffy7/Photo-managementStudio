@@ -73,10 +73,64 @@ public class StudioPhotoRootService(IStudioSettingRepository settings, PhotoGall
         var root = await GetRootAsync(studioId, ct);
         if (root is null)
         {
-            return (PhotoPathProblem.NoRoot, null);
+            // No per-studio root configured (no admin-set folder, no PhotoGallery:StudioRootBase):
+            // fall back to allowing any valid, existing local folder, same as before per-studio
+            // isolation existed. Set a root (see SetRootAsync) to restrict this studio again.
+            return CheckUnrestricted(path);
         }
         var problem = Check(root, path, out var full);
         return (problem, problem == PhotoPathProblem.None ? full : null);
+    }
+
+    private static (PhotoPathProblem Problem, string? Full) CheckUnrestricted(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return (PhotoPathProblem.Invalid, null);
+        }
+        if (!IsWellFormed(path, out var full))
+        {
+            return (PhotoPathProblem.Invalid, null);
+        }
+        return Directory.Exists(full) ? (PhotoPathProblem.None, full) : (PhotoPathProblem.NotFound, null);
+    }
+
+    // A path is safe to use directly when no studio root is configured: real, fully-qualified,
+    // existing, without traversal or device-syntax tricks. Used everywhere a studio-root
+    // containment check would otherwise run, so "no root" consistently means "no restriction"
+    // rather than leaving some call sites fail-closed and others open.
+    public static bool IsSafeUnrestrictedPath(string? path, out string full)
+    {
+        full = "";
+        if (string.IsNullOrWhiteSpace(path) || !IsWellFormed(path, out full))
+        {
+            return false;
+        }
+        return Directory.Exists(full);
+    }
+
+    private static bool IsWellFormed(string path, out string full)
+    {
+        full = "";
+        var input = path.Trim();
+        if (input.Contains('\0')
+            || input.StartsWith(@"\\?\") || input.StartsWith(@"\\.\") || input.StartsWith("//?/") || input.StartsWith("//./")
+            || (input.Length > 2 && input.IndexOf(':', 2) >= 0)
+            || input.Split('\\', '/').Any(segment => segment == "..")
+            || !Path.IsPathFullyQualified(input))
+        {
+            return false;
+        }
+
+        try
+        {
+            full = Normalise(input);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
     }
 
     // The rules, kept free of I/O besides existence/link checks so they are easy to reason about.
