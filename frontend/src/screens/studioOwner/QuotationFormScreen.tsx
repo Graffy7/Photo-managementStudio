@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+import { RowAction } from "../../ui/RowAction";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { quotationsApi } from "../../api/quotationsApi";
 import { servicesApi } from "../../api/servicesApi";
@@ -46,6 +47,8 @@ function nextKey(): string {
 }
 
 export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
+  // Phones: each item's numbers wrap under its name instead of sitting in table columns.
+  const narrow = useWindowDimensions().width < 640;
   const isEdit = !!quotation;
   const queryClient = useQueryClient();
 
@@ -207,10 +210,10 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
       ) : undefined}
     >
       <FormSection title="Customer and dates">
-        <Field label="Customer" required error={customerError}>
-          <CustomerPicker selected={customer} onSelect={(c) => { setCustomer(c); setError(null); }} />
-        </Field>
         <FieldRow>
+          <Field label="Customer" required error={customerError} flex={2}>
+            <CustomerPicker selected={customer} onSelect={(c) => { setCustomer(c); setError(null); }} />
+          </Field>
           <Field label="Quotation date" required error={dateError} flex>
             <MiniDatePicker variant="form" value={quotationDate} onChange={(v) => { setQuotationDate(v); setError(null); }} placeholder="Select date" />
           </Field>
@@ -221,38 +224,59 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
       </FormSection>
 
       <FormSection title="Items" description="Services from your list, or your own lines (travel, prints…).">
+        {/* A compact table: column names once, then one row per item (name + note | qty | price |
+            total | remove). On narrow screens the numbers wrap under the name. */}
+        {items.length > 0 && !narrow && (
+          <View style={styles.tableHead}>
+            <Text style={[styles.th, { flex: 1 }]}>Item</Text>
+            <Text style={[styles.th, styles.colQty]}>Qty</Text>
+            <Text style={[styles.th, styles.colPrice]}>Price (₹)</Text>
+            <Text style={[styles.th, styles.colTotal, { textAlign: "right" }]}>Total</Text>
+            <View style={styles.colRemove} />
+          </View>
+        )}
         {items.map((item) => {
           const problem = tried ? itemProblem(item) : null;
           return (
             <View key={item.key} style={[styles.item, problem && { borderColor: colors.danger }]}>
-              <View style={styles.itemHeader}>
-                {item.serviceId == null ? (
+              <View style={[styles.itemLine, narrow && styles.itemLineNarrow]}>
+                <View style={[styles.itemNameCol, narrow && { flexBasis: "100%" }]}>
+                  {item.serviceId == null ? (
+                    <TextField
+                      style={styles.compactInput}
+                      value={item.serviceName}
+                      onChangeText={(v) => updateItem(item.key, { serviceName: v })}
+                      placeholder="Item name, e.g. Travel and stay"
+                      maxLength={200}
+                      accessibilityLabel="Custom item name"
+                    />
+                  ) : (
+                    <Text style={styles.itemName} numberOfLines={2}>{item.serviceName}</Text>
+                  )}
                   <TextField
-                    style={{ flex: 1 }}
-                    value={item.serviceName}
-                    onChangeText={(v) => updateItem(item.key, { serviceName: v })}
-                    placeholder="Item name, e.g. Travel and stay"
-                    maxLength={200}
-                    accessibilityLabel="Custom item name"
+                    style={styles.noteInput}
+                    value={item.notes}
+                    onChangeText={(v) => updateItem(item.key, { notes: v })}
+                    placeholder="+ Add a note (optional)"
+                    accessibilityLabel={`Note for ${item.serviceName || "item"}`}
                   />
-                ) : (
-                  <Text style={styles.itemName} numberOfLines={2}>{item.serviceName}</Text>
-                )}
-                <Button label="Remove" variant="link" onPress={() => removeItem(item.key)} accessibilityLabel={`Remove ${item.serviceName || "item"}`} />
-              </View>
-              <View style={styles.itemRow}>
-                <Field label="Qty" required flex>
-                  <TextField value={item.quantity} onChangeText={(v) => updateItem(item.key, { quantity: v.replace(/[^0-9.]/g, "") })} keyboardType="numeric" />
-                </Field>
-                <Field label="Price" required flex>
-                  <TextField value={item.unitPrice} onChangeText={(v) => updateItem(item.key, { unitPrice: v.replace(/[^0-9.]/g, "") })} keyboardType="numeric" placeholder="25000" />
-                </Field>
-                <View style={styles.lineTotalBox}>
-                  <Text style={styles.lineTotalLabel}>Line total</Text>
+                </View>
+                <View style={styles.colQty}>
+                  {narrow && <Text style={styles.th}>Qty</Text>}
+                  <TextField style={[styles.compactInput, styles.numInput]} value={item.quantity} onChangeText={(v) => updateItem(item.key, { quantity: v.replace(/[^0-9.]/g, "") })} keyboardType="numeric" accessibilityLabel="Quantity" />
+                </View>
+                <View style={styles.colPrice}>
+                  {narrow && <Text style={styles.th}>Price (₹)</Text>}
+                  <TextField style={[styles.compactInput, styles.numInput]} value={item.unitPrice} onChangeText={(v) => updateItem(item.key, { unitPrice: v.replace(/[^0-9.]/g, "") })} keyboardType="numeric" placeholder="25000" accessibilityLabel="Price" />
+                </View>
+                <View style={styles.colTotal}>
+                  {narrow && <Text style={[styles.th, { textAlign: "right" }]}>Total</Text>}
                   <Text style={styles.lineTotal}>{formatCurrency(lineTotal(item))}</Text>
                 </View>
+                <View style={styles.colRemove}>
+                  <RowAction iconOnly icon="trash-outline" label="Remove" kind="danger" onPress={() => removeItem(item.key)} accessibilityLabel={`Remove ${item.serviceName || "item"}`} />
+                </View>
               </View>
-              <TextField value={item.notes} onChangeText={(v) => updateItem(item.key, { notes: v })} placeholder="Note for this line (optional)" />
               {problem && <Text style={styles.itemError}>{problem}</Text>}
             </View>
           );
@@ -346,13 +370,22 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
 }
 
 const styles = StyleSheet.create({
-  item: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, backgroundColor: colors.page, padding: space.md, gap: space.md },
-  itemHeader: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  itemName: { ...type.body, fontWeight: "600", color: colors.text, flex: 1 },
-  itemRow: { flexDirection: "row", gap: space.md, alignItems: "flex-end" },
-  lineTotalBox: { flex: 1, minWidth: 0, paddingBottom: 12 },
-  lineTotalLabel: { ...type.caption, color: colors.textMuted },
-  lineTotal: { ...type.body, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
+  tableHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.md, marginBottom: -space.xs },
+  th: { ...type.caption, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.5 },
+  item: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.control, backgroundColor: colors.page, paddingVertical: space.sm, paddingHorizontal: space.md, gap: space.xs },
+  itemLine: { flexDirection: "row", alignItems: "center", gap: space.md },
+  itemLineNarrow: { flexWrap: "wrap", alignItems: "flex-end", rowGap: space.sm },
+  itemNameCol: { flex: 1, minWidth: 0, gap: 4 },
+  itemName: { ...type.body, fontWeight: "700", color: colors.text },
+  colQty: { width: 70, gap: 4 },
+  colPrice: { width: 120, gap: 4 },
+  colTotal: { width: 110, gap: 4, alignItems: "flex-end" },
+  colRemove: { width: 32, alignItems: "flex-end" },
+  compactInput: { minHeight: 38, paddingVertical: 6 },
+  numInput: { textAlign: "right", fontVariant: ["tabular-nums"] },
+  // The line's note: a light, small box so it reads as optional, not as another required field.
+  noteInput: { minHeight: 30, paddingVertical: 4, fontSize: 13, borderColor: colors.border, backgroundColor: "transparent" },
+  lineTotal: { ...type.body, fontWeight: "800", color: colors.text, fontVariant: ["tabular-nums"] },
   itemError: { ...type.small, color: colors.danger },
   picker: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: space.md, gap: space.sm, backgroundColor: colors.page },
   pickerTitle: { ...type.small, fontWeight: "600", color: colors.textMuted },

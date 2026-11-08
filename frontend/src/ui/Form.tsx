@@ -75,10 +75,11 @@ export function Field({ label, required, hint, error, children, flex }: {
   hint?: string | null;
   error?: string | null;
   children: ReactNode;
-  flex?: boolean;
+  // true = share the row equally; a number = relative width (2 is twice as wide as 1).
+  flex?: boolean | number;
 }) {
   return (
-    <View style={flex ? { flex: 1, minWidth: 0 } : undefined}>
+    <View style={flex ? { flex: flex === true ? 1 : flex, minWidth: 0 } : undefined}>
       <Text style={styles.label}>
         {label}{required ? <Text style={styles.required}> *</Text> : <Text style={styles.optional}>  optional</Text>}
       </Text>
@@ -143,7 +144,8 @@ export function FormNote({ tone = "warning", children }: { tone?: "warning" | "d
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.page },
-  content: { width: "100%", maxWidth: 760, alignSelf: "center", paddingBottom: space.xxl },
+  // Wide enough for fields side by side on desktop; forms pair their fields with FieldRow.
+  content: { width: "100%", maxWidth: 1100, alignSelf: "center", paddingBottom: space.xxl },
   title: { ...type.title, color: colors.text },
   subtitle: { ...type.small, color: colors.textMuted, marginTop: 2 },
   section: { backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: space.lg },
@@ -173,7 +175,7 @@ const styles = StyleSheet.create({
   noteText: { ...type.small, color: colors.text, flex: 1 },
   bar: { backgroundColor: colors.bar, borderTopWidth: 1, borderTopColor: colors.border },
   barInner: {
-    width: "100%", maxWidth: 760, alignSelf: "center", flexDirection: "row", alignItems: "center", gap: space.sm,
+    width: "100%", maxWidth: 1100, alignSelf: "center", flexDirection: "row", alignItems: "center", gap: space.sm,
     paddingHorizontal: space.lg, paddingVertical: space.md,
   },
   barError: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },

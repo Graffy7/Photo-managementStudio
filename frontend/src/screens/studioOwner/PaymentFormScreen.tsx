@@ -154,7 +154,9 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
       ) : undefined}
     >
       <FormSection title="Payment">
-        <Field label="Customer" required error={customerError}>
+        {/* Two columns: customer | amount, date | reference, paid by | status; notes below. */}
+        <FieldRow>
+        <Field label="Customer" required error={customerError} flex>
           <CustomerPicker selected={customer} onSelect={(c) => { setCustomer(c); setError(null); }} />
         </Field>
 
@@ -163,6 +165,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
           required
           error={amountError}
           hint={mode === "minus" ? "A deduction takes money off what's been paid so far (for example a refund)." : null}
+          flex
         >
           <View style={styles.amountRow}>
             <View style={styles.sign} accessibilityRole="radiogroup">
@@ -192,6 +195,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
             />
           </View>
         </Field>
+        </FieldRow>
         {overpayBy > 0 && (
           <FormNote tone="danger">
             This is {formatCurrency(overpayBy)} more than the {formatCurrency(Math.max(0, eventSummary!.balance))} still due on this event. If more is owed, update the event's total first.
@@ -210,17 +214,19 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
           </Field>
         </FieldRow>
 
-        <Field label="Paid by" required>
-          <ChoiceChips
-            options={PAYMENT_METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }))}
-            value={paymentMethod}
-            onChange={setPaymentMethod}
-          />
-        </Field>
+        <FieldRow>
+          <Field label="Paid by" required flex>
+            <ChoiceChips
+              options={PAYMENT_METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }))}
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+            />
+          </Field>
 
-        <Field label="Status" required hint="Completed = money received. Pending = still expected.">
-          <ChoiceChips options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} value={paymentStatus} onChange={setPaymentStatus} />
-        </Field>
+          <Field label="Status" required hint="Completed = money received. Pending = still expected." flex>
+            <ChoiceChips options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} value={paymentStatus} onChange={setPaymentStatus} />
+          </Field>
+        </FieldRow>
 
         {mode === "minus" ? (
           <Field label="Reason for the deduction" required error={reasonError}>

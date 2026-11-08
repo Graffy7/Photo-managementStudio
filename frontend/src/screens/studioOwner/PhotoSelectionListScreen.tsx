@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { photoSelectionApi } from "../../api/photoSelectionApi";
 import { StatusPill } from "../../components/StatusPill";
@@ -144,11 +145,26 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
         subtitle={data ? `${data.allCount} completed event${data.allCount === 1 ? "" : "s"}` : null}
       />
       <SearchInput style={{ marginBottom: space.md }} value={search} onChangeText={(v) => { setSearch(v); setPage(1); }} placeholder="Search by customer or venue" />
-      <View style={{ marginBottom: space.md }}>
-        <FilterChips<Filter> options={chips} value={filter} onChange={(v) => { setFilter(v); setPage(1); }} />
-      </View>
-      <View style={{ marginBottom: space.lg }}>
-        <FilterChips<Period> options={MONTH_PERIODS} value={period} onChange={choosePeriod} />
+      {/* Both filters on one line (they wrap under each other on narrow screens). */}
+      <View style={styles.filters}>
+        <View style={styles.filterRow}>
+          <View style={styles.filterLabelRow}>
+            <Ionicons name="funnel-outline" size={14} color={colors.primary} />
+            <Text style={styles.filterLabel}>Status</Text>
+          </View>
+          <View style={styles.filterChips}>
+            <FilterChips<Filter> options={chips} value={filter} onChange={(v) => { setFilter(v); setPage(1); }} />
+          </View>
+        </View>
+        <View style={styles.filterRow}>
+          <View style={styles.filterLabelRow}>
+            <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+            <Text style={styles.filterLabel}>Event date</Text>
+          </View>
+          <View style={styles.filterChips}>
+            <FilterChips<Period> options={MONTH_PERIODS} value={period} onChange={choosePeriod} />
+          </View>
+        </View>
       </View>
       {period === "custom" && (
         <View style={styles.dates}>
@@ -199,6 +215,11 @@ export function PhotoSelectionListScreen({ onOpen }: { onOpen: (eventId: number)
 }
 
 const styles = StyleSheet.create({
+  filters: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.lg, rowGap: space.sm, marginBottom: space.lg },
+  filterRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexShrink: 1, minWidth: 0, maxWidth: "100%" },
+  filterLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  filterLabel: { ...type.small, fontWeight: "800", color: colors.primary },
+  filterChips: { flexShrink: 1, minWidth: 0 },
   dates: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   cardTitle: { ...type.heading, color: colors.text, flex: 1 },
