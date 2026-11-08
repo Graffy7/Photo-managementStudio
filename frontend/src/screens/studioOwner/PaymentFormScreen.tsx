@@ -8,6 +8,7 @@ import { CustomerPicker, type PickedCustomer } from "../../components/CustomerPi
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { FormScreen, FormSection, FieldRow, Field, TextField, ChoiceChips, FormNote } from "../../ui/Form";
 import { colors, radius, space, touch, type } from "../../ui/theme";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 // Today's date on this device (not UTC - before 5:30am in India that would still be yesterday).
 function localToday(): string {
@@ -80,6 +81,7 @@ export function PaymentFormScreen({ payment, initialCustomer, initialEventId, in
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
+      if (!isEdit) showSuccess("Payment recorded", "The balance has been updated.");
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the payment. Please try again.")),

@@ -16,28 +16,28 @@ export function WorkerDetailScreen({ worker, onBack, onEdit }: { worker: Worker;
       backLabel="Workers"
       onBack={onBack}
       title={worker.fullName}
-      meta={[worker.workerTypeName, worker.mobileNumber].filter(Boolean).join("  ·  ")}
+      metaItems={[...(worker.workerTypeName ? [{ icon: "briefcase-outline" as const, text: worker.workerTypeName }] : []), ...(worker.mobileNumber ? [{ icon: "call-outline" as const, text: worker.mobileNumber }] : [])]}
       badges={<StatusPill label={worker.isActive ? "Active" : "Inactive"} tone={worker.isActive ? "good" : "neutral"} />}
       actions={<SubscriptionLock><Button label="Edit worker" icon="create-outline" variant="primary" onPress={onEdit} /></SubscriptionLock>}
       left={
         <>
-          <InfoCard title="Contact">
+          <InfoCard title="Contact" icon="person-circle-outline">
             <InfoGrid>
-              <InfoItem label="Mobile" value={worker.mobileNumber ?? "—"} />
-              <InfoItem label="Email" value={worker.email ?? "—"} />
-              <InfoItem label="Role" value={worker.workerTypeName ?? "—"} />
+              <InfoItem icon="call-outline" iconColor={colors.success} label="Mobile" value={worker.mobileNumber ?? "—"} />
+              <InfoItem icon="mail-outline" iconColor={colors.info} label="Email" value={worker.email ?? "—"} />
+              <InfoItem icon="briefcase-outline" iconColor="#8B6CFF" label="Role" value={worker.workerTypeName ?? "—"} />
             </InfoGrid>
           </InfoCard>
-          <InfoCard title="Notes">
+          <InfoCard title="Notes" icon="create-outline">
             <Text style={styles.notes}>{worker.notes || "No notes added."}</Text>
           </InfoCard>
         </>
       }
       right={
-        <InfoCard title="Record">
+        <InfoCard title="Record" icon="time-outline">
           <InfoGrid>
-            <InfoItem label="Added" value={formatDateTime(worker.createdAt)} />
-            <InfoItem label="Last updated" value={formatDateTime(worker.updatedAt)} />
+            <InfoItem icon="add-circle-outline" iconColor={colors.textMuted} label="Added" value={formatDateTime(worker.createdAt)} />
+            <InfoItem icon="refresh-outline" iconColor={colors.textMuted} label="Last updated" value={formatDateTime(worker.updatedAt)} />
           </InfoGrid>
         </InfoCard>
       }

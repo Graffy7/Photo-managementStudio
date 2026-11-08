@@ -7,6 +7,7 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { LookupTypeField } from "../../components/LookupTypeField";
 import { emailError, mobileError, nameError } from "../../utils/customerValidation";
 import { FormScreen, FormSection, FieldRow, Field, TextField } from "../../ui/Form";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   worker?: Worker;
@@ -39,6 +40,7 @@ export function WorkerFormScreen({ worker, onDone, onCancel }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workers"] });
+      if (!isEdit) showSuccess("Worker added", `${fullName.trim()} can now be assigned to events.`);
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the worker. Please try again.")),

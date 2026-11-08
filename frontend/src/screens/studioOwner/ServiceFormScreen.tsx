@@ -4,6 +4,7 @@ import { servicesApi } from "../../api/servicesApi";
 import type { StudioService } from "../../types/service";
 import { extractErrorMessage } from "../../api/errorMessage";
 import { FormScreen, FormSection, Field, TextField } from "../../ui/Form";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   service?: StudioService;
@@ -32,6 +33,7 @@ export function ServiceFormScreen({ service, onDone, onCancel }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      if (!isEdit) showSuccess("Service added", `${serviceName.trim()} can now be added to quotations.`);
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the service. Please try again.")),

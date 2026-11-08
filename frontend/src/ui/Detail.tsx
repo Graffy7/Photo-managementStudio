@@ -7,11 +7,15 @@ import { hoverGlow } from "./webHover";
 
 // A record's page: back link, who/what it is, its status, the main action - then the details in
 // cards (two columns on desktop, one on phones).
-export function DetailScreen({ backLabel, onBack, title, meta, badges, actions, summary, left, right }: {
+export type IconName = keyof typeof Ionicons.glyphMap;
+
+export function DetailScreen({ backLabel, onBack, title, meta, metaItems, badges, actions, summary, left, right }: {
   backLabel: string;
   onBack: () => void;
   title: string;
   meta?: string | null;
+  // The same facts as small icon pills (date, time, place) - easier to scan than one line of text.
+  metaItems?: { icon: IconName; text: string }[];
   badges?: ReactNode;
   actions?: ReactNode;
   // Key figures right under the header (money, counts).
@@ -30,6 +34,16 @@ export function DetailScreen({ backLabel, onBack, title, meta, badges, actions, 
         <View style={{ flex: isPhone ? undefined : 1, minWidth: 0 }}>
           <Text style={styles.title}>{title}</Text>
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+          {metaItems && metaItems.length > 0 ? (
+            <View style={styles.metaRow}>
+              {metaItems.map((m) => (
+                <View key={`${m.icon}${m.text}`} style={styles.metaPill}>
+                  <Ionicons name={m.icon} size={14} color={colors.primary} />
+                  <Text style={styles.metaPillText} numberOfLines={1}>{m.text}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {badges ? <View style={styles.badges}>{badges}</View> : null}
         </View>
         {actions ? <View style={styles.actions}>{actions}</View> : null}
@@ -43,10 +57,15 @@ export function DetailScreen({ backLabel, onBack, title, meta, badges, actions, 
   );
 }
 
-export function InfoCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+export function InfoCard({ title, icon, action, children }: { title: string; icon?: IconName; action?: ReactNode; children: ReactNode }) {
   return (
     <View {...hoverGlow} style={styles.card}>
       <View style={styles.cardHead}>
+        {icon ? (
+          <View style={styles.cardIcon}>
+            <Ionicons name={icon} size={16} color={colors.onPrimaryFill} />
+          </View>
+        ) : null}
         <Text style={styles.cardTitle}>{title}</Text>
         {action}
       </View>
@@ -60,17 +79,26 @@ export function InfoGrid({ children }: { children: ReactNode }) {
   return <View style={styles.grid}>{children}</View>;
 }
 
-export function InfoItem({ label, value, tone }: { label: string; value: string; tone?: string }) {
+// With an icon the label and value sit beside a small tinted icon, so each fact is quick to find.
+export function InfoItem({ label, value, tone, icon, iconColor = colors.primary }: { label: string; value: string; tone?: string; icon?: IconName; iconColor?: string }) {
   return (
-    <View style={styles.item}>
-      <Text style={styles.itemLabel}>{label}</Text>
-      <Text style={[styles.itemValue, tone ? { color: tone } : null]} selectable>{value}</Text>
+    <View style={[styles.item, icon ? styles.itemWithIcon : null]}>
+      {icon ? (
+        <View style={[styles.itemIcon, { backgroundColor: `${iconColor}22` }]}>
+          <Ionicons name={icon} size={16} color={iconColor} />
+        </View>
+      ) : null}
+      <View style={{ flexShrink: 1, minWidth: 0, gap: 2 }}>
+        <Text style={styles.itemLabel}>{label}</Text>
+        <Text style={[styles.itemValue, tone ? { color: tone } : null]} selectable>{value}</Text>
+      </View>
     </View>
   );
 }
 
-// The key numbers of a record, side by side (2 per row on phones).
-export function SummaryStrip({ items }: { items: { label: string; value: string; tone?: string }[] }) {
+// The key numbers of a record, side by side (2 per row on phones). An icon gives each number its
+// own colour; `footer` sits under them (e.g. how much has been paid).
+export function SummaryStrip({ items, footer }: { items: { label: string; value: string; tone?: string; icon?: IconName; color?: string }[]; footer?: ReactNode }) {
   const { isPhone } = useBreakpoint();
   const perRow = isPhone ? 2 : items.length;
   const rows: typeof items[] = [];
@@ -80,14 +108,38 @@ export function SummaryStrip({ items }: { items: { label: string; value: string;
       {rows.map((row, r) => (
         <View key={r} style={[styles.stripRow, r > 0 && styles.stripRowSep]}>
           {row.map((it, c) => (
-            <View key={it.label} style={[styles.stripCell, c > 0 && styles.stripCellSep]}>
-              <Text style={styles.stripLabel}>{it.label}</Text>
-              <Text style={[styles.stripValue, it.tone ? { color: it.tone } : null]} numberOfLines={1} adjustsFontSizeToFit>{it.value}</Text>
+            <View key={it.label} style={[styles.stripCell, c > 0 && styles.stripCellSep, it.icon ? styles.stripCellWithIcon : null]}>
+              {it.icon ? (
+                <View style={[styles.stripIcon, { backgroundColor: it.color ?? colors.primaryFill }]}>
+                  <Ionicons name={it.icon} size={18} color={colors.onPrimaryFill} />
+                </View>
+              ) : null}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.stripLabel}>{it.label}</Text>
+                <Text style={[styles.stripValue, it.tone ? { color: it.tone } : null]} numberOfLines={1} adjustsFontSizeToFit>{it.value}</Text>
+              </View>
             </View>
           ))}
           {row.length < perRow && Array.from({ length: perRow - row.length }).map((_, i) => <View key={`pad${i}`} style={styles.stripCell} />)}
         </View>
       ))}
+      {footer ? <View style={styles.stripFooter}>{footer}</View> : null}
+    </View>
+  );
+}
+
+// "₹20,000 of ₹55,000 paid · 36%" with a bar that fills up as payments come in.
+export function ProgressLine({ label, value, color = colors.success }: { label: string; value: number; color?: string }) {
+  const pct = Math.max(0, Math.min(1, value));
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={styles.progressHead}>
+        <Text style={styles.progressLabel}>{label}</Text>
+        <Text style={[styles.progressPct, { color }]}>{Math.round(pct * 100)}%</Text>
+      </View>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${pct * 100}%`, backgroundColor: color }]} />
+      </View>
     </View>
   );
 }
@@ -106,6 +158,23 @@ const styles = StyleSheet.create({
   title: { ...type.title, color: colors.text },
   meta: { ...type.body, color: colors.textMuted, marginTop: 4 },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: space.sm },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
+  metaPill: {
+    flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.pill, paddingVertical: 5, paddingHorizontal: 12,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, maxWidth: "100%",
+  },
+  metaPillText: { ...type.small, fontWeight: "600", color: colors.text, flexShrink: 1 },
+  cardIcon: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: colors.primaryFill },
+  itemWithIcon: { flexDirection: "row", alignItems: "center", gap: space.sm, minWidth: 190 },
+  itemIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  stripCellWithIcon: { flexDirection: "row", alignItems: "center", gap: space.md },
+  stripIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  stripFooter: { borderTopWidth: 1, borderTopColor: colors.border, paddingVertical: space.md, paddingHorizontal: space.lg },
+  progressHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  progressLabel: { ...type.small, fontWeight: "600", color: colors.text },
+  progressPct: { ...type.small, fontWeight: "800" },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.cardRaised, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 4 },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   columns: { gap: space.lg, marginTop: space.lg },
   columnsWide: { flexDirection: "row", alignItems: "flex-start" },

@@ -27,7 +27,7 @@ export function LeadDetailScreen({ lead, onBack, onEdit }: { lead: Lead; onBack:
       backLabel="Enquiries"
       onBack={onBack}
       title={lead.fullName}
-      meta={[lead.mobileNumber, lead.email].filter(Boolean).join("  ·  ")}
+      metaItems={[{ icon: "call-outline", text: lead.mobileNumber }, ...(lead.email ? [{ icon: "mail-outline" as const, text: lead.email }] : [])]}
       badges={
         <>
           <StatusPill label={LEAD_OUTCOME_LABELS[lead.outcome]} tone={OUTCOME_TONES[lead.outcome]} />
@@ -37,32 +37,32 @@ export function LeadDetailScreen({ lead, onBack, onEdit }: { lead: Lead; onBack:
       actions={<SubscriptionLock><Button label="Edit enquiry" icon="create-outline" variant="primary" onPress={onEdit} /></SubscriptionLock>}
       left={
         <>
-          <InfoCard title="What they're looking for">
+          <InfoCard title="What they're looking for" icon="sparkles-outline">
             <InfoGrid>
-              <InfoItem label="Event type" value={lead.eventTypeName ?? "—"} />
-              <InfoItem label="Expected date" value={formatDate(lead.expectedEventDate)} />
-              <InfoItem label="Expected budget" value={formatCurrency(lead.expectedBudget)} />
-              <InfoItem label="Location" value={lead.location ?? "—"} />
+              <InfoItem icon="pricetag-outline" iconColor="#8B6CFF" label="Event type" value={lead.eventTypeName ?? "—"} />
+              <InfoItem icon="calendar-outline" label="Expected date" value={formatDate(lead.expectedEventDate)} />
+              <InfoItem icon="wallet-outline" iconColor={colors.success} label="Expected budget" value={formatCurrency(lead.expectedBudget)} />
+              <InfoItem icon="location-outline" iconColor={colors.warning} label="Location" value={lead.location ?? "—"} />
             </InfoGrid>
           </InfoCard>
-          <InfoCard title="Notes">
+          <InfoCard title="Notes" icon="create-outline">
             <Text style={styles.notes}>{lead.notes || "No notes added."}</Text>
           </InfoCard>
         </>
       }
       right={
         <>
-          <InfoCard title="Follow-up">
+          <InfoCard title="Follow-up" icon="alarm-outline">
             <InfoGrid>
-              <InfoItem label="Follow-up date" value={formatDate(lead.followUpDate)} />
-              <InfoItem label="Mobile" value={lead.mobileNumber} />
-              <InfoItem label="Email" value={lead.email ?? "—"} />
+              <InfoItem icon="alarm-outline" iconColor={colors.warning} label="Follow-up date" value={formatDate(lead.followUpDate)} />
+              <InfoItem icon="call-outline" iconColor={colors.success} label="Mobile" value={lead.mobileNumber} />
+              <InfoItem icon="mail-outline" iconColor={colors.info} label="Email" value={lead.email ?? "—"} />
             </InfoGrid>
           </InfoCard>
-          <InfoCard title="Record">
+          <InfoCard title="Record" icon="time-outline">
             <InfoGrid>
-              <InfoItem label="Received" value={formatDateTime(lead.createdAt)} />
-              <InfoItem label="Last updated" value={formatDateTime(lead.updatedAt)} />
+              <InfoItem icon="download-outline" iconColor={colors.textMuted} label="Received" value={formatDateTime(lead.createdAt)} />
+              <InfoItem icon="refresh-outline" iconColor={colors.textMuted} label="Last updated" value={formatDateTime(lead.updatedAt)} />
             </InfoGrid>
           </InfoCard>
         </>

@@ -11,6 +11,7 @@ import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { FormScreen, FormSection, FieldRow, Field, TextField, FormNote } from "../../ui/Form";
 import { Button } from "../../ui/Button";
 import { colors, radius, space, type } from "../../ui/theme";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   quotation?: Quotation;
@@ -152,6 +153,7 @@ export function QuotationFormScreen({ quotation, onDone, onCancel }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      if (!isEdit) showSuccess("Quotation created", "It is ready to share as a PDF or on WhatsApp.");
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the quotation. Please try again.")),

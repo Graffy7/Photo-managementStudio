@@ -17,30 +17,30 @@ export function CustomerDetailScreen({ customer, onBack, onEdit }: { customer: C
       backLabel="Customers"
       onBack={onBack}
       title={customer.fullName}
-      meta={[customer.mobileNumber, customer.email].filter(Boolean).join("  ·  ")}
+      metaItems={[{ icon: "call-outline", text: customer.mobileNumber }, ...(customer.email ? [{ icon: "mail-outline" as const, text: customer.email }] : [])]}
       badges={<StatusPill label={customer.isActive ? "Active" : "Inactive"} tone={customer.isActive ? "good" : "neutral"} />}
       actions={<SubscriptionLock><Button label="Edit customer" icon="create-outline" variant="primary" onPress={onEdit} /></SubscriptionLock>}
       left={
-        <InfoCard title="Events">
+        <InfoCard title="Events" icon="calendar-outline">
           <CustomerEventsList customerId={customer.customerId} />
         </InfoCard>
       }
       right={
         <>
-          <InfoCard title="Contact">
+          <InfoCard title="Contact" icon="person-circle-outline">
             <InfoGrid>
-              <InfoItem label="Mobile" value={customer.mobileNumber} />
-              <InfoItem label="Email" value={customer.email ?? "—"} />
-              <InfoItem label="Address" value={customer.address ?? "—"} />
+              <InfoItem icon="call-outline" iconColor={colors.success} label="Mobile" value={customer.mobileNumber} />
+              <InfoItem icon="mail-outline" iconColor={colors.info} label="Email" value={customer.email ?? "—"} />
+              <InfoItem icon="location-outline" iconColor={colors.warning} label="Address" value={customer.address ?? "—"} />
             </InfoGrid>
           </InfoCard>
-          <InfoCard title="Notes">
+          <InfoCard title="Notes" icon="create-outline">
             <Text style={styles.notes}>{customer.notes || "No notes added."}</Text>
           </InfoCard>
-          <InfoCard title="Record">
+          <InfoCard title="Record" icon="time-outline">
             <InfoGrid>
-              <InfoItem label="Added" value={formatDateTime(customer.createdAt)} />
-              <InfoItem label="Last updated" value={formatDateTime(customer.updatedAt)} />
+              <InfoItem icon="add-circle-outline" iconColor={colors.textMuted} label="Added" value={formatDateTime(customer.createdAt)} />
+              <InfoItem icon="refresh-outline" iconColor={colors.textMuted} label="Last updated" value={formatDateTime(customer.updatedAt)} />
             </InfoGrid>
           </InfoCard>
         </>

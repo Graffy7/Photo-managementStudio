@@ -7,6 +7,7 @@ import { useAuthStore } from "./src/auth/authStore";
 import { CameraCursor } from "./src/cameraCursor/CameraCursor";
 import { installWebScrollbars } from "./src/ui/webScrollbars";
 import { installWebHover } from "./src/ui/webHover";
+import { SuccessPopup } from "./src/ui/SuccessPopup";
 import { installWebFont } from "./src/ui/webFont";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
 import { ShutterProvider } from "./src/shutter";
@@ -59,6 +60,8 @@ function AuthenticatedApp() {
       <RootNavigator />
       {/* Optional camera-shaped pointer for the studio app (switched on from the menu). */}
       <CameraCursor />
+      {/* "Created!" pop-up after saving something new (see ui/SuccessPopup). */}
+      <SuccessPopup />
       <StatusBar style="dark" />
     </QueryClientProvider>
   );

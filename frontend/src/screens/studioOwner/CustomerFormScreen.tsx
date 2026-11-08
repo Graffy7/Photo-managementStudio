@@ -8,6 +8,7 @@ import { CustomerEventsList } from "../../components/CustomerEventsList";
 import { duplicateFrom, emailError, fieldErrorsFrom, mobileError, nameError, type DuplicateCustomer } from "../../utils/customerValidation";
 import { FormScreen, FormSection, FieldRow, Field, TextField } from "../../ui/Form";
 import { colors, radius, space, type } from "../../ui/theme";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   customer?: Customer;
@@ -43,6 +44,7 @@ export function CustomerFormScreen({ customer, onDone, onCancel }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      if (!isEdit) showSuccess("Customer added", `${fullName.trim()} is now in your customers.`);
       onDone();
     },
     onError: (err) => {

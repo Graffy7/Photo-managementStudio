@@ -11,6 +11,7 @@ import { emailError, mobileError, nameError } from "../../utils/customerValidati
 import { FormScreen, FormSection, FieldRow, Field, TextField } from "../../ui/Form";
 import { colors, radius, space, type } from "../../ui/theme";
 import { SelectField } from "../../ui/SelectField";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   lead?: Lead;
@@ -59,6 +60,7 @@ export function LeadFormScreen({ lead, onDone, onCancel }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      if (!isEdit) showSuccess("Enquiry created", `${fullName.trim()} has been added to your enquiries.`);
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the enquiry. Please try again.")),

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { expenseCategoriesApi } from "../../api/expenseCategoriesApi";
 import type { ExpenseCategory } from "../../types/expenseCategory";
 import { extractErrorMessage } from "../../api/errorMessage";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   category?: ExpenseCategory;
@@ -26,6 +27,7 @@ export function ExpenseCategoryFormScreen({ category, onDone, onCancel }: Props)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
+      if (!isEdit) showSuccess("Category added", `${categoryName.trim()} is ready to use for expenses.`);
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err)),

@@ -102,16 +102,31 @@ export function NavList({ activeRoute, onNavigate, large }: { activeRoute: strin
           <View key={group.title}>
             <Pressable
               onPress={() => toggle(group.title)}
-              style={({ pressed }) => [styles.groupHeader, large && styles.groupHeaderLarge, pressed && styles.itemPressed]}
+              style={(state) => {
+                const hovered = (state as { hovered?: boolean }).hovered;
+                return [styles.groupHeader, large && styles.groupHeaderLarge, hovered && styles.groupHeaderHover, state.pressed && styles.itemPressed];
+              }}
               accessibilityRole="button"
               accessibilityState={{ expanded }}
               accessibilityLabel={`${group.title} menu`}
             >
-              <Text style={[styles.groupTitle, large && styles.groupTitleLarge, holdsActive && !expanded && styles.groupTitleActive]}>{group.title}</Text>
-              {groupBadge > 0 && (
-                <View style={styles.badge}><Text style={styles.badgeText}>{groupBadge > 9 ? "9+" : groupBadge}</Text></View>
-              )}
-              <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={large ? 18 : 15} color={colors.textFaint} />
+              {(state) => {
+                // Hover: a soft blue tint and a thin accent bar fade in, the name brightens, and
+                // the arrow turns blue and nudges right to show the section opens.
+                const hovered = !!(state as { hovered?: boolean }).hovered;
+                return (
+                  <>
+                    <View style={[styles.groupAccent, hovered && styles.groupAccentOn]} pointerEvents="none" />
+                    <Text style={[styles.groupTitle, large && styles.groupTitleLarge, hovered && styles.groupTitleHover, holdsActive && !expanded && styles.groupTitleActive]}>{group.title}</Text>
+                    {groupBadge > 0 && (
+                      <View style={styles.badge}><Text style={styles.badgeText}>{groupBadge > 9 ? "9+" : groupBadge}</Text></View>
+                    )}
+                    <View style={[styles.groupChevron, hovered && !expanded && styles.groupChevronHover]}>
+                      <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={large ? 18 : 15} color={hovered ? colors.primary : colors.textFaint} />
+                    </View>
+                  </>
+                );
+              }}
             </Pressable>
             {expanded && items.map((item) => {
               const active = activeRoute === item.route;
@@ -203,11 +218,17 @@ const styles = StyleSheet.create({
   brandSub: { ...type.caption, color: colors.textFaint },
   groupHeader: {
     flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: 34, paddingHorizontal: space.md,
-    borderRadius: radius.control, marginTop: space.md,
+    borderRadius: radius.control, marginTop: space.md, overflow: "hidden", ...transition,
   },
   groupHeaderLarge: { minHeight: 44 },
-  groupTitle: { ...type.caption, fontSize: 11, color: colors.textFaint, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", flex: 1 },
+  groupHeaderHover: { backgroundColor: colors.primarySoft },
+  groupAccent: { position: "absolute", left: 0, top: 7, bottom: 7, width: 3, borderRadius: 2, backgroundColor: colors.primary, opacity: 0, ...transition },
+  groupAccentOn: { opacity: 1 },
+  groupTitle: { ...type.caption, fontSize: 11, color: colors.textFaint, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", flex: 1, ...transition },
   groupTitleLarge: { fontSize: 13 },
+  groupTitleHover: { color: colors.text },
+  groupChevron: { ...transition },
+  groupChevronHover: { ...hoverMotion([{ translateX: 2 }]) },
   groupTitleActive: { color: colors.primary },
   item: {
     flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 38, paddingHorizontal: space.md,

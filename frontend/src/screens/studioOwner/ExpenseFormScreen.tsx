@@ -8,6 +8,7 @@ import { extractErrorMessage } from "../../api/errorMessage";
 import { MiniDatePicker } from "../../components/MiniDatePicker";
 import { FormScreen, FormSection, FieldRow, Field, TextField, ChoiceChips } from "../../ui/Form";
 import { colors, radius, space, type } from "../../ui/theme";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 interface Props {
   expense?: Expense;
@@ -60,6 +61,7 @@ export function ExpenseFormScreen({ expense, onDone, onCancel }: Props) {
       queryClient.invalidateQueries({ queryKey: ["event-expenses"] });
       queryClient.invalidateQueries({ queryKey: ["profit-report"] });
       queryClient.invalidateQueries({ queryKey: ["studio-dashboard-summary"] });
+      if (!isEdit) showSuccess("Expense added", "It now counts in your profit reports.");
       onDone();
     },
     onError: (err) => setError(extractErrorMessage(err, "Couldn't save the expense. Please try again.")),

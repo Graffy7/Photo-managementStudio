@@ -33,6 +33,12 @@ function formatDateLabel(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
 
+// "Farhan Samplevel (QA Photographer)" -> "FS": first letters of the first two words.
+function initials(name: string): string {
+  const words = name.replace(/\(.*?\)/g, "").trim().split(/\s+/).filter(Boolean);
+  return (words.slice(0, 2).map((w) => w[0]).join("") || "?").toUpperCase();
+}
+
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
@@ -64,7 +70,7 @@ function WorkerPicker({ eventId, assignedWorkerIds, onDone }: { eventId: number;
         {available.map((w) => (
           <Pressable key={w.workerId} style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]} onPress={() => assign.mutate(w.workerId)} disabled={assign.isPending} accessibilityRole="button">
             <Ionicons name="add" size={16} color={colors.link} />
-            <Text style={styles.chipText}>{w.fullName}</Text>
+            <Text style={styles.chipText} numberOfLines={1}>{w.fullName}</Text>
           </Pressable>
         ))}
         {isPending && <Text style={styles.hint}>Loading workers…</Text>}
@@ -147,11 +153,26 @@ function EventCard({ event }: { event: DayBoardEvent }) {
         {event.workers.length === 0 ? (
           <Text style={styles.hint}>No one assigned yet.</Text>
         ) : (
-          <View style={styles.chipRow}>
+          // One row per person: initials, name over role, and a remove button. Long names are cut
+          // with "…" so nothing spills out of the card.
+          <View style={styles.crewList}>
             {event.workers.map((w) => (
-              <View key={w.eventWorkerId} style={styles.crewChip}>
-                <Text style={styles.crewChipText}>{w.workerName}{w.workerTypeName ? ` · ${w.workerTypeName}` : ""}</Text>
-                <Pressable onPress={() => unassign.mutate(w.workerId)} disabled={unassign.isPending} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remove ${w.workerName}`}>
+              <View key={w.eventWorkerId} style={styles.crewRow}>
+                <View style={styles.crewAvatar}>
+                  <Text style={styles.crewAvatarText}>{initials(w.workerName)}</Text>
+                </View>
+                <View style={styles.crewInfo}>
+                  <Text style={styles.crewName} numberOfLines={1}>{w.workerName}</Text>
+                  {!!w.workerTypeName && <Text style={styles.crewRole} numberOfLines={1}>{w.workerTypeName}</Text>}
+                </View>
+                <Pressable
+                  onPress={() => unassign.mutate(w.workerId)}
+                  disabled={unassign.isPending}
+                  hitSlop={8}
+                  style={(state) => [styles.crewRemove, (state as { hovered?: boolean }).hovered && styles.crewRemoveHover]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${w.workerName} from this event`}
+                >
                   <Ionicons name="close" size={16} color={colors.danger} />
                 </Pressable>
               </View>
@@ -264,11 +285,19 @@ const styles = StyleSheet.create({
   crewTitle: { ...type.small, fontWeight: "700", color: colors.text },
   hint: { ...type.small, color: colors.textMuted },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  crewChip: {
-    flexDirection: "row", alignItems: "center", gap: space.sm, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill,
-    minHeight: 36, paddingHorizontal: space.md, backgroundColor: colors.page,
+  crewList: { gap: space.xs },
+  crewRow: {
+    flexDirection: "row", alignItems: "center", gap: space.sm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.control,
+    paddingVertical: 6, paddingLeft: 6, paddingRight: space.xs, backgroundColor: colors.page,
   },
-  crewChipText: { ...type.small, fontWeight: "600", color: colors.text },
+  crewAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.primarySoft },
+  crewAvatarText: { ...type.caption, fontWeight: "800", color: colors.primary },
+  // minWidth 0 lets the text shrink and end in "…" instead of pushing past the card.
+  crewInfo: { flex: 1, minWidth: 0 },
+  crewName: { ...type.small, fontWeight: "700", color: colors.text },
+  crewRole: { ...type.caption, color: colors.textMuted },
+  crewRemove: { width: 32, height: 32, borderRadius: radius.control, alignItems: "center", justifyContent: "center" },
+  crewRemoveHover: { backgroundColor: colors.dangerSoft },
   rowError: { ...type.small, color: colors.danger },
   assign: { alignSelf: "flex-start", minHeight: 40 },
 
@@ -277,8 +306,8 @@ const styles = StyleSheet.create({
   pickerClose: { alignSelf: "flex-start", minHeight: 36, paddingHorizontal: 0 },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.pill,
-    minHeight: 36, paddingHorizontal: space.md, backgroundColor: colors.card,
+    minHeight: 36, paddingHorizontal: space.md, backgroundColor: colors.card, maxWidth: "100%",
   },
   chipPressed: { backgroundColor: colors.cardRaised },
-  chipText: { ...type.small, fontWeight: "600", color: colors.text },
+  chipText: { ...type.small, fontWeight: "600", color: colors.text, flexShrink: 1 },
 });

@@ -15,6 +15,7 @@ import { LookupTypeField } from "../../components/LookupTypeField";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod, type PaymentStatus } from "../../types/payment";
 import { FormScreen, FormSection, FieldRow, Field, TextField, ChoiceChips, FormNote } from "../../ui/Form";
 import { colors, radius, space, type } from "../../ui/theme";
+import { showSuccess } from "../../ui/SuccessPopup";
 
 function formatCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -135,6 +136,7 @@ export function EventFormScreen({ event, initialEventDate, onDone, onCancel }: P
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-history"] });
       queryClient.invalidateQueries({ queryKey: ["payments"] });
+      if (!isEdit) showSuccess("Event created", "The event is on your calendar and Day board.");
       onDone();
     },
     onError: (err) => {
