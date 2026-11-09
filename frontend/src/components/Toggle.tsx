@@ -2,13 +2,16 @@ import { Pressable, View, StyleSheet } from "react-native";
 
 // A plain Pressable-based toggle instead of RN's <Switch>, which was found to intermittently
 // paint incompletely for rows that scroll into view inside a long ScrollView on web.
-export function Toggle({ value, onValueChange }: { value: boolean; onValueChange: (value: boolean) => void }) {
+// accessibilityLabel: what the switch controls (e.g. a module's name) - without it a screen
+// reader only hears "switch".
+export function Toggle({ value, onValueChange, accessibilityLabel }: { value: boolean; onValueChange: (value: boolean) => void; accessibilityLabel?: string }) {
   return (
     <Pressable
       onPress={() => onValueChange(!value)}
       style={[styles.track, value && styles.trackOn]}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
+      accessibilityLabel={accessibilityLabel}
     >
       <View style={[styles.thumb, value && styles.thumbOn]} />
     </Pressable>

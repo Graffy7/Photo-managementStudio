@@ -11,6 +11,7 @@ import { API_BASE_URL } from "../constants/config";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { NAV_GROUPS } from "./navItems";
 import { colors, radius, space, type, transition, hoverMotion, shadow, webShadow } from "../ui/theme";
+import { askSignOut } from "../ui/SignOutConfirm";
 
 interface SidebarProps {
   navigationRef: NavigationContainerRefWithCurrent<any>;
@@ -140,7 +141,11 @@ export function NavList({ activeRoute, onNavigate, large }: { activeRoute: strin
                   }}
                   onPress={() => onNavigate(item.route)}
                   accessibilityRole="link"
+                  // Just the name (and unread count) - otherwise the icon's font character is read out first.
+                  accessibilityLabel={badge > 0 ? `${item.label}, ${badge} unread` : item.label}
                   accessibilityState={{ selected: active }}
+                  // The web's "you are here" for screen readers (selected alone doesn't reach the page).
+                  {...({ "aria-current": active ? "page" : undefined } as object)}
                 >
                   {(state) => {
                     const hovered = !active && !!(state as { hovered?: boolean }).hovered;
@@ -189,8 +194,9 @@ export function Sidebar({ navigationRef, activeRoute }: SidebarProps) {
       </View>
       <Pressable
         style={(state) => [styles.signOut, (state as { hovered?: boolean }).hovered && styles.signOutHover, state.pressed && styles.itemPressed]}
-        onPress={() => logout()}
+        onPress={askSignOut}
         accessibilityRole="button"
+        accessibilityLabel="Sign out"
       >
         {(state) => {
           const hovered = !!(state as { hovered?: boolean }).hovered;

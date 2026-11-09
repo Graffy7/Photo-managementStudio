@@ -42,7 +42,8 @@ public class ProfitReportService(
             EventsExpenses = eventRows.Sum(e => e.Expenses),
             EventsPendingExpenses = eventRows.Sum(e => e.PendingExpenses),
             EventsNetProfit = eventRows.Sum(e => e.EventTotal - e.Expenses),
-            EventsOutstandingBalance = eventRows.Sum(e => e.EventTotal - e.CollectedRevenue),
+            // Never below zero per event (e.g. an advance kept on a cancelled event isn't "owed back").
+            EventsOutstandingBalance = eventRows.Sum(e => Math.Max(0, e.EventTotal - e.CollectedRevenue)),
 
             Events = eventRows.Select(e => new EventProfitDto
             {
@@ -60,7 +61,7 @@ public class ProfitReportService(
                 PendingExpenses = e.PendingExpenses,
                 NetProfit = e.EventTotal - e.Expenses,
                 ProfitMarginPercent = EventProfitMath.MarginPercent(e.EventTotal, e.Expenses),
-                OutstandingBalance = e.EventTotal - e.CollectedRevenue
+                OutstandingBalance = Math.Max(0, e.EventTotal - e.CollectedRevenue)
             }).ToList(),
 
             ExpensesByCategory = categoryRows.Select(c => new ExpenseCategoryBreakdownDto

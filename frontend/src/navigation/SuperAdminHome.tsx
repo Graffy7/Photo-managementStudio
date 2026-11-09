@@ -14,6 +14,7 @@ import { AdminPaymentsScreen } from "../screens/superAdmin/console/AdminPayments
 import { AdminStorageScreen } from "../screens/superAdmin/console/AdminStorageScreen";
 import { C, Loading } from "../screens/superAdmin/console/ui";
 import type { AdminStudioStatus } from "../types/adminConsole";
+import { askSignOut } from "../ui/SignOutConfirm";
 
 type Section = "dashboard" | "studios" | "payments" | "storage" | "activity";
 
@@ -167,7 +168,7 @@ function AdminSidebar({ section, onNavigate, onClose }: { section: Section; onNa
           <Ionicons name="key-outline" size={14} color={C.muted} />
           <Text style={styles.footerText}>Change password</Text>
         </Pressable>
-        <Pressable style={styles.footerLink} onPress={() => logout()} accessibilityRole="button">
+        <Pressable style={styles.footerLink} onPress={askSignOut} accessibilityRole="button">
           <Ionicons name="log-out-outline" size={14} color={C.bad} />
           <Text style={[styles.footerText, { color: C.bad }]}>Sign out</Text>
         </Pressable>

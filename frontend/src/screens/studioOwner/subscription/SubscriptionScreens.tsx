@@ -6,6 +6,7 @@ import { billingApi } from "../../../api/billingApi";
 import { setOnSubscriptionExpired } from "../../../api/client";
 import { useAuthStore } from "../../../auth/authStore";
 import { PaymentHistory, PlanPicker, StatusSummary, T, fmtDate } from "./SubscriptionParts";
+import { askSignOut } from "../../../ui/SignOutConfirm";
 
 // The studio's subscription status, shared by every screen. Rechecked every few minutes and
 // whenever the server answers "subscription expired", so expiry is noticed without a reload.
@@ -86,7 +87,7 @@ function SubscriptionExpired() {
       {!blocked && <Card title="Renew your subscription"><PlanPicker status={data} highlightRenew /></Card>}
       {data.history.length > 0 && <Card title="Payment history"><PaymentHistory items={data.history} /></Card>}
 
-      <Pressable style={styles.signOut} onPress={() => logout()} accessibilityRole="button">
+      <Pressable style={styles.signOut} onPress={askSignOut} accessibilityRole="button">
         <Ionicons name="log-out-outline" size={15} color={T.bad} />
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>

@@ -1,5 +1,91 @@
 # Project Handover — Studio OS
 
+## ▶ Latest update — 9 Nov 2026, second computer (read this first)
+
+Work done 7–9 Nov 2026 on the second computer (code folder `E:\project\MSproject`, SQL Server
+**Express** `localhost\SQLEXPRESS`). Sections 1–13 further down are the original 6 Nov handover and
+still apply.
+
+### Completed on this computer
+* **UI** (already pushed earlier): Midnight Blue theme, dashboard redesign, enquiry outcomes, calendar
+  links, shared Yes/No dialogs, PDF preview pop-ups, compact forms, Day board crew rows, sidebar hover,
+  "created" pop-up, detail-page icons.
+* **In this commit:**
+  * **Sign-out asks Yes/No** (`frontend/src/ui/SignOutConfirm.tsx`, used everywhere Sign out appears).
+  * **Photo delivery page** cleaned up (stats strip, status rows, Yes/No before revoke/lock/regenerate/remove).
+  * **Accessibility**: sidebar links and Super Admin module switches have proper names (`Toggle` gets
+    `accessibilityLabel`).
+  * **Bug fix – negative "Outstanding" on the dashboard.** It was *accepted quotations − payments*, so an
+    event with a price and payments but no accepted quotation in the range went negative. Now it is
+    each non-cancelled event's price minus its payments, never below 0 — the same rule as Reports.
+    (`StudioDashboardService.cs`, `StudioDashboardRepository.cs`)
+  * **Bug fix – cancelled events counted as owed** in the profit report / detailed report PDF (a
+    cancelled ₹15,000 event showed "Customer owes ₹15,000"). (`ProfitReportRepository.cs`, `ProfitReportService.cs`)
+  * **WhatsApp Cloud API backend** (Meta setup itself not finished — see "Next task"):
+    webhook `api/webhooks/whatsapp` (checks Meta's `X-Hub-Signature-256`), Super Admin endpoints
+    `api/admin/whatsapp/status | test-message | messages/{id}`, sender returns Meta's message id and
+    error code, Graph API version now `v25.0`. Settings: `WhatsApp:*` in `appsettings.json` (empty);
+    real values go in **user-secrets only**.
+  * **Playwright end-to-end tests** in `e2e/` — **120 tests, all passing** (9 Nov). Own QA database
+    `StudioOS_QA` (recreated each run; the real database is never touched), own API on :5238 and web
+    build on :8082, fake Meta server for WhatsApp. Run: `cd e2e; npm install; npx playwright install chromium;
+    npm run qa:build-web; npm test`. Report: `npx playwright show-report`.
+
+### Database
+* No new migrations (latest is still `20261021173655_EventStatusOngoing`).
+* Data **did** change on this computer (new customers, a payment, a quotation, gallery 54 with 128
+  photos), so a new backup was made:
+  `StudioOS-transfer-2026-11-06\database\StudioManagementDb_2026-11-09_182740.bak` (25.9 MB,
+  COPY_ONLY, checksummed, `RESTORE VERIFYONLY` passed; 46 tables, 10,220 rows — see the
+  `.row-counts.csv` beside it). SHA256 `728F601CBDDF547DB5ED89ED75D3817B865E860E1BFCA36438617DB5B90A3F57`.
+  The older backups in that folder were left untouched.
+* Uploads synced into `StudioOS-transfer-2026-11-06\uploads` (661 files).
+* Gallery 54's originals came from `E:\photos` on this computer → copied to
+  `StudioOS-transfer-2026-11-06\original-photos\E_photos` (162 files, 1.44 GB).
+
+### Back on the main computer — do this first
+1. Copy the whole `StudioOS-transfer-2026-11-06` folder from the external drive (it now has the 9 Nov backup,
+   uploads and `original-photos\E_photos`).
+2. `git status` (clean) → `git pull` (never `--force`).
+3. Restore the 9 Nov database over the old one (the old one is backed up automatically first):
+   `powershell -ExecutionPolicy Bypass -File tools\transfer\restore-database.ps1 -BakFile <transfer>\database\StudioManagementDb_2026-11-09_182740.bak -Replace`
+   → check the totals against `StudioManagementDb_2026-11-09_182740.row-counts.csv`.
+4. Uploads: `powershell -ExecutionPolicy Bypass -File tools\transfer\sync-uploads.ps1 -From <transfer>\uploads`
+5. Optional (only to copy gallery 54's originals for a selection): put `original-photos\E_photos` at `E:\photos`.
+6. If your SQL Server there is not the default instance, keep your own `Server=` in
+   `appsettings.Development.json` (that file's local change is deliberately **not** committed).
+7. Start the API and app (section 11.8) and check the dashboard's Outstanding is no longer negative.
+
+### Exact next task: finish the Meta WhatsApp Cloud API setup
+Status: Facebook account signed in; business portfolio **Studio OS** (id 1156444656876754) has no apps or
+WhatsApp accounts yet. **Meta developer registration is stuck at "Verify account"**: Meta's SMS never
+reached +91 8610692101, and Meta showed a "Slow down" limit after many attempts.
+Agreed details: app **Graffy Studio Management** (type Business, WhatsApp use case, under Studio OS),
+sender **+91 8610692101** (must NOT have the WhatsApp app installed), display name **Graffy Studio**,
+test recipient **+91 7448312831** (has WhatsApp).
+1. Check the 8610692101 SIM can receive an ordinary SMS (a new/swapped SIM in India blocks SMS for 24 h).
+2. developers.facebook.com → Get Started → **one** "Send SMS Again" → type the code → Continue.
+3. Create the app, add the number (code by SMS or voice), create a permanent token via a Studio OS
+   system user (`whatsapp_business_messaging`, `whatsapp_business_management`).
+4. Store values with `dotnet user-secrets set` in `backend/StudioManagement.API`: `WhatsApp:Provider`=`CloudApi`,
+   `WhatsApp:PhoneNumberId`, `WhatsApp:BusinessAccountId`, `WhatsApp:AccessToken`, `WhatsApp:AppSecret`,
+   `WhatsApp:WebhookVerifyToken` (never in appsettings, the frontend or GitHub).
+5. Webhook for testing: expose **only a QA-database API instance** (never the real-database API on :5237),
+   e.g. API on :5239 against `StudioOS_QA` + `ssh -R 80:localhost:5239 nokey@localhost.run`; callback
+   `https://<tunnel>/api/webhooks/whatsapp`. Production needs the deployed HTTPS address instead.
+6. Send `hello_world` with `POST /api/admin/whatsapp/test-message` (Super Admin) and confirm the
+   delivered/read receipts at `GET /api/admin/whatsapp/messages/{id}`.
+
+### Known issues / risks
+* `dotnet build` shows 36 NuGet warnings (NU1902/NU1903 — packages with known vulnerabilities). Not
+  caused by this work; review package updates separately.
+* Dashboard "Expected Profit" is still *accepted quotations − expenses* (can mislead like Outstanding did).
+* Report PDFs: letter pairs like "ft"/"fk" are lost when copying/searching text (font ligatures); the
+  printed totals are correct.
+* Free tunnels (localhost.run) drop when idle and change address.
+
+---
+
 Prepared **6 Nov 2026** on the original laptop, before switching to another computer for a week.
 Everything below was checked against the real project at that moment.
 

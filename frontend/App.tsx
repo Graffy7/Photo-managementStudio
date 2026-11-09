@@ -8,6 +8,7 @@ import { CameraCursor } from "./src/cameraCursor/CameraCursor";
 import { installWebScrollbars } from "./src/ui/webScrollbars";
 import { installWebHover } from "./src/ui/webHover";
 import { SuccessPopup } from "./src/ui/SuccessPopup";
+import { SignOutConfirm } from "./src/ui/SignOutConfirm";
 import { installWebFont } from "./src/ui/webFont";
 import { PublicPhotoSelectionScreen } from "./src/screens/public/PublicPhotoSelectionScreen";
 import { ShutterProvider } from "./src/shutter";
@@ -62,6 +63,8 @@ function AuthenticatedApp() {
       <CameraCursor />
       {/* "Created!" pop-up after saving something new (see ui/SuccessPopup). */}
       <SuccessPopup />
+      {/* "Sign out?" Yes / No, for every Sign out button (see ui/SignOutConfirm). */}
+      <SignOutConfirm />
       <StatusBar style="dark" />
     </QueryClientProvider>
   );

@@ -10,6 +10,7 @@ import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { ExpiryBanner } from "../screens/studioOwner/subscription/SubscriptionScreens";
 import { useBreakpoint } from "../ui/useBreakpoint";
 import { colors, radius, space, touch, type } from "../ui/theme";
+import { askSignOut } from "../ui/SignOutConfirm";
 
 interface WebAppShellProps {
   children: ReactNode;
@@ -113,7 +114,7 @@ export function WebAppShell({ children, navigationRef, activeRoute }: WebAppShel
             </View>
             <ScrollView contentContainerStyle={styles.sheetBody}>
               <NavList activeRoute={activeRoute} onNavigate={go} large />
-              <Pressable style={styles.signOut} onPress={() => logout()} accessibilityRole="button">
+              <Pressable style={styles.signOut} onPress={askSignOut} accessibilityRole="button" accessibilityLabel="Sign out">
                 <Ionicons name="log-out-outline" size={22} color={colors.textMuted} />
                 <Text style={styles.signOutText}>Sign out</Text>
               </Pressable>

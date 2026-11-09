@@ -24,7 +24,8 @@ import type { OwnerGallery, OwnerPhoto, PhotoFilter, SkippedFiles } from "../../
 import { Button } from "../../ui/Button";
 import { Skeleton } from "../../ui/Skeleton";
 import { EmptyState } from "../../ui/EmptyState";
-import { SummaryStrip } from "../../ui/Detail";
+import { SummaryStrip, InfoGrid, InfoItem, ProgressLine } from "../../ui/Detail";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { StepGuide, StepTitle, type Step } from "../../ui/Steps";
 import { colors, radius, space, type, transition, hoverMotion } from "../../ui/theme";
 import { hoverGlow, hoverLift } from "../../ui/webHover";
@@ -209,32 +210,35 @@ function Header({ gallery, onBack }: { gallery: OwnerGallery; onBack: () => void
 function Stats({ gallery }: { gallery: OwnerGallery }) {
   const c = gallery.counts;
   if (c.total === 0) return null;
+  // Each fact gets an icon; it turns green once that step has happened and stays grey while waiting.
+  const done = (yes: boolean) => (yes ? colors.success : colors.textMuted);
   return (
     <View style={{ gap: space.md }}>
-      <SummaryStrip items={[
-        { label: "Photos", value: String(c.total) },
-        { label: "Selected", value: String(c.selected), tone: colors.success },
-        { label: "Normal", value: String(c.normal), tone: colors.normal },
-        { label: "Big", value: String(c.big), tone: colors.big },
-      ]} />
-      <View style={styles.metaRow}>
-        <Meta label="Selection" value={gallery.isLocked ? "Locked" : "Open"} />
-        <Meta label="Link opened" value={formatDateTime(gallery.firstOpenedAt)} />
-        <Meta label="Last change" value={formatDateTime(gallery.lastSelectionAt)} />
-        <Meta
+      <SummaryStrip
+        items={[
+          { label: "Photos", value: String(c.total), icon: "images-outline", color: colors.primaryFill },
+          { label: "Selected", value: String(c.selected), tone: colors.success, icon: "checkmark-circle-outline", color: "#1FA978" },
+          { label: "Normal size", value: String(c.normal), tone: colors.normal, icon: "image-outline", color: "#2F8FD8" },
+          { label: "Big size", value: String(c.big), tone: colors.big, icon: "expand-outline", color: "#E08A12" },
+        ]}
+        footer={<ProgressLine label={`${c.selected} of ${c.total} photos chosen by the customer`} value={c.total ? c.selected / c.total : 0} />}
+      />
+      <InfoGrid>
+        <InfoItem
+          icon={gallery.isLocked ? "lock-closed-outline" : "lock-open-outline"}
+          iconColor={gallery.isLocked ? colors.warning : colors.primary}
+          label="Selection"
+          value={gallery.isLocked ? "Locked" : "Open — customer can still change it"}
+        />
+        <InfoItem icon="eye-outline" iconColor={done(!!gallery.firstOpenedAt)} label="Link opened" value={gallery.firstOpenedAt ? formatDateTime(gallery.firstOpenedAt) : "Not opened yet"} />
+        <InfoItem icon="time-outline" iconColor={done(!!gallery.lastSelectionAt)} label="Last change" value={gallery.lastSelectionAt ? formatDateTime(gallery.lastSelectionAt) : "No changes yet"} />
+        <InfoItem
+          icon={gallery.submittedAt ? "checkmark-done-outline" : "hourglass-outline"}
+          iconColor={done(!!gallery.submittedAt)}
           label="Submitted"
           value={gallery.submittedAt ? `${formatDateTime(gallery.submittedAt)}${gallery.changedSinceSubmit ? " · edited since" : ""}` : "Not yet"}
         />
-      </View>
-    </View>
-  );
-}
-
-function Meta({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.meta}>
-      <Text style={styles.metaLabel}>{label}</Text>
-      <Text style={styles.metaValue}>{value}</Text>
+      </InfoGrid>
     </View>
   );
 }
@@ -511,32 +515,32 @@ function ImportedFolders({ gallery, onChanged, onRemoved }: {
               {s.photoCount} photo{s.photoCount === 1 ? "" : "s"}{s.selectedCount > 0 ? ` · ${s.selectedCount} selected by the customer` : ""}
             </Text>
           </View>
-          {confirming === s.sourceFolder ? (
-            <View style={styles.sourceConfirm}>
-              <Text style={styles.sourceConfirmText}>
-                Remove these {s.photoCount} photos from the gallery?
-                {s.selectedCount > 0 ? ` The customer's ${s.selectedCount} selection${s.selectedCount === 1 ? "" : "s"} on them will be lost.` : ""}
-                {" "}Your original files stay in the folder.
-              </Text>
-              <Pressable onPress={() => setConfirming(null)} disabled={removing}>
-                <Text style={styles.sourceCancel}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={() => remove(s.sourceFolder)} disabled={removing}>
-                {removing ? <ActivityIndicator size="small" color="#FF5C75" /> : <Text style={styles.sourceYes}>Yes, remove</Text>}
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              style={styles.dangerButton}
-              onPress={() => { setConfirming(s.sourceFolder); setError(null); onRemoved(null); }}
-              accessibilityLabel={`Remove photos imported from ${s.sourceFolder}`}
-            >
-              <Text style={styles.dangerButtonText}>Remove</Text>
-            </Pressable>
-          )}
+          <Pressable
+            style={styles.dangerButton}
+            onPress={() => { setConfirming(s.sourceFolder); setError(null); onRemoved(null); }}
+            accessibilityLabel={`Remove photos imported from ${s.sourceFolder}`}
+          >
+            <Text style={styles.dangerButtonText}>Remove</Text>
+          </Pressable>
         </View>
       ))}
       {!!error && <Text style={styles.error}>{error}</Text>}
+      {(() => {
+        const s = gallery.importedSources.find((x) => x.sourceFolder === confirming);
+        return (
+          <ConfirmDialog
+            visible={!!s}
+            icon="images-outline"
+            title={`Remove ${s?.photoCount ?? ""} photos from the gallery?`}
+            message={`${s && s.selectedCount > 0 ? `The customer's ${s.selectedCount} selection${s.selectedCount === 1 ? "" : "s"} on them will be lost. ` : ""}Your original files stay in the folder on your computer.`}
+            confirmLabel="Yes"
+            cancelLabel="No"
+            busy={removing}
+            onCancel={() => setConfirming(null)}
+            onConfirm={() => s && remove(s.sourceFolder)}
+          />
+        );
+      })()}
     </View>
   );
 }
@@ -639,6 +643,36 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
       onChanged();
     });
 
+  // Revoking, locking/unlocking and replacing a live link ask Yes / No first.
+  const [ask, setAsk] = useState<"revoke" | "lock" | "regenerate" | null>(null);
+  const confirmAsk = () => {
+    const what = ask;
+    setAsk(null);
+    if (what === "revoke") revoke();
+    else if (what === "lock") toggleLock();
+    else if (what === "regenerate") generate();
+  };
+  const askText = {
+    revoke: { title: "Revoke this link?", message: "The customer's link stops working straight away. Their choices so far are kept.", icon: "close-circle-outline" as const, tone: "danger" as const },
+    lock: gallery.isLocked
+      ? { title: "Unlock the selection?", message: "The customer will be able to change their choices again.", icon: "lock-open-outline" as const, tone: "primary" as const }
+      : { title: "Lock the selection?", message: "The customer can still open the link but can't change their choices. You can unlock it later.", icon: "lock-closed-outline" as const, tone: "primary" as const },
+    regenerate: { title: "Create a new link?", message: `The current link stops working and a new one valid for ${days} days replaces it. Send the new one to the customer.`, icon: "refresh-outline" as const, tone: "primary" as const },
+  };
+  const confirmDialog = ask ? (
+    <ConfirmDialog
+      visible
+      title={askText[ask].title}
+      message={askText[ask].message}
+      icon={askText[ask].icon}
+      tone={askText[ask].tone}
+      confirmLabel="Yes"
+      cancelLabel="No"
+      onCancel={() => setAsk(null)}
+      onConfirm={confirmAsk}
+    />
+  ) : null;
+
   const exportCsv = () =>
     run("export", async () => {
       const bytes = await photoSelectionApi.exportCsv(gallery.galleryId);
@@ -714,7 +748,7 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
                   <Text style={styles.secondaryButtonText}>Send reminder</Text>
                 </Pressable>
               )}
-              <Pressable style={styles.dangerButton} disabled={busy !== null} onPress={revoke}>
+              <Pressable style={styles.dangerButton} disabled={busy !== null} onPress={() => setAsk("revoke")}>
                 <Text style={styles.dangerButtonText}>Revoke link</Text>
               </Pressable>
             </View>
@@ -731,7 +765,7 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
               <Pressable
                 style={[activeLink ? styles.secondaryButton : styles.primaryButton, busy !== null && styles.disabled]}
                 disabled={busy !== null}
-                onPress={generate}
+                onPress={() => (activeLink ? setAsk("regenerate") : generate())}
               >
                 <Text style={activeLink ? styles.secondaryButtonText : styles.primaryButtonText}>{activeLink ? "Generate new link" : "Generate link"}</Text>
               </Pressable>
@@ -747,16 +781,18 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
 
       {!noPhotos && (
         <View style={[styles.actionRow, styles.divider]}>
-          <Pressable style={[styles.secondaryButton, busy !== null && styles.disabled]} disabled={busy !== null} onPress={toggleLock}>
-            <Text style={styles.secondaryButtonText}>{gallery.isLocked ? "🔓 Unlock selection" : "🔒 Lock selection"}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.secondaryButton, (gallery.counts.selected === 0 || busy !== null) && styles.disabled]}
+          <Button
+            label={gallery.isLocked ? "Unlock selection" : "Lock selection"}
+            icon={gallery.isLocked ? "lock-open-outline" : "lock-closed-outline"}
+            disabled={busy !== null}
+            onPress={() => setAsk("lock")}
+          />
+          <Button
+            label="Export selection (CSV)"
+            icon="download-outline"
             disabled={gallery.counts.selected === 0 || busy !== null}
             onPress={exportCsv}
-          >
-            <Text style={styles.secondaryButtonText}>Export selection (CSV)</Text>
-          </Pressable>
+          />
           <Text style={styles.hintSmall}>
             {gallery.isLocked
               ? "Locked: the customer can still open the link but can't change anything."
@@ -764,6 +800,7 @@ function LinkPanel({ gallery, onChanged }: { gallery: OwnerGallery; onChanged: (
           </Text>
         </View>
       )}
+      {confirmDialog}
     </View>
   );
 }

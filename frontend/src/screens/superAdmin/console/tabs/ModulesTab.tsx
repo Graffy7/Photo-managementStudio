@@ -81,6 +81,7 @@ export function ModulesTab({ studioId, studioName }: { studioId: number; studioN
               </View>
               {busy ? <ActivityIndicator size="small" color={C.accent} /> : (
                 <Toggle
+                  accessibilityLabel={feature.featureName}
                   value={feature.isEnabled}
                   onValueChange={(on) => (on ? toggle.mutate({ code: feature.featureCode, on: true }) : setPendingOff(feature))}
                 />

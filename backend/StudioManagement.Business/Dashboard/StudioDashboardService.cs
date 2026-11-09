@@ -43,6 +43,9 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
 
         var quotationValue = await repository.SumAcceptedQuotationValueAsync(studioId, range.Start, range.End, ct);
         var collectedRevenue = await repository.SumCollectedRevenueAsync(studioId, range.Start, range.End, ct);
+        // Not quotations minus payments: payments on events without an accepted quotation (or with
+        // one dated in another range) made that negative.
+        var outstanding = await repository.SumOutstandingAsync(studioId, range.Start, range.End, ct);
         var totalExpenses = await repository.SumExpensesAsync(studioId, range.Start, range.End, ct);
         var pendingExpenses = await repository.SumPendingExpensesAsync(studioId, range.Start, range.End, ct);
 
@@ -80,7 +83,7 @@ public class StudioDashboardService(IStudioDashboardRepository repository, IUnit
 
             QuotationValue = quotationValue,
             CollectedRevenue = collectedRevenue,
-            OutstandingBalance = quotationValue - collectedRevenue,
+            OutstandingBalance = outstanding,
             TotalExpenses = totalExpenses,
             PaidExpenses = totalExpenses - pendingExpenses,
             PendingExpenses = pendingExpenses,

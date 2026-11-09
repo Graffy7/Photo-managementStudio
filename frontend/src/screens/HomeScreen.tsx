@@ -19,6 +19,7 @@ import { useRefetchOnFocus } from "../hooks/useRefetchOnFocus";
 import { localDateString } from "../utils/localDate";
 import { ROUTE_MODULES, useModules } from "../hooks/useModules";
 import { hoverGlow } from "../ui/webHover";
+import { askSignOut } from "../ui/SignOutConfirm";
 
 // The full DATE_RANGE_PRESETS list is shared with Reports, which still shows every preset —
 // the Dashboard's chip row only surfaces the longer-range ones plus a manual custom range.
@@ -347,7 +348,7 @@ export function HomeScreen() {
               <Text style={styles.nativeNavButtonText}>{NATIVE_NAV_LABELS[route] ?? route}</Text>
             </Pressable>
           ))}
-          <Pressable style={styles.nativeNavButton} onPress={() => logout()}>
+          <Pressable style={styles.nativeNavButton} onPress={askSignOut}>
             <Text style={[styles.nativeNavButtonText, { color: D.red }]}>Sign out</Text>
           </Pressable>
         </ScrollView>

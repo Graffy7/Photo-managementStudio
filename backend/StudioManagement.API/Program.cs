@@ -226,6 +226,7 @@ else
 {
     builder.Services.AddSingleton<IWhatsAppSender, LoggingWhatsAppSender>();
 }
+builder.Services.AddSingleton<WhatsAppDeliveryTracker>();
 builder.Services.AddScoped<IWhatsAppReminderLogRepository, WhatsAppReminderLogRepository>();
 builder.Services.AddScoped<IWhatsAppReminderService, WhatsAppReminderService>();
 

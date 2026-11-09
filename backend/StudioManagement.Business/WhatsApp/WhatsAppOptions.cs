@@ -13,9 +13,19 @@ public class WhatsAppOptions
     // sent through the WhatsApp Business Cloud API using the settings below.
     public string Provider { get; set; } = LogProvider;
 
+    // Secrets (AccessToken, AppSecret, WebhookVerifyToken) belong in user-secrets / environment
+    // variables (WhatsApp__AccessToken ...), never in appsettings.json or the frontend.
     public string PhoneNumberId { get; set; } = "";
+    public string BusinessAccountId { get; set; } = "";
     public string AccessToken { get; set; } = "";
-    public string ApiVersion { get; set; } = "v20.0";
+    // Graph API versions are retired about two years after release; v20.0 no longer works.
+    public string ApiVersion { get; set; } = "v25.0";
+
+    // Webhooks (delivery receipts and incoming messages). AppSecret is the Meta app's secret: Meta signs
+    // every webhook call with it (X-Hub-Signature-256), and calls without a valid signature are refused.
+    // WebhookVerifyToken is any long random string, entered both here and in the app's webhook settings.
+    public string AppSecret { get; set; } = "";
+    public string WebhookVerifyToken { get; set; } = "";
     public string ApiBaseUrl { get; set; } = "https://graph.facebook.com";
 
     // Meta only lets a business START a conversation with an approved message template (free text is

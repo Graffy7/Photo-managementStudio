@@ -1,0 +1,18 @@
+{
+  "name": "studio-os-e2e",
+  "private": true,
+  "description": "Playwright end-to-end tests for Studio OS, run against a separate QA database (StudioOS_QA).",
+  "scripts": {
+    "qa:reset-db": "node scripts/reset-qa-db.mjs",
+    "qa:build-web": "node scripts/build-qa-web.mjs",
+    "test": "npm run qa:reset-db && playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "pdfjs-dist": "^4.10.38",
+    "serve": "^14.2.7",
+    "typescript": "^7.0.2"
+  }
+}

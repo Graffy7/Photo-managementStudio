@@ -8,6 +8,9 @@ public interface IStudioDashboardRepository
     Task<int> CountEventsByStatusAsync(int studioId, DateTime start, DateTime end, string? status, CancellationToken ct = default);
     Task<decimal> SumAcceptedQuotationValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<decimal> SumCollectedRevenueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
+    // What customers still owe on the non-cancelled events dated in [start, end): each event's
+    // agreed total minus its completed payments, never below zero (same rule as the Reports page).
+    Task<decimal> SumOutstandingAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     // The agreed totals (Event.Budget) of the events dated in the range, cancelled ones left out.
     Task<decimal> SumEventValueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);
     Task<decimal> SumExpensesAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default);

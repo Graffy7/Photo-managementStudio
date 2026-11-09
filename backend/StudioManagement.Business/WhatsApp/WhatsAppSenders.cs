@@ -5,10 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace StudioManagement.Business.WhatsApp;
 
-public record WhatsAppSendResult(bool Success, string? Error = null, bool Simulated = false);
+// MessageId: Meta's id for the sent message ("wamid..."); delivery receipts arriving on the webhook carry it.
+public record WhatsAppSendResult(bool Success, string? Error = null, bool Simulated = false, string? MessageId = null, int? ErrorCode = null);
 
 // An approved Meta message template and the values for its {{1}}, {{2}}... placeholders, in order.
-public record WhatsAppTemplate(string Name, IReadOnlyList<string> Parameters);
+// Language: the template's language code when it differs from WhatsApp:TemplateLanguage (e.g. "en_US").
+public record WhatsAppTemplate(string Name, IReadOnlyList<string> Parameters, string? Language = null);
 
 // The one place that talks to WhatsApp. Everything above it decides WHO gets WHAT; this only delivers
 // a piece of text to a phone number.
@@ -68,8 +70,10 @@ public class CloudApiWhatsAppSender(WhatsAppOptions options, ILogger<CloudApiWha
                 template = new
                 {
                     name = template.Name,
-                    language = new { code = options.TemplateLanguage },
-                    components = new[]
+                    language = new { code = template.Language ?? options.TemplateLanguage },
+                    // A template without placeholders (e.g. Meta's hello_world) must be sent with no
+                    // components at all - an empty parameter list is refused.
+                    components = template.Parameters.Count == 0 ? null : new[]
                     {
                         new
                         {
@@ -79,7 +83,7 @@ public class CloudApiWhatsAppSender(WhatsAppOptions options, ILogger<CloudApiWha
                         }
                     }
                 }
-            });
+            }, OmitNulls);
 
         try
         {
@@ -90,14 +94,17 @@ public class CloudApiWhatsAppSender(WhatsAppOptions options, ILogger<CloudApiWha
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.AccessToken);
 
             using var response = await Http.SendAsync(request, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
             if (response.IsSuccessStatusCode)
             {
-                return new WhatsAppSendResult(true);
+                var messageId = ReadMessageId(responseBody);
+                logger.LogInformation("WhatsApp message {MessageId} accepted by Meta for {Phone}", messageId, WhatsAppPhone.Mask(phoneNumber));
+                return new WhatsAppSendResult(true, MessageId: messageId);
             }
 
-            var error = await ReadErrorAsync(response, ct);
-            logger.LogWarning("WhatsApp send to {Phone} failed: {Status} {Error}", WhatsAppPhone.Mask(phoneNumber), (int)response.StatusCode, error);
-            return new WhatsAppSendResult(false, error);
+            var (error, code) = ReadError(responseBody, (int)response.StatusCode);
+            logger.LogWarning("WhatsApp send to {Phone} failed: {Status} {Code} {Error}", WhatsAppPhone.Mask(phoneNumber), (int)response.StatusCode, code, error);
+            return new WhatsAppSendResult(false, error, ErrorCode: code);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -118,21 +125,49 @@ public class CloudApiWhatsAppSender(WhatsAppOptions options, ILogger<CloudApiWha
         return flat.Length == 0 ? "-" : flat;
     }
 
-    private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken ct)
+    private static readonly JsonSerializerOptions OmitNulls = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
+
+    // {"messages":[{"id":"wamid..."}]}
+    private static string? ReadMessageId(string body)
     {
         try
         {
-            using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-            if (doc.RootElement.TryGetProperty("error", out var error) && error.TryGetProperty("message", out var message))
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("messages", out var messages) && messages.ValueKind == JsonValueKind.Array &&
+                messages.GetArrayLength() > 0 && messages[0].TryGetProperty("id", out var id))
             {
-                var text = message.GetString() ?? "WhatsApp rejected the message.";
-                return text.Length > 300 ? text[..300] : text;
+                return id.GetString();
             }
         }
         catch (JsonException)
         {
         }
 
-        return $"WhatsApp rejected the message ({(int)response.StatusCode}).";
+        return null;
+    }
+
+    // Meta's error message and code (e.g. 190 = invalid/expired token, 131030 = recipient not in the
+    // test list, 132001 = template doesn't exist, 131047 = 24-hour window closed).
+    private static (string Message, int? Code) ReadError(string body, int status)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var error) && error.TryGetProperty("message", out var message))
+            {
+                var text = message.GetString() ?? "WhatsApp rejected the message.";
+                if (error.TryGetProperty("error_data", out var data) && data.TryGetProperty("details", out var details) && details.GetString() is { Length: > 0 } more)
+                {
+                    text = $"{text} {more}";
+                }
+                int? code = error.TryGetProperty("code", out var c) && c.TryGetInt32(out var n) ? n : null;
+                return (text.Length > 300 ? text[..300] : text, code);
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return ($"WhatsApp rejected the message ({status}).", null);
     }
 }

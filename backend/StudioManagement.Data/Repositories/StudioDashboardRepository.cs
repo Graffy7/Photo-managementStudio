@@ -31,6 +31,15 @@ public class StudioDashboardRepository(AppDbContext context) : IStudioDashboardR
             .SumAsync(q => (decimal?)q.GrandTotal, ct)
             .ContinueWith(t => t.Result ?? 0m, ct);
 
+    public async Task<decimal> SumOutstandingAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default)
+    {
+        var balances = await context.Events
+            .Where(e => e.StudioId == studioId && e.EventDate >= start && e.EventDate < end && e.EventStatus != EventStatuses.Cancelled)
+            .Select(e => (e.Budget ?? 0m) - (e.Payments.Where(p => p.PaymentStatus == PaymentStatuses.Completed).Sum(p => (decimal?)p.Amount) ?? 0m))
+            .ToListAsync(ct);
+        return balances.Where(b => b > 0).Sum();
+    }
+
     public Task<decimal> SumCollectedRevenueAsync(int studioId, DateTime start, DateTime end, CancellationToken ct = default) =>
         context.Payments
             .Where(p => p.StudioId == studioId && p.PaymentDate >= start && p.PaymentDate < end && p.PaymentStatus == PaymentStatuses.Completed)
